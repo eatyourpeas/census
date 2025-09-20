@@ -1,5 +1,3 @@
-import json
-from django.urls import reverse
 from census_app.surveys.utils import encrypt_sensitive, decrypt_sensitive
 
 

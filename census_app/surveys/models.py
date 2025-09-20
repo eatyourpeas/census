@@ -1,12 +1,9 @@
 from __future__ import annotations
-
-import json
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from .utils import encrypt_sensitive, decrypt_sensitive, make_key_hash, verify_key
+from .utils import encrypt_sensitive, decrypt_sensitive, make_key_hash
 
 
 User = get_user_model()

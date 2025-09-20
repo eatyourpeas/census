@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-from base64 import urlsafe_b64encode, urlsafe_b64decode
 from typing import Tuple
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
