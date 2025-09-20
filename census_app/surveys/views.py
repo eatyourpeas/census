@@ -1,0 +1,1012 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import Http404, HttpRequest, HttpResponse
+from django.http import StreamingHttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_http_methods
+from django_ratelimit.decorators import ratelimit
+from django.db import models
+from django import forms
+from django.utils.text import slugify
+from .models import Survey, SurveyResponse, SurveyQuestion, QuestionGroup
+from .utils import verify_key
+from .markdown_import import parse_bulk_markdown, BulkParseError
+from .color import hex_to_oklch
+
+# Demographics field definitions: key -> display label
+DEMOGRAPHIC_FIELD_DEFS: dict[str, str] = {
+    "first_name": "First name",
+    "surname": "Surname",
+    "date_of_birth": "Date of birth",
+    "ethnicity": "Ethnicity",
+    "sex": "Sex",
+    "gender": "Gender",
+    "nhs_number": "NHS number",
+    "hospital_number": "Hospital number",
+    "post_code": "Post code",
+    "address_first_line": "Address line 1",
+    "address_second_line": "Address line 2",
+    "city": "City",
+    "country": "Country",
+}
+
+def _get_patient_group_and_fields(survey: Survey) -> tuple[QuestionGroup | None, list[str]]:
+    group = survey.question_groups.filter(schema__template="patient_details_encrypted").first()
+    if not group:
+        return None, []
+    raw = group.schema or {}
+    sel = raw.get("fields") or []
+    # sanitize selection
+    fields = [k for k in sel if k in DEMOGRAPHIC_FIELD_DEFS]
+    return group, fields
+
+
+# Professional details (non-encrypted) field definitions
+PROFESSIONAL_FIELD_DEFS: dict[str, str] = {
+    "title": "Title",
+    "first_name": "First name",
+    "surname": "Surname",
+    "job_title": "Job title",
+    "employing_trust": "Employing Trust",
+    "employing_health_board": "Employing Health Board",
+    "integrated_care_board": "Integrated Care Board",
+    "nhs_england_region": "NHS England region",
+    "country": "Country",
+    "gp_surgery": "GP surgery",
+}
+
+# Fields that can optionally include an ODS code alongside their text
+PROFESSIONAL_ODS_FIELDS = {
+    "employing_trust",
+    "employing_health_board",
+    "integrated_care_board",
+    "gp_surgery",
+}
+
+
+def _get_professional_group_and_fields(
+    survey: Survey,
+) -> tuple[QuestionGroup | None, list[str], dict[str, bool]]:
+    """Return the Professional details group, selected fields, and ODS toggles map.
+
+    Schema example:
+    {"template": "professional_details", "fields": [...], "ods": {field: bool}}
+    """
+    group = survey.question_groups.filter(schema__template="professional_details").first()
+    if not group:
+        return None, [], {}
+    raw = group.schema or {}
+    sel = raw.get("fields") or []
+    fields = [k for k in sel if k in PROFESSIONAL_FIELD_DEFS]
+    ods_map = raw.get("ods") or {}
+    # sanitize ods map to only allowed fields
+    ods_clean = {k: bool(ods_map.get(k)) for k in PROFESSIONAL_ODS_FIELDS}
+    return group, fields, ods_clean
+
+
+def survey_list(request: HttpRequest) -> HttpResponse:
+    if request.user.is_authenticated:
+        surveys = Survey.objects.filter(owner=request.user)
+    else:
+        surveys = Survey.objects.none()
+    return render(request, "surveys/list.html", {"surveys": surveys})
+
+
+class SurveyCreateForm(forms.ModelForm):
+    class Meta:
+        model = Survey
+        fields = ["name", "slug", "description"]
+
+    def clean_slug(self):
+        s = self.cleaned_data.get("slug") or slugify(self.cleaned_data.get("name", ""))
+        if not s:
+            raise forms.ValidationError("Provide a name or slug")
+        if Survey.objects.filter(slug=s).exists():
+            raise forms.ValidationError("Slug already in use")
+        return s
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def survey_create(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        form = SurveyCreateForm(request.POST)
+        if form.is_valid():
+            survey: Survey = form.save(commit=False)
+            survey.owner = request.user
+            survey.save()
+            return redirect("surveys:builder", slug=survey.slug)
+    else:
+        form = SurveyCreateForm()
+    return render(request, "surveys/create.html", {"form": form})
+
+
+@require_http_methods(["GET", "POST"])
+@ratelimit(key="ip", rate="10/m", block=True)
+def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    if not survey.is_live() and not request.user.is_authenticated:
+        raise Http404
+
+    # Prevent the survey owner from submitting responses directly in the live view
+    if request.user.is_authenticated and survey.owner_id == request.user.id:
+        messages.info(request, "You are the owner. Use the Builder to edit or Preview to see the participant view.")
+        return redirect("surveys:builder", slug=slug)
+
+    # Determine demographics and professional configuration upfront
+    patient_group, demographics_fields = _get_patient_group_and_fields(survey)
+    prof_group, professional_fields, professional_ods = _get_professional_group_and_fields(survey)
+
+    if request.method == "POST":
+        answers = {}
+        for q in survey.questions.all():
+            key = f"q_{q.id}"
+            value = request.POST.getlist(key) if q.type in {"mc_multi", "orderable"} else request.POST.get(key)
+            answers[str(q.id)] = value
+
+        # Collect professional details (non-encrypted)
+        professional_payload = {}
+        for field in professional_fields:
+            val = request.POST.get(f"prof_{field}")
+            if val:
+                professional_payload[field] = val
+            # Optional ODS code for certain fields
+            if professional_ods.get(field):
+                ods_val = request.POST.get(f"prof_{field}_ods")
+                if ods_val:
+                    professional_payload[f"{field}_ods"] = ods_val
+
+        resp = SurveyResponse(
+            survey=survey,
+            answers={**answers, **({"professional": professional_payload} if professional_payload else {})},
+            submitted_by=request.user if request.user.is_authenticated else None,
+        )
+        # Optionally store demographics if provided under special keys
+        demo = {}
+        for field in demographics_fields:
+            val = request.POST.get(field)
+            if val:
+                demo[field] = val
+        if demo and request.session.get("survey_key"):
+            resp.store_demographics(request.session["survey_key"], demo)
+        try:
+            resp.save()
+        except Exception:
+            messages.error(request, "You have already submitted this survey.")
+            return redirect("surveys:detail", slug=slug)
+
+        # Also write to filesystem as JSON, excluding enc demographics
+        out_dir = Path(settings.DATA_ROOT) / f"survey_{survey.id}"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_file = out_dir / f"response_{resp.id}.json"
+        out_file.write_text(
+            json.dumps({"answers": answers, "submitted_at": resp.submitted_at.isoformat()}, indent=2)
+        )
+
+        messages.success(request, "Thank you for your response.")
+        return redirect("surveys:detail", slug=slug)
+
+    _prepare_question_rendering(survey)
+    # Prepare ordered questions and attach a global index for numbering in templates
+    qs = list(survey.questions.select_related("group").all())
+    for i, q in enumerate(qs, start=1):
+        setattr(q, "idx", i)
+        prev_gid = qs[i-2].group_id if i-2 >= 0 else None
+        next_gid = qs[i].group_id if i < len(qs) else None
+        curr_gid = q.group_id
+        setattr(q, "group_start", bool(curr_gid and curr_gid != prev_gid))
+        setattr(q, "group_end", bool(curr_gid and curr_gid != next_gid))
+    show_patient_details = patient_group is not None
+    show_professional_details = prof_group is not None
+    # Style overrides
+    style = survey.style or {}
+    brand_overrides = {
+        "title": style.get("title"),
+        "icon_url": style.get("icon_url"),
+        "theme_name": style.get("theme_name"),
+        "font_heading": style.get("font_heading"),
+        "font_body": style.get("font_body"),
+        "primary_hex": style.get("primary_color"),
+        "font_css_url": style.get("font_css_url"),
+    }
+    ctx = {
+        "survey": survey,
+        "questions": qs,
+        "show_patient_details": show_patient_details,
+        "demographics_fields": demographics_fields,
+        "demographic_defs": DEMOGRAPHIC_FIELD_DEFS,
+        "demographics_fields_with_labels": [(k, DEMOGRAPHIC_FIELD_DEFS[k]) for k in demographics_fields],
+        "show_professional_details": show_professional_details,
+        "professional_fields": professional_fields,
+        "professional_defs": PROFESSIONAL_FIELD_DEFS,
+        "professional_ods": professional_ods,
+    }
+    if any(v for k, v in brand_overrides.items() if k != "primary_hex") or brand_overrides.get("primary_hex"):
+        # Only override if any per-survey style is set; otherwise use context processor defaults
+        ctx["brand"] = {
+            "title": brand_overrides.get("title") or getattr(settings, "BRAND_TITLE", "Census"),
+            "icon_url": brand_overrides.get("icon_url") or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
+            "theme_name": brand_overrides.get("theme_name") or getattr(settings, "BRAND_THEME", "census"),
+            "font_heading": brand_overrides.get("font_heading") or getattr(settings, "BRAND_FONT_HEADING", "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'"),
+            "font_body": brand_overrides.get("font_body") or getattr(settings, "BRAND_FONT_BODY", "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"),
+            "font_css_url": brand_overrides.get("font_css_url") or getattr(settings, "BRAND_FONT_CSS_URL", "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap"),
+            "primary": hex_to_oklch(brand_overrides.get("primary_hex") or ""),
+        }
+    return render(
+        request,
+        "surveys/detail.html",
+        ctx,
+    )
+
+
+@login_required
+@require_http_methods(["GET"])
+def survey_preview(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    # Render the same detail template but never accept POST here
+    _prepare_question_rendering(survey)
+    qs = list(survey.questions.select_related("group").all())
+    for i, q in enumerate(qs, start=1):
+        setattr(q, "idx", i)
+        prev_gid = qs[i-2].group_id if i-2 >= 0 else None
+        next_gid = qs[i].group_id if i < len(qs) else None
+        curr_gid = q.group_id
+        setattr(q, "group_start", bool(curr_gid and curr_gid != prev_gid))
+        setattr(q, "group_end", bool(curr_gid and curr_gid != next_gid))
+    patient_group, demographics_fields = _get_patient_group_and_fields(survey)
+    prof_group, professional_fields, professional_ods = _get_professional_group_and_fields(survey)
+    show_patient_details = patient_group is not None
+    show_professional_details = prof_group is not None
+    style = survey.style or {}
+    brand_overrides = {
+        "title": style.get("title"),
+        "icon_url": style.get("icon_url"),
+        "theme_name": style.get("theme_name"),
+        "font_heading": style.get("font_heading"),
+        "font_body": style.get("font_body"),
+        "primary_hex": style.get("primary_color"),
+        "font_css_url": style.get("font_css_url"),
+    }
+    ctx = {
+        "survey": survey,
+        "questions": qs,
+        "show_patient_details": show_patient_details,
+        "demographics_fields": demographics_fields,
+        "demographic_defs": DEMOGRAPHIC_FIELD_DEFS,
+        "demographics_fields_with_labels": [(k, DEMOGRAPHIC_FIELD_DEFS[k]) for k in demographics_fields],
+        "show_professional_details": show_professional_details,
+        "professional_fields": professional_fields,
+        "professional_defs": PROFESSIONAL_FIELD_DEFS,
+        "professional_ods": professional_ods,
+    }
+    if any(v for k, v in brand_overrides.items() if k != "primary_hex") or brand_overrides.get("primary_hex"):
+        ctx["brand"] = {
+            "title": brand_overrides.get("title") or getattr(settings, "BRAND_TITLE", "Census"),
+            "icon_url": brand_overrides.get("icon_url") or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
+            "theme_name": brand_overrides.get("theme_name") or getattr(settings, "BRAND_THEME", "census"),
+            "font_heading": brand_overrides.get("font_heading") or getattr(settings, "BRAND_FONT_HEADING", "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'"),
+            "font_body": brand_overrides.get("font_body") or getattr(settings, "BRAND_FONT_BODY", "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"),
+            "font_css_url": brand_overrides.get("font_css_url") or getattr(settings, "BRAND_FONT_CSS_URL", "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap"),
+            "primary": hex_to_oklch(brand_overrides.get("primary_hex") or ""),
+        }
+    return render(
+        request,
+        "surveys/detail.html",
+        ctx,
+    )
+
+
+def _prepare_question_rendering(survey: Survey) -> None:
+    """Attach view-only helper attributes for template rendering.
+    Currently sets num_scale_values for likert number-scale questions.
+    """
+    try:
+        questions = survey.questions.all()
+    except Exception:
+        return
+    for q in questions:
+        try:
+            if q.type == "likert" and isinstance(q.options, list) and q.options and isinstance(q.options[0], dict) and q.options[0].get("type") == "number-scale":
+                meta = q.options[0]
+                minv = int(meta.get("min", 1))
+                maxv = int(meta.get("max", 5))
+                if maxv < minv:
+                    minv, maxv = maxv, minv
+                setattr(q, "num_scale_values", list(range(minv, maxv + 1)))
+            else:
+                setattr(q, "num_scale_values", None)
+        except Exception:
+            setattr(q, "num_scale_values", None)
+
+
+@login_required
+def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    total = survey.responses.count()
+    groups = (
+        survey.question_groups
+        .filter(owner=request.user)
+        .annotate(q_count=models.Count("surveyquestion", filter=models.Q(surveyquestion__survey=survey)))
+        .order_by("name")
+    )
+    # Per-survey style overrides for branding on dashboard
+    style = survey.style or {}
+    brand_overrides = {
+        "title": style.get("title"),
+        "icon_url": style.get("icon_url"),
+        "theme_name": style.get("theme_name"),
+        "font_heading": style.get("font_heading"),
+        "font_body": style.get("font_body"),
+        "primary_hex": style.get("primary_color"),
+        "font_css_url": style.get("font_css_url"),
+    }
+    ctx = {"survey": survey, "total": total, "groups": groups}
+    if any(v for k, v in brand_overrides.items() if k != "primary_hex") or brand_overrides.get("primary_hex"):
+        ctx["brand"] = {
+            "title": brand_overrides.get("title") or getattr(settings, "BRAND_TITLE", "Census"),
+            "icon_url": brand_overrides.get("icon_url") or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
+            "theme_name": brand_overrides.get("theme_name") or getattr(settings, "BRAND_THEME", "census"),
+            "font_heading": brand_overrides.get("font_heading") or getattr(settings, "BRAND_FONT_HEADING", "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'"),
+            "font_body": brand_overrides.get("font_body") or getattr(settings, "BRAND_FONT_BODY", "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"),
+            "font_css_url": brand_overrides.get("font_css_url") or getattr(settings, "BRAND_FONT_CSS_URL", "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap"),
+            "primary": hex_to_oklch(brand_overrides.get("primary_hex") or ""),
+        }
+    return render(request, "surveys/dashboard.html", ctx)
+
+
+@login_required
+@require_http_methods(["POST"])
+def survey_style_update(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    style = survey.style or {}
+    # Accept simple fields; ignore if blank to allow fallback to platform defaults
+    for key in ("title", "icon_url", "theme_name", "font_heading", "font_body", "primary_color", "font_css_url"):
+        val = (request.POST.get(key) or "").strip()
+        if val:
+            style[key] = val
+        elif key in style:
+            # allow clearing by leaving blank
+            style.pop(key)
+    survey.style = style
+    survey.save(update_fields=["style"])
+    messages.success(request, "Style updated.")
+    return redirect("surveys:dashboard", slug=slug)
+
+
+@login_required
+def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    groups = survey.question_groups.filter(owner=request.user).order_by("name")
+    # Apply style overrides so navigation reflects survey branding while managing groups
+    style = survey.style or {}
+    brand_overrides = {
+        "title": style.get("title"),
+        "icon_url": style.get("icon_url"),
+        "theme_name": style.get("theme_name"),
+        "font_heading": style.get("font_heading"),
+        "font_body": style.get("font_body"),
+        "primary_hex": style.get("primary_color"),
+        "font_css_url": style.get("font_css_url"),
+    }
+    ctx = {"survey": survey, "groups": groups}
+    if any(v for k, v in brand_overrides.items() if k != "primary_hex") or brand_overrides.get("primary_hex"):
+        ctx["brand"] = {
+            "title": brand_overrides.get("title") or getattr(settings, "BRAND_TITLE", "Census"),
+            "icon_url": brand_overrides.get("icon_url") or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
+            "theme_name": brand_overrides.get("theme_name") or getattr(settings, "BRAND_THEME", "census"),
+            "font_heading": brand_overrides.get("font_heading") or getattr(settings, "BRAND_FONT_HEADING", "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'"),
+            "font_body": brand_overrides.get("font_body") or getattr(settings, "BRAND_FONT_BODY", "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"),
+            "font_css_url": brand_overrides.get("font_css_url") or getattr(settings, "BRAND_FONT_CSS_URL", "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap"),
+            "primary": hex_to_oklch(brand_overrides.get("primary_hex") or ""),
+        }
+    return render(request, "surveys/groups.html", ctx)
+
+
+@login_required
+@require_http_methods(["POST"])
+def survey_group_create(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    name = request.POST.get("name", "").strip() or "New Group"
+    g = QuestionGroup.objects.create(name=name, owner=request.user)
+    survey.question_groups.add(g)
+    messages.success(request, "Group created.")
+    return redirect("surveys:dashboard", slug=slug)
+
+
+@login_required
+@require_http_methods(["POST"])
+def survey_group_edit(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    group.name = request.POST.get("name", group.name)
+    group.description = request.POST.get("description", group.description)
+    group.save(update_fields=["name", "description"])
+    messages.success(request, "Group updated.")
+    return redirect("surveys:dashboard", slug=slug)
+
+
+@login_required
+@require_http_methods(["POST"])
+def survey_group_delete(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    # Detach from this survey; optionally delete the group if not used elsewhere
+    survey.question_groups.remove(group)
+    if not group.surveys.exists():
+        group.delete()
+    messages.success(request, "Group deleted.")
+    return redirect("surveys:dashboard", slug=slug)
+
+
+@login_required
+@require_http_methods(["POST"])
+def survey_group_create_from_template(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    template = request.POST.get("template")
+    if template == "patient_details_encrypted":
+        g = QuestionGroup.objects.create(
+            name="Patient details (encrypted)",
+            description="Optional demographics captured securely.",
+            owner=request.user,
+            schema={
+                "template": "patient_details_encrypted",
+                # default initial selection per spec
+                "fields": [
+                    "first_name",
+                    "surname",
+                    "hospital_number",
+                    "date_of_birth",
+                ],
+            },
+        )
+        survey.question_groups.add(g)
+        messages.success(request, "Patient details group created. These fields will appear at the bottom of the participant form.")
+    elif template == "professional_details":
+        g = QuestionGroup.objects.create(
+            name="Professional details",
+            description="Information about the professional.",
+            owner=request.user,
+            schema={
+                "template": "professional_details",
+                "fields": [
+                    "title",
+                    "first_name",
+                    "surname",
+                    "job_title",
+                    "employing_trust",
+                    "employing_health_board",
+                    "integrated_care_board",
+                    "nhs_england_region",
+                    "country",
+                    "gp_surgery",
+                ],
+                # ODS toggles per field
+                "ods": {
+                    "employing_trust": False,
+                    "employing_health_board": False,
+                    "integrated_care_board": False,
+                    "gp_surgery": False,
+                },
+            },
+        )
+        survey.question_groups.add(g)
+        messages.success(request, "Professional details group created.")
+    else:
+        messages.error(request, "Unknown template.")
+    return redirect("surveys:groups", slug=slug)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    if request.method == "POST":
+        key = request.POST.get("key", "").encode("utf-8")
+        if survey.key_hash and survey.key_salt and verify_key(key, bytes(survey.key_hash), bytes(survey.key_salt)):
+            request.session["survey_key"] = key
+            messages.success(request, "Survey unlocked for this session.")
+            return redirect("surveys:dashboard", slug=slug)
+        messages.error(request, "Invalid key.")
+    return render(request, "surveys/unlock.html", {"survey": survey})
+
+
+@login_required
+def survey_export_csv(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    if not request.session.get("survey_key"):
+        messages.error(request, "Unlock survey first.")
+        return redirect("surveys:unlock", slug=slug)
+
+    def generate():
+        import csv
+        from io import StringIO
+
+        header = ["id", "submitted_at", "answers"]
+        s = StringIO()
+        writer = csv.writer(s)
+        writer.writerow(header)
+        yield s.getvalue()
+        s.seek(0)
+        s.truncate(0)
+        for r in survey.responses.iterator():
+            writer.writerow([r.id, r.submitted_at.isoformat(), json.dumps(r.answers)])
+            yield s.getvalue()
+            s.seek(0)
+            s.truncate(0)
+
+    resp = StreamingHttpResponse(generate(), content_type="text/csv")
+    resp["Content-Disposition"] = f"attachment; filename={slug}-responses.csv"
+    return resp
+
+
+# -------------------- Builder (HTMX/SSR) --------------------
+
+@login_required
+def survey_builder(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    questions = survey.questions.select_related("group").all()
+    _prepare_question_rendering(survey)
+    groups = survey.question_groups.filter(owner=request.user)
+    patient_group, demographics_fields = _get_patient_group_and_fields(survey)
+    show_patient_details = patient_group is not None
+    include_imd = bool((patient_group.schema or {}).get("include_imd")) if patient_group else False
+    prof_group, professional_fields, professional_ods = _get_professional_group_and_fields(survey)
+    show_professional_details = prof_group is not None
+    professional_ods_on = [k for k, v in (professional_ods or {}).items() if v]
+    professional_ods_pairs = [{"key": k, "label": PROFESSIONAL_FIELD_DEFS[k], "on": bool(v)} for k, v in (professional_ods or {}).items()]
+    style = survey.style or {}
+    brand_overrides = {
+        "title": style.get("title"),
+        "icon_url": style.get("icon_url"),
+        "theme_name": style.get("theme_name"),
+        "font_heading": style.get("font_heading"),
+        "font_body": style.get("font_body"),
+        "primary_hex": style.get("primary_color"),
+        "font_css_url": style.get("font_css_url"),
+    }
+    ctx = {
+        "survey": survey,
+        "questions": questions,
+        "groups": groups,
+        "show_patient_details": show_patient_details,
+        "demographics_fields": demographics_fields,
+        "demographic_defs": DEMOGRAPHIC_FIELD_DEFS,
+        "demographics_fields_with_labels": [(k, DEMOGRAPHIC_FIELD_DEFS[k]) for k in demographics_fields],
+        "include_imd": include_imd,
+        "show_professional_details": show_professional_details,
+        "professional_fields": professional_fields,
+        "professional_defs": PROFESSIONAL_FIELD_DEFS,
+        "professional_ods": professional_ods,
+        "professional_ods_on": professional_ods_on,
+        "professional_ods_pairs": professional_ods_pairs,
+    }
+    if any(v for k, v in brand_overrides.items() if k != "primary_hex") or brand_overrides.get("primary_hex"):
+        ctx["brand"] = {
+            "title": brand_overrides.get("title") or getattr(settings, "BRAND_TITLE", "Census"),
+            "icon_url": brand_overrides.get("icon_url") or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
+            "theme_name": brand_overrides.get("theme_name") or getattr(settings, "BRAND_THEME", "census"),
+            "font_heading": brand_overrides.get("font_heading") or getattr(settings, "BRAND_FONT_HEADING", "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'"),
+            "font_body": brand_overrides.get("font_body") or getattr(settings, "BRAND_FONT_BODY", "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"),
+            "font_css_url": brand_overrides.get("font_css_url") or getattr(settings, "BRAND_FONT_CSS_URL", "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap"),
+            "primary": hex_to_oklch(brand_overrides.get("primary_hex") or ""),
+        }
+    return render(
+        request,
+        "surveys/builder.html",
+        ctx,
+    )
+
+
+@login_required
+def group_builder(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    questions = survey.questions.select_related("group").filter(group=group)
+    _prepare_question_rendering(survey)
+    patient_group, demographics_fields = _get_patient_group_and_fields(survey)
+    show_patient_details = patient_group is not None
+    include_imd = bool((patient_group.schema or {}).get("include_imd")) if patient_group else False
+    prof_group, professional_fields, professional_ods = _get_professional_group_and_fields(survey)
+    show_professional_details = prof_group is not None
+    professional_ods_on = [k for k, v in (professional_ods or {}).items() if v]
+    professional_ods_pairs = [{"key": k, "label": PROFESSIONAL_FIELD_DEFS[k], "on": bool(v)} for k, v in (professional_ods or {}).items()]
+    style = survey.style or {}
+    brand_overrides = {
+        "title": style.get("title"),
+        "icon_url": style.get("icon_url"),
+        "theme_name": style.get("theme_name"),
+        "font_heading": style.get("font_heading"),
+        "font_body": style.get("font_body"),
+        "primary": style.get("primary_color"),
+    }
+    ctx = {
+        "survey": survey,
+        "group": group,
+        "questions": questions,
+        "show_patient_details": show_patient_details,
+        "demographics_fields": demographics_fields,
+        "demographic_defs": DEMOGRAPHIC_FIELD_DEFS,
+        "demographics_fields_with_labels": [(k, DEMOGRAPHIC_FIELD_DEFS[k]) for k in demographics_fields],
+        "include_imd": include_imd,
+        "show_professional_details": show_professional_details,
+        "professional_fields": professional_fields,
+        "professional_defs": PROFESSIONAL_FIELD_DEFS,
+        "professional_ods": professional_ods,
+        "professional_ods_on": professional_ods_on,
+        "professional_ods_pairs": professional_ods_pairs,
+    }
+    if any(brand_overrides.values()):
+        ctx["brand"] = {
+            "title": brand_overrides.get("title") or getattr(settings, "BRAND_TITLE", "Census"),
+            "icon_url": brand_overrides.get("icon_url") or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
+            "theme_name": brand_overrides.get("theme_name") or getattr(settings, "BRAND_THEME", "census"),
+            "font_heading": brand_overrides.get("font_heading") or getattr(settings, "BRAND_FONT_HEADING", "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'"),
+            "font_body": brand_overrides.get("font_body") or getattr(settings, "BRAND_FONT_BODY", "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"),
+            "font_css_url": getattr(settings, "BRAND_FONT_CSS_URL", "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap"),
+            "primary": brand_overrides.get("primary"),
+        }
+    return render(
+        request,
+        "surveys/group_builder.html",
+        ctx,
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_demographics_update(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    group = survey.question_groups.filter(schema__template="patient_details_encrypted").first()
+    if not group:
+        raise Http404
+    selected = request.POST.getlist("fields")
+    allowed = [k for k in selected if k in DEMOGRAPHIC_FIELD_DEFS]
+    schema = group.schema or {}
+    schema["fields"] = allowed
+    # include_imd only applies when post_code is selected
+    include_imd_flag = request.POST.get("include_imd") in ("on", "true", "1")
+    if "post_code" in allowed:
+        schema["include_imd"] = bool(include_imd_flag)
+    else:
+        schema["include_imd"] = False
+    group.schema = schema
+    group.save(update_fields=["schema"])
+
+    # Re-render the partial for the builder preview
+    _, demographics_fields = _get_patient_group_and_fields(survey)
+    include_imd = bool((group.schema or {}).get("include_imd"))
+    return render(
+        request,
+        "surveys/partials/demographics_builder.html",
+        {
+            "survey": survey,
+            "show_patient_details": True,
+            "demographics_fields": demographics_fields,
+            "demographic_defs": DEMOGRAPHIC_FIELD_DEFS,
+            "include_imd": include_imd,
+        },
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_professional_update(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    group = survey.question_groups.filter(schema__template="professional_details").first()
+    if not group:
+        raise Http404
+    selected = request.POST.getlist("fields")
+    allowed = [k for k in selected if k in PROFESSIONAL_FIELD_DEFS]
+    schema = group.schema or {}
+    schema["fields"] = allowed
+    # ODS toggles per field
+    new_ods: dict[str, bool] = {}
+    for k in PROFESSIONAL_ODS_FIELDS:
+        if k in allowed:
+            new_ods[k] = request.POST.get(f"ods_{k}") in ("on", "true", "1")
+        else:
+            new_ods[k] = False
+    schema["ods"] = new_ods
+    group.schema = schema
+    group.save(update_fields=["schema"])
+
+    # Re-render the partial for the builder preview
+    _, professional_fields, professional_ods = _get_professional_group_and_fields(survey)
+    professional_ods_on = [k for k, v in (professional_ods or {}).items() if v]
+    professional_ods_pairs = [{"key": k, "label": PROFESSIONAL_FIELD_DEFS[k], "on": bool(v)} for k, v in (professional_ods or {}).items()]
+    return render(
+        request,
+        "surveys/partials/professional_builder.html",
+        {
+            "survey": survey,
+            "show_professional_details": True,
+            "professional_fields": professional_fields,
+            "professional_defs": PROFESSIONAL_FIELD_DEFS,
+            "professional_ods": professional_ods,
+            "professional_ods_on": professional_ods_on,
+            "professional_ods_pairs": professional_ods_pairs,
+        },
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_question_create(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    text = request.POST.get("text", "").strip()
+    qtype = request.POST.get("type", "text")
+    required = request.POST.get("required") == "on"
+    options_raw = request.POST.get("options", "").strip()
+    group_id = request.POST.get("group_id")
+    group = QuestionGroup.objects.filter(id=group_id, owner=request.user).first() if group_id else None
+    options: list[str] = []
+    # Process per-type extra fields
+    if qtype in {"mc_single", "mc_multi", "dropdown", "orderable", "image"}:
+        options = [o.strip() for o in options_raw.splitlines() if o.strip()] if options_raw else []
+    elif qtype == "likert":
+        likert_mode = request.POST.get("likert_mode", "categories")
+        if likert_mode == "categories":
+            cats_raw = request.POST.get("likert_categories", "").strip()
+            options = [o.strip() for o in cats_raw.splitlines() if o.strip()] if cats_raw else []
+        else:
+            # number scale captured as [min, max, left_label, right_label]
+            try:
+                min_v = int(request.POST.get("likert_min", "1"))
+                max_v = int(request.POST.get("likert_max", "5"))
+            except ValueError:
+                min_v, max_v = 1, 5
+            left_label = request.POST.get("likert_left_label", "")
+            right_label = request.POST.get("likert_right_label", "")
+            options = [
+                {"type": "number-scale", "min": min_v, "max": max_v, "left": left_label, "right": right_label}
+            ]
+    elif qtype == "text":
+        # store text format hint in options for downstream rendering
+        text_format = request.POST.get("text_format", "free")
+        options = [{"type": "text", "format": text_format}]
+    order = (survey.questions.aggregate(models.Max("order")).get("order__max") or 0) + 1
+    SurveyQuestion.objects.create(
+        survey=survey,
+        group=group,
+        text=text or "Untitled",
+        type=qtype,
+        options=options,
+        required=required,
+        order=order,
+    )
+    questions = survey.questions.select_related("group").all()
+    _prepare_question_rendering(survey)
+    groups = survey.question_groups.filter(owner=request.user)
+    return render(
+        request,
+        "surveys/partials/questions_list.html",
+        {"survey": survey, "questions": questions, "groups": groups, "message": "Question created."},
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_group_question_create(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    text = request.POST.get("text", "").strip()
+    qtype = request.POST.get("type", "text")
+    required = request.POST.get("required") == "on"
+    options_raw = request.POST.get("options", "").strip()
+    options: list[str] = []
+    if qtype in {"mc_single", "mc_multi", "dropdown", "orderable", "image"}:
+        options = [o.strip() for o in options_raw.splitlines() if o.strip()] if options_raw else []
+    elif qtype == "likert":
+        likert_mode = request.POST.get("likert_mode", "categories")
+        if likert_mode == "categories":
+            cats_raw = request.POST.get("likert_categories", "").strip()
+            options = [o.strip() for o in cats_raw.splitlines() if o.strip()] if cats_raw else []
+        else:
+            try:
+                min_v = int(request.POST.get("likert_min", "1"))
+                max_v = int(request.POST.get("likert_max", "5"))
+            except ValueError:
+                min_v, max_v = 1, 5
+            left_label = request.POST.get("likert_left_label", "")
+            right_label = request.POST.get("likert_right_label", "")
+            options = [
+                {"type": "number-scale", "min": min_v, "max": max_v, "left": left_label, "right": right_label}
+            ]
+    elif qtype == "text":
+        text_format = request.POST.get("text_format", "free")
+        options = [{"type": "text", "format": text_format}]
+    order = (survey.questions.aggregate(models.Max("order")).get("order__max") or 0) + 1
+    SurveyQuestion.objects.create(
+        survey=survey,
+        group=group,
+        text=text or "Untitled",
+        type=qtype,
+        options=options,
+        required=required,
+        order=order,
+    )
+    questions = survey.questions.select_related("group").filter(group=group)
+    _prepare_question_rendering(survey)
+    return render(request, "surveys/partials/questions_list_group.html", {"survey": survey, "group": group, "questions": questions, "message": "Question created."})
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_question_edit(request: HttpRequest, slug: str, qid: int) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    q = get_object_or_404(SurveyQuestion, id=qid, survey=survey)
+    q.text = request.POST.get("text", q.text)
+    q.type = request.POST.get("type", q.type)
+    q.required = request.POST.get("required") == "on"
+    options_raw = request.POST.get("options", "").strip()
+    q.options = [o.strip() for o in options_raw.splitlines() if o.strip()] if options_raw else []
+    group_id = request.POST.get("group_id")
+    q.group = QuestionGroup.objects.filter(id=group_id, owner=request.user).first() if group_id else None
+    q.save()
+    # Refresh and prepare rendering helpers
+    _prepare_question_rendering(survey)
+    groups = QuestionGroup.objects.filter(owner=request.user)
+    return render(request, "surveys/partials/question_row.html", {"q": q, "groups": groups})
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_group_question_edit(request: HttpRequest, slug: str, gid: int, qid: int) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    q = get_object_or_404(SurveyQuestion, id=qid, survey=survey, group=group)
+    q.text = request.POST.get("text", q.text)
+    q.type = request.POST.get("type", q.type)
+    q.required = request.POST.get("required") == "on"
+    options_raw = request.POST.get("options", "").strip()
+    q.options = [o.strip() for o in options_raw.splitlines() if o.strip()] if options_raw else []
+    q.save()
+    _prepare_question_rendering(survey)
+    return render(request, "surveys/partials/question_row.html", {"q": q})
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_question_delete(request: HttpRequest, slug: str, qid: int) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    q = get_object_or_404(SurveyQuestion, id=qid, survey=survey)
+    q.delete()
+    questions = survey.questions.select_related("group").all()
+    _prepare_question_rendering(survey)
+    groups = survey.question_groups.filter(owner=request.user)
+    return render(
+        request,
+        "surveys/partials/questions_list.html",
+        {"survey": survey, "questions": questions, "groups": groups, "message": "Question deleted."},
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_group_question_delete(request: HttpRequest, slug: str, gid: int, qid: int) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    q = get_object_or_404(SurveyQuestion, id=qid, survey=survey, group=group)
+    q.delete()
+    questions = survey.questions.select_related("group").filter(group=group)
+    _prepare_question_rendering(survey)
+    return render(request, "surveys/partials/questions_list_group.html", {"survey": survey, "group": group, "questions": questions, "message": "Question deleted."})
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_questions_reorder(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    order_csv = request.POST.get("order", "")  # expects comma-separated ids
+    ids = [int(i) for i in order_csv.split(",") if i.isdigit()]
+    for idx, qid in enumerate(ids):
+        SurveyQuestion.objects.filter(id=qid, survey=survey).update(order=idx)
+    questions = survey.questions.select_related("group").all()
+    _prepare_question_rendering(survey)
+    groups = survey.question_groups.filter(owner=request.user)
+    return render(
+        request,
+        "surveys/partials/questions_list.html",
+        {"survey": survey, "questions": questions, "groups": groups, "message": "Order updated."},
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_group_questions_reorder(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    order_csv = request.POST.get("order", "")
+    ids = [int(i) for i in order_csv.split(",") if i.isdigit()]
+    for idx, qid in enumerate(ids):
+        SurveyQuestion.objects.filter(id=qid, survey=survey, group=group).update(order=idx)
+    questions = survey.questions.select_related("group").filter(group=group)
+    _prepare_question_rendering(survey)
+    return render(request, "surveys/partials/questions_list_group.html", {"survey": survey, "group": group, "questions": questions, "message": "Order updated."})
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_group_create(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    name = request.POST.get("name", "").strip() or "New Group"
+    g = QuestionGroup.objects.create(name=name, owner=request.user)
+    questions = survey.questions.select_related("group").all()
+    _prepare_question_rendering(survey)
+    survey.question_groups.add(g)
+    groups = survey.question_groups.filter(owner=request.user)
+    return render(request, "surveys/partials/questions_list.html", {"survey": survey, "questions": questions, "groups": groups})
+
+
+@login_required
+def bulk_upload(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    context = {"survey": survey, "example": _bulk_upload_example_md()}
+    if request.method == "POST":
+        md = request.POST.get("markdown", "")
+        try:
+            groups_parsed = parse_bulk_markdown(md)
+        except BulkParseError as e:
+            context["error"] = str(e)
+            context["markdown"] = md
+            return render(request, "surveys/bulk_upload.html", context)
+
+        # Create groups and questions
+        max_order = survey.questions.aggregate(models.Max("order")).get("order__max") or 0
+        next_order = max_order + 1
+        for g in groups_parsed:
+            grp = QuestionGroup.objects.create(name=g["name"], description=g.get("description", ""), owner=request.user)
+            survey.question_groups.add(grp)
+            for q in g["questions"]:
+                SurveyQuestion.objects.create(
+                    survey=survey,
+                    group=grp,
+                    text=q["title"],
+                    type=q["final_type"],
+                    options=q["final_options"],
+                    required=False,
+                    order=next_order,
+                )
+                next_order += 1
+        messages.success(request, f"Bulk upload successful: added {len(groups_parsed)} group(s) and questions.")
+        return redirect("surveys:dashboard", slug=survey.slug)
+    return render(request, "surveys/bulk_upload.html", context)
+
+
+def _bulk_upload_example_md() -> str:
+    return (
+        "# Demographics\n"
+        "Basic info about respondents\n\n"
+        "## Age\n"
+        "Age in years\n"
+        "(text number)\n\n"
+        "## Gender\n"
+        "Self-described gender\n"
+        "(mc_single)\n"
+        "- Female\n"
+        "- Male\n"
+        "- Non-binary\n"
+        "- Prefer not to say\n\n"
+        "# Satisfaction\n"
+        "About the service\n\n"
+        "## Overall satisfaction\n"
+        "Rate from 1 to 5\n"
+        "(likert number)\n"
+        "min: 1\n"
+        "max: 5\n"
+        "left: Very poor\n"
+        "right: Excellent\n\n"
+        "## Recommend to a friend\n"
+        "Likelihood to recommend\n"
+        "(likert categories)\n"
+        "- Very unlikely\n"
+        "- Unlikely\n"
+        "- Neutral\n"
+        "- Likely\n"
+        "- Very likely\n"
+    )

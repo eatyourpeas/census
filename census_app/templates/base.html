@@ -1,0 +1,51 @@
+{% load static %}
+<!doctype html>
+<html lang="en" data-theme="{{ brand.theme_name|default:'census' }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}{{ brand.title }}{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="{{ brand.font_css_url }}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'build/styles.css' %}">
+    <style>
+      :root {
+        --font-heading: {{ brand.font_heading }};
+        --font-body: {{ brand.font_body }};
+        {% if brand.primary %}--p: {{ brand.primary }};{% endif %}
+      }
+      h1,h2,h3,h4,h5,h6,.font-heading { font-family: var(--font-heading); }
+      body, .font-body { font-family: var(--font-body); }
+    </style>
+    <link rel="icon" href="{{ brand.icon_url }}" />
+  </head>
+  <body class="min-h-screen bg-base-200">
+    <div class="navbar bg-base-100 shadow">
+      <div class="flex-1 px-2 text-xl font-semibold">{{ brand.title }}</div>
+      <div class="flex-none">
+        <ul class="menu menu-horizontal">
+          <li><a href="/surveys">Surveys</a></li>
+          {% if user.is_authenticated %}
+            <li><a href="/profile">Profile</a></li>
+            <li><a href="/accounts/logout/">Logout</a></li>
+          {% else %}
+            <li><a href="/accounts/login/">Login</a></li>
+            <li><a href="/signup/">Sign up</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+    <main class="container mx-auto p-4">
+      {% if messages %}
+        <div class="space-y-2">
+          {% for message in messages %}
+            <div class="alert alert-info">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  </body>
+  </html>

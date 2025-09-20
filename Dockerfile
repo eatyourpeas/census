@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1
+FROM python:3.12-slim AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    POETRY_VERSION=1.8.3
+
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential curl nodejs npm && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
+
+WORKDIR /app
+
+COPY pyproject.toml README.md ./
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi --no-root
+
+# Build CSS
+COPY package.json tailwind.config.js postcss.config.js ./
+RUN npm install --no-audit --no-fund
+
+COPY census_app ./census_app
+# Install the current project now that sources are present
+RUN poetry install --no-interaction --no-ansi
+RUN npm run build:css
+
+RUN adduser --disabled-login --gecos "" appuser
+USER appuser
+
+ENV DJANGO_SETTINGS_MODULE=census_app.settings
+ENV PORT=8000
+
+CMD ["sh", "-lc", "python manage.py migrate --noinput && gunicorn census_app.wsgi:application --bind 0.0.0.0:${PORT} --workers 3"]

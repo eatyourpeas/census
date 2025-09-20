@@ -1,0 +1,82 @@
+{% load survey_extras %}
+{# Read-only preview of a question as displayed to participants #}
+
+<div class="mt-2">
+  {% if q.type == 'text' %}
+    {% with q.options.0 as meta %}
+      {% if meta and meta.format == 'number' %}
+        <input class="input input-bordered w-full" type="number" disabled />
+      {% else %}
+        <input class="input input-bordered w-full" type="text" disabled />
+      {% endif %}
+    {% endwith %}
+  {% elif q.type == 'mc_single' %}
+    <div class="flex flex-col gap-1">
+      {% for opt in q.options|as_list %}
+        <label class="label cursor-not-allowed justify-start gap-2">
+          <input type="radio" class="radio" disabled />
+          <span>{{ opt|option_label }}</span>
+        </label>
+      {% endfor %}
+    </div>
+  {% elif q.type == 'likert' %}
+    {% with q.options|options_meta as meta %}
+      {% if meta and meta.type == 'number-scale' %}
+        <div class="flex items-center gap-4">
+          {% if meta.left %}<span class="text-sm opacity-70 min-w-16 text-right">{{ meta.left }}</span>{% endif %}
+          <div class="flex-1">
+            <input type="range" class="range range-primary w-full" min="{{ meta.min|default:1 }}" max="{{ meta.max|default:5 }}" step="1" disabled />
+            <div class="flex justify-between text-[11px] opacity-70 mt-1">
+              <span>{{ meta.min|default:1 }}</span>
+              <span>{{ meta.max|default:5 }}</span>
+            </div>
+          </div>
+          {% if meta.right %}<span class="text-sm opacity-70 min-w-16">{{ meta.right }}</span>{% endif %}
+        </div>
+      {% else %}
+        {% if meta.labels %}
+          <div class="flex flex-wrap items-center gap-4">
+            {% for opt in meta.labels %}
+              <label class="inline-flex items-center gap-2 cursor-not-allowed">
+                <input type="radio" class="radio" disabled />
+                <span class="text-sm">{{ opt }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="flex flex-wrap items-center gap-4">
+            {% for opt in q.options|as_list %}
+              <label class="inline-flex items-center gap-2 cursor-not-allowed">
+                <input type="radio" class="radio" disabled />
+                <span class="text-sm">{{ opt|option_label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endif %}
+    {% endwith %}
+  {% elif q.type == 'orderable' %}
+      <ol class="orderable-list list-decimal pl-5">
+        {% for opt in q.options|as_list %}
+          <li class="flex items-center gap-2 py-1 opacity-70">
+            <button type="button" class="drag-handle inline-flex items-center justify-center w-7 h-7 mr-1 rounded-md text-primary border border-primary/30 bg-base-200 cursor-default" aria-label="Drag handle" title="Drag handle">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 48 48" fill="currentColor" aria-hidden="true" focusable="false">
+                <title>drag-arrow</title>
+                <g id="Layer_2" data-name="Layer 2">
+                  <g id="invisible_box" data-name="invisible box">
+                    <rect width="48" height="48" fill="none"/>
+                  </g>
+                  <g id="icons_Q2" data-name="icons Q2">
+                    <path d="M45.4,22.6l-5.9-6a2.1,2.1,0,0,0-2.7-.2,1.9,1.9,0,0,0-.2,3L39.2,22H26V8.8l2.6,2.6a1.9,1.9,0,0,0,3-.2,2.1,2.1,0,0,0-.2-2.7l-6-5.9a1.9,1.9,0,0,0-2.8,0l-6,5.9a2.1,2.1,0,0,0-.2,2.7,1.9,1.9,0,0,0,3,.2L22,8.8V22H8.8l2.6-2.6a1.9,1.9,0,0,0-.2-3,2.1,2.1,0,0,0-2.7.2l-5.9,6a1.9,1.9,0,0,0,0,2.8l5.9,6a2.1,2.1,0,0,0,2.7.2,1.9,1.9,0,0,0,.2-3L8.8,26H22V39.2l-2.6-2.6a1.9,1.9,0,0,0-3,.2,2.1,2.1,0,0,0,.2,2.7l6,5.9a1.9,1.9,0,0,0,2.8,0l6-5.9a2.1,2.1,0,0,0,.2-2.7,1.9,1.9,0,0,0-3-.2L26,39.2V26H39.2l-2.6,2.6a1.9,1.9,0,0,0,.2,3,2.1,2.1,0,0,0,2.7-.2l5.9-6A1.9,1.9,0,0,0,45.4,22.6Z"/>
+                  </g>
+                </g>
+              </svg>
+            </button>
+            <span class="flex-1">{{ opt|option_label }}</span>
+          </li>
+        {% endfor %}
+      </ol>
+  {% else %}
+    <input class="input input-bordered w-full" type="text" disabled />
+  {% endif %}
+</div>

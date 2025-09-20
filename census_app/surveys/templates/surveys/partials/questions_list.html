@@ -1,0 +1,12 @@
+<div id="questions-list">
+  {% if message %}
+    <div class="alert alert-success mb-2">{{ message }}</div>
+  {% endif %}
+  <ul id="questions-draggable" class="w-full flex flex-col space-y-2" data-reorder-url="/surveys/{{ survey.slug }}/builder/questions/reorder">
+    {% for q in questions %}
+      {% include 'surveys/partials/question_row.html' %}
+    {% empty %}
+      <li class="p-4 opacity-70">No questions yet.</li>
+    {% endfor %}
+  </ul>
+</div>

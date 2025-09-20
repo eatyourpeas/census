@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Groups - {{ survey.name }}{% endblock %}
+{% block content %}
+<div class="prose">
+  <h1>Groups for {{ survey.name }}</h1>
+  <a class="btn btn-sm" href="/surveys/{{ survey.slug }}/dashboard/">Back to dashboard</a>
+</div>
+
+<div class="mt-4">
+
+  <div class="grid md:grid-cols-2 gap-4 overflow-visible">
+    {% for g in groups %}
+      <div class="card bg-base-100 shadow">
+        <div class="card-body">
+          <div class="flex items-center justify-between">
+            <div>
+              <a class="font-medium link" href="/surveys/{{ survey.slug }}/builder/groups/{{ g.id }}/">{{ g.name }}</a>
+              {% if g.description %}<div class="text-sm opacity-70">{{ g.description }}</div>{% endif %}
+            </div>
+            <form method="post" action="/surveys/{{ survey.slug }}/groups/{{ g.id }}/delete" onsubmit="return confirm('Delete this group?');">
+              {% csrf_token %}
+              <button class="btn btn-sm btn-warning" type="submit">Delete</button>
+            </form>
+          </div>
+          <details class="mt-2">
+            <summary class="cursor-pointer select-none">Rename / Describe</summary>
+            <form class="mt-2" method="post" action="/surveys/{{ survey.slug }}/groups/{{ g.id }}/edit">
+              {% csrf_token %}
+              <label class="label">Title</label>
+              <input class="input input-bordered w-full" name="name" value="{{ g.name }}" />
+              <label class="label mt-2">Description</label>
+              <textarea class="textarea textarea-bordered w-full" name="description">{{ g.description }}</textarea>
+              <button class="btn btn-sm mt-2" type="submit">Save</button>
+            </form>
+          </details>
+        </div>
+      </div>
+    {% empty %}
+      <div class="opacity-70">No groups yet. Create one to get started.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="flex flex-wrap items-center gap-3 mb-4 relative z-[9999]">
+    <form method="post" action="/surveys/{{ survey.slug }}/groups/create" class="inline-flex">
+      {% csrf_token %}
+      <div class="join">
+        <input class="input input-bordered join-item" name="name" placeholder="New group name" />
+        <button class="btn join-item" type="submit">Create new question group</button>
+      </div>
+      
+    </form>
+    <div class="dropdown dropdown-top dropdown-center">
+        <div tabindex="0" role="button" class="btn m-1">Create from template</div>
+        <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
+            <li>
+                <form method="post" action="/surveys/{{ survey.slug }}/groups/template/create">
+                    {% csrf_token %}
+                    <input type="hidden" name="template" value="patient_details_encrypted" />
+                    <button type="submit">Patient details (encrypted)</button>
+                </form>
+            </li>
+            <li>
+            <form method="post" action="/surveys/{{ survey.slug }}/groups/template/create">
+                {% csrf_token %}
+                <input type="hidden" name="template" value="professional_details" />
+                <button type="submit">Professional details</button>
+            </form>
+            </li>
+        </ul>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}{% endblock %}

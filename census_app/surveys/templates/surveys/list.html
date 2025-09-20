@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Your Surveys - Census{% endblock %}
+{% block content %}
+<div class="prose">
+  <div class="">Your Surveys</div>
+  {% if user.is_authenticated %}
+    <p><a class="btn btn-primary" href="/surveys/create/">Create survey</a></p>
+  {% endif %}
+  {% if surveys %}
+    <ul>
+      {% for s in surveys %}
+        <li class="flex items-center gap-2">
+          <span class="font-medium">{{ s.name }}</span>
+          <a class="btn btn-xs" href="/surveys/{{ s.slug }}/dashboard/">Dashboard</a>
+          <a class="btn btn-xs" href="/surveys/{{ s.slug }}/builder/">Edit</a>
+          <a class="btn btn-xs" href="/surveys/{{ s.slug }}/preview/">Preview</a>
+            <a class="btn btn-xs" href="/surveys/{{ s.slug }}/bulk-upload/">Bulk upload</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No surveys yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

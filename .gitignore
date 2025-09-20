@@ -1,4 +1,39 @@
-# Byte-compiled / optimized / DLL files
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.Python
+env/
+venv/
+.venv/
+.pytest_cache/
+.mypy_cache/
+
+# Django
+staticfiles/
+media/
+db.sqlite3
+
+# Node
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+dist/
+.parcel-cache/
+
+# Env
+.env
+
+# VSCode
+.vscode/
+
+# Docker
+.docker/
+
+# Data
+data/# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
 *$py.class

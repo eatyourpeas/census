@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Create Survey - Census{% endblock %}
+{% block content %}
+<div class="max-w-xl mx-auto">
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h1 class="card-title">Create a new survey</h1>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="space-y-3">
+          <div>
+            <label class="label">Name</label>
+            {{ form.name }}
+            {{ form.name.errors }}
+          </div>
+          <div>
+            <label class="label">URL Name or 'Slug' (optional)</label>
+            {{ form.slug }}
+            <div class="text-xs opacity-70">If left blank, a slug will be generated from the name.</div>
+            {{ form.slug.errors }}
+          </div>
+          <div>
+            <label class="label">Description</label>
+            {{ form.description }}
+            {{ form.description.errors }}
+          </div>
+          <button class="btn btn-primary " type="submit">Create survey</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

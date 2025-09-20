@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Bulk Upload - {{ survey.name }}{% endblock %}
+{% block content %}
+<div class="prose">
+  <h1>Bulk upload questions: {{ survey.name }}</h1>
+  <p><a class="btn btn-sm" href="/surveys/{{ survey.slug }}/dashboard/">Back to dashboard</a></p>
+</div>
+
+{% if error %}
+  <div class="alert alert-error my-3">{{ error }}</div>
+{% endif %}
+
+<div class="grid md:grid-cols-2 gap-6">
+  <div>
+    <form method="post">
+      {% csrf_token %}
+      <label class="label">Markdown</label>
+      <textarea class="textarea textarea-bordered w-full min-h-[360px]" name="markdown" placeholder="# Group Title
+Group description
+
+## Question Title
+Question description
+(mc_single)
+- Option A
+- Option B
+" required>{{ markdown|default:example }}</textarea>
+      <div class="mt-3">
+        <button class="btn btn-primary" type="submit">Import</button>
+      </div>
+    </form>
+  </div>
+  <div>
+    <h2 class="text-xl font-semibold">Format reference</h2>
+    <p>Use markdown with the following structure:</p>
+    <ul class="list-disc pl-5">
+      <li># Group Title, followed by a line for the group description</li>
+      <li>## Question Title, followed by a line for the question description</li>
+      <li>(type) on the next line in parentheses</li>
+      <li>If the type requires options, list each on a line starting with <code>-</code></li>
+      <li>For Likert number scales, add key-value lines: <code>min:</code>, <code>max:</code>, optional <code>left:</code>, <code>right:</code></li>
+    </ul>
+    <h3 class="mt-4 font-semibold">Supported types</h3>
+    <ul class="list-disc pl-5">
+      <li>text — free text</li>
+      <li>text number — numeric input</li>
+      <li>mc_single — multiple choice (single)</li>
+      <li>mc_multi — multiple choice (multi)</li>
+      <li>dropdown — select menu</li>
+      <li>orderable — orderable list</li>
+      <li>yesno — yes/no</li>
+      <li>image — image choice</li>
+      <li>likert categories — categories listed with <code>-</code></li>
+      <li>likert number — provide <code>min</code>/<code>max</code> and optional labels</li>
+    </ul>
+  </div>
+ </div>
+{% endblock %}

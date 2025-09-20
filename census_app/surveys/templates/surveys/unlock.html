@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Unlock Survey - {{ survey.name }}{% endblock %}
+{% block content %}
+<div class="prose">
+  <h1>Unlock {{ survey.name }}</h1>
+  <p>Enter the one-time survey key to decrypt sensitive fields for this session.</p>
+</div>
+<form method="post" class="mt-4 space-y-4">
+  {% csrf_token %}
+  <input type="password" name="key" class="input input-bordered w-full max-w-md" placeholder="Survey key" />
+  <button class="btn btn-primary" type="submit">Unlock</button>
+  <a class="btn" href="/surveys/{{ survey.slug }}/dashboard/">Back to dashboard</a>
+
+</form>
+{% endblock %}
