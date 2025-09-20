@@ -54,7 +54,7 @@ class TestJWTEnforcement:
         assert resp.status_code in (401, 403)
 
     def test_invalid_token_returns_401(self, client):
-        owner, org, survey = self.setup_data()
+        _, _, survey = self.setup_data()
         invalid_hdrs = {"HTTP_AUTHORIZATION": "Bearer invalid.token.here"}
 
         # With an invalid token, authentication should fail hard with 401
@@ -82,7 +82,7 @@ class TestJWTEnforcement:
 
     def test_refresh_flow(self, client):
         """Basic happy-path for JWT obtain and refresh."""
-        user = User.objects.create_user(username="jwtuser", password="passw0rd-JWT!")
+        User.objects.create_user(username="jwtuser", password="passw0rd-JWT!")
 
         # Obtain
         obtain = client.post(
