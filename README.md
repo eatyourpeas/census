@@ -56,6 +56,13 @@ User documentation is provided as well as documentation of an API to:
 - healthcheck
 - get / list / create / update / delete users
 
+See docs:
+
+- docs/README.md
+- docs/authentication-and-permissions.md
+- docs/api.md
+- docs/getting-started-api.md
+
 
 ## Quickstart
 
@@ -87,8 +94,13 @@ Without Docker (Python + Node):
 API endpoints:
 
 - GET /api/health
+- POST /api/token (JWT obtain)
+- POST /api/token/refresh (JWT refresh)
 - /api/surveys/ (CRUD for authenticated owners)
 - /api/users/ (admin read-only)
+
+API permissions mirror SSR rules: you can list and retrieve surveys you own, and any survey in organizations where you are an ADMIN. Updates/deletes require ownership or org ADMIN.
+See docs/api.md for endpoint-level protections and error semantics.
 
 Security posture:
 
@@ -97,6 +109,7 @@ Security posture:
 - Rate limiting on form posts (django-ratelimit)
 - CSP headers (django-csp) and static via WhiteNoise
 - Sensitive demographics encrypted per-survey using AES-GCM with derived keys; responses mirrored to filesystem under data/
+- API uses JWT (Bearer) auth; include Authorization header in requests.
 
 ## Tests
 

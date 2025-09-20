@@ -2,6 +2,9 @@ import os
 from pathlib import Path
 import environ
 
+# SimpleJWT defaults
+from datetime import timedelta
+
 env = environ.Env(
     DEBUG=(bool, False),
     SECRET_KEY=(str, ""),
@@ -42,6 +45,7 @@ INSTALLED_APPS = [
     "axes",
     "csp",
     "rest_framework",
+    "rest_framework_simplejwt",
     # Local apps
     "census_app.core",
     "census_app.surveys",
@@ -164,7 +168,7 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
@@ -174,4 +178,11 @@ REST_FRAMEWORK = {
         "anon": "60/minute",
         "user": "120/minute",
     },
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": False,
 }

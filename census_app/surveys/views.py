@@ -14,6 +14,7 @@ from django.db import models
 from django import forms
 from django.utils.text import slugify
 from .models import Survey, SurveyResponse, SurveyQuestion, QuestionGroup
+from .permissions import require_can_view, require_can_edit, can_view_survey
 from .utils import verify_key
 from .markdown_import import parse_bulk_markdown, BulkParseError
 from .color import hex_to_oklch
@@ -90,10 +91,20 @@ def _get_professional_group_and_fields(
 
 
 def survey_list(request: HttpRequest) -> HttpResponse:
-    if request.user.is_authenticated:
-        surveys = Survey.objects.filter(owner=request.user)
-    else:
-        surveys = Survey.objects.none()
+    # Creators/Viewers: only see surveys they created (owner)
+    # Admins: see all surveys in their organization
+    user = request.user
+    surveys = Survey.objects.none()
+    if user.is_authenticated:
+        owned = Survey.objects.filter(owner=user)
+        org_ids = user.org_memberships.values_list("organization_id", flat=True)
+        if org_ids:
+            org_surveys = Survey.objects.filter(organization_id__in=list(org_ids))
+            # keep only those the user can view (admins of those orgs)
+            org_surveys = [s for s in org_surveys if can_view_survey(user, s)]
+            surveys = owned | Survey.objects.filter(id__in=[s.id for s in org_surveys])
+        else:
+            surveys = owned
     return render(request, "surveys/list.html", {"surveys": surveys})
 
 
@@ -247,7 +258,8 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
 @login_required
 @require_http_methods(["GET"])
 def survey_preview(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_view(request.user, survey)
     # Render the same detail template but never accept POST here
     _prepare_question_rendering(survey)
     qs = list(survey.questions.select_related("group").all())
@@ -326,7 +338,8 @@ def _prepare_question_rendering(survey: Survey) -> None:
 
 @login_required
 def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_view(request.user, survey)
     total = survey.responses.count()
     groups = (
         survey.question_groups
@@ -362,7 +375,8 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
 @login_required
 @require_http_methods(["POST"])
 def survey_style_update(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
     style = survey.style or {}
     # Accept simple fields; ignore if blank to allow fallback to platform defaults
     for key in ("title", "icon_url", "theme_name", "font_heading", "font_body", "primary_color", "font_css_url"):
@@ -380,7 +394,8 @@ def survey_style_update(request: HttpRequest, slug: str) -> HttpResponse:
 
 @login_required
 def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_view(request.user, survey)
     groups = survey.question_groups.filter(owner=request.user).order_by("name")
     # Apply style overrides so navigation reflects survey branding while managing groups
     style = survey.style or {}
@@ -410,7 +425,8 @@ def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
 @login_required
 @require_http_methods(["POST"])
 def survey_group_create(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
     name = request.POST.get("name", "").strip() or "New Group"
     g = QuestionGroup.objects.create(name=name, owner=request.user)
     survey.question_groups.add(g)
@@ -421,8 +437,9 @@ def survey_group_create(request: HttpRequest, slug: str) -> HttpResponse:
 @login_required
 @require_http_methods(["POST"])
 def survey_group_edit(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
     group.name = request.POST.get("name", group.name)
     group.description = request.POST.get("description", group.description)
     group.save(update_fields=["name", "description"])
@@ -433,8 +450,9 @@ def survey_group_edit(request: HttpRequest, slug: str, gid: int) -> HttpResponse
 @login_required
 @require_http_methods(["POST"])
 def survey_group_delete(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
     # Detach from this survey; optionally delete the group if not used elsewhere
     survey.question_groups.remove(group)
     if not group.surveys.exists():
@@ -446,7 +464,8 @@ def survey_group_delete(request: HttpRequest, slug: str, gid: int) -> HttpRespon
 @login_required
 @require_http_methods(["POST"])
 def survey_group_create_from_template(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
     template = request.POST.get("template")
     if template == "patient_details_encrypted":
         g = QuestionGroup.objects.create(
@@ -548,7 +567,8 @@ def survey_export_csv(request: HttpRequest, slug: str) -> HttpResponse:
 
 @login_required
 def survey_builder(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
     questions = survey.questions.select_related("group").all()
     _prepare_question_rendering(survey)
     groups = survey.question_groups.filter(owner=request.user)
@@ -604,8 +624,9 @@ def survey_builder(request: HttpRequest, slug: str) -> HttpResponse:
 
 @login_required
 def group_builder(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
     questions = survey.questions.select_related("group").filter(group=group)
     _prepare_question_rendering(survey)
     patient_group, demographics_fields = _get_patient_group_and_fields(survey)
@@ -660,7 +681,8 @@ def group_builder(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
 @login_required
 @require_http_methods(["POST"])
 def builder_demographics_update(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
     group = survey.question_groups.filter(schema__template="patient_details_encrypted").first()
     if not group:
         raise Http404
@@ -696,7 +718,8 @@ def builder_demographics_update(request: HttpRequest, slug: str) -> HttpResponse
 @login_required
 @require_http_methods(["POST"])
 def builder_professional_update(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
     group = survey.question_groups.filter(schema__template="professional_details").first()
     if not group:
         raise Http404
@@ -737,7 +760,8 @@ def builder_professional_update(request: HttpRequest, slug: str) -> HttpResponse
 @login_required
 @require_http_methods(["POST"])
 def builder_question_create(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
     text = request.POST.get("text", "").strip()
     qtype = request.POST.get("type", "text")
     required = request.POST.get("required") == "on"
@@ -792,8 +816,9 @@ def builder_question_create(request: HttpRequest, slug: str) -> HttpResponse:
 @login_required
 @require_http_methods(["POST"])
 def builder_group_question_create(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
     text = request.POST.get("text", "").strip()
     qtype = request.POST.get("type", "text")
     required = request.POST.get("required") == "on"
@@ -838,7 +863,8 @@ def builder_group_question_create(request: HttpRequest, slug: str, gid: int) -> 
 @login_required
 @require_http_methods(["POST"])
 def builder_question_edit(request: HttpRequest, slug: str, qid: int) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
     q = get_object_or_404(SurveyQuestion, id=qid, survey=survey)
     q.text = request.POST.get("text", q.text)
     q.type = request.POST.get("type", q.type)
@@ -857,8 +883,9 @@ def builder_question_edit(request: HttpRequest, slug: str, qid: int) -> HttpResp
 @login_required
 @require_http_methods(["POST"])
 def builder_group_question_edit(request: HttpRequest, slug: str, gid: int, qid: int) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
     q = get_object_or_404(SurveyQuestion, id=qid, survey=survey, group=group)
     q.text = request.POST.get("text", q.text)
     q.type = request.POST.get("type", q.type)
@@ -873,7 +900,8 @@ def builder_group_question_edit(request: HttpRequest, slug: str, gid: int, qid: 
 @login_required
 @require_http_methods(["POST"])
 def builder_question_delete(request: HttpRequest, slug: str, qid: int) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
     q = get_object_or_404(SurveyQuestion, id=qid, survey=survey)
     q.delete()
     questions = survey.questions.select_related("group").all()
@@ -889,8 +917,9 @@ def builder_question_delete(request: HttpRequest, slug: str, qid: int) -> HttpRe
 @login_required
 @require_http_methods(["POST"])
 def builder_group_question_delete(request: HttpRequest, slug: str, gid: int, qid: int) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
     q = get_object_or_404(SurveyQuestion, id=qid, survey=survey, group=group)
     q.delete()
     questions = survey.questions.select_related("group").filter(group=group)
@@ -901,7 +930,8 @@ def builder_group_question_delete(request: HttpRequest, slug: str, gid: int, qid
 @login_required
 @require_http_methods(["POST"])
 def builder_questions_reorder(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
     order_csv = request.POST.get("order", "")  # expects comma-separated ids
     ids = [int(i) for i in order_csv.split(",") if i.isdigit()]
     for idx, qid in enumerate(ids):
@@ -919,8 +949,9 @@ def builder_questions_reorder(request: HttpRequest, slug: str) -> HttpResponse:
 @login_required
 @require_http_methods(["POST"])
 def builder_group_questions_reorder(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    group = get_object_or_404(QuestionGroup, id=gid, owner=request.user, surveys=survey)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
     order_csv = request.POST.get("order", "")
     ids = [int(i) for i in order_csv.split(",") if i.isdigit()]
     for idx, qid in enumerate(ids):
@@ -933,7 +964,8 @@ def builder_group_questions_reorder(request: HttpRequest, slug: str, gid: int) -
 @login_required
 @require_http_methods(["POST"])
 def builder_group_create(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
     name = request.POST.get("name", "").strip() or "New Group"
     g = QuestionGroup.objects.create(name=name, owner=request.user)
     questions = survey.questions.select_related("group").all()
@@ -945,7 +977,8 @@ def builder_group_create(request: HttpRequest, slug: str) -> HttpResponse:
 
 @login_required
 def bulk_upload(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
     context = {"survey": survey, "example": _bulk_upload_example_md()}
     if request.method == "POST":
         md = request.POST.get("markdown", "")

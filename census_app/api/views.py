@@ -3,8 +3,9 @@ from rest_framework import viewsets, permissions, serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from census_app.surveys.models import Survey
-from census_app.surveys.models import SurveyQuestion, QuestionGroup
+from census_app.surveys.models import SurveyQuestion, QuestionGroup, OrganizationMembership
 from rest_framework.decorators import action
+from census_app.surveys.permissions import can_view_survey, can_edit_survey
 
 
 User = get_user_model()
@@ -29,14 +30,47 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         return getattr(obj, "owner_id", None) == getattr(request.user, "id", None)
 
 
+class OrgOwnerOrAdminPermission(permissions.BasePermission):
+    """Object-level permission that mirrors SSR rules using surveys.permissions.
+
+    - SAFE methods require can_view_survey
+    - Unsafe methods require can_edit_survey
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return can_view_survey(request.user, obj)
+        return can_edit_survey(request.user, obj)
+
+
 class SurveyViewSet(viewsets.ModelViewSet):
     serializer_class = SurveySerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, OrgOwnerOrAdminPermission]
 
     def get_queryset(self):
-        if self.request.user.is_authenticated:
-            return Survey.objects.filter(owner=self.request.user)
-        return Survey.objects.none()
+        user = self.request.user
+        if not user.is_authenticated:
+            return Survey.objects.none()
+        # Owner's surveys
+        owned = Survey.objects.filter(owner=user)
+        # Org-admin surveys: any survey whose organization has the user as ADMIN
+        org_admin = Survey.objects.filter(
+            organization__memberships__user=user,
+            organization__memberships__role=OrganizationMembership.Role.ADMIN,
+        )
+        return (owned | org_admin).distinct()
+
+    def get_object(self):
+        """Fetch object without scoping to queryset, then run object permissions.
+
+        This ensures authenticated users receive 403 (Forbidden) rather than
+        404 (Not Found) when they lack permission on an existing object.
+        """
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs.get(lookup_url_kwarg)
+        obj = Survey.objects.select_related("organization").get(**{self.lookup_field: lookup_value})
+        self.check_object_permissions(self.request, obj)
+        return obj
 
     def perform_create(self, serializer):
         obj = serializer.save(owner=self.request.user)
@@ -46,9 +80,14 @@ class SurveyViewSet(viewsets.ModelViewSet):
         # Attach to serializer context for response augmentation
         self._created_key = key
 
-    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[permissions.IsAuthenticated, OrgOwnerOrAdminPermission],
+    )
     def seed(self, request, pk=None):
         survey = self.get_object()
+        # get_object already runs object permission checks via check_object_permissions
         payload = request.data
         created = 0
         # JSON schema: [{text, type, options=[], group_name, order}]
