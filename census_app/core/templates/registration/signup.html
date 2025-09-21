@@ -6,23 +6,9 @@
   <form method="post" class="space-y-4">
     {% csrf_token %}
     <p class="text-sm opacity-70">Your username will be your email address.</p>
-    {{ form.non_field_errors }}
+    {% include "components/form_errors.html" with form=form %}
     <div class="grid gap-3">
-      <label class="form-control">
-        <span class="label"><span class="label-text">Email</span></span>
-        {{ form.email }}
-        {% if form.email.errors %}<span class="text-error text-sm">{{ form.email.errors|join:", " }}</span>{% endif %}
-      </label>
-      <label class="form-control">
-        <span class="label"><span class="label-text">Password</span></span>
-        {{ form.password1 }}
-        {% if form.password1.errors %}<span class="text-error text-sm">{{ form.password1.errors|join:", " }}</span>{% endif %}
-      </label>
-      <label class="form-control">
-        <span class="label"><span class="label-text">Confirm password</span></span>
-        {{ form.password2 }}
-        {% if form.password2.errors %}<span class="text-error text-sm">{{ form.password2.errors|join:", " }}</span>{% endif %}
-      </label>
+      {% include "components/render_form_fields.html" with form=form %}
     </div>
     <div class="divider"></div>
     <fieldset class="space-y-2">

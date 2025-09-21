@@ -1,0 +1,22 @@
+{#
+  DaisyUI checkbox group
+  Context:
+  - name (required): input name
+  - choices (required): iterable of (value, label)
+  - selected (optional): iterable of selected values
+  - label (optional): group label
+  - inline (optional): truthy => inline layout
+#}
+<fieldset class="space-y-2">
+  {% if label %}<legend class="font-semibold">{{ label }}</legend>{% endif %}
+  <div class="{% if inline %}flex flex-wrap items-center gap-4{% else %}space-y-2{% endif %}">
+    {% for value, text in choices %}
+      {% with uid=name|add:"_"|add:forloop.counter %}
+      <label class="label cursor-pointer justify-start gap-2" for="{{ uid }}">
+        <input id="{{ uid }}" type="checkbox" name="{{ name }}" value="{{ value }}" class="checkbox" {% if selected and value in selected %}checked{% endif %} />
+        <span>{{ text }}</span>
+      </label>
+      {% endwith %}
+    {% endfor %}
+  </div>
+</fieldset>

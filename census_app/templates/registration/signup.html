@@ -7,23 +7,9 @@
       <h1 class="card-title">Create an account</h1>
       <form method="post">
         {% csrf_token %}
-        {{ form.non_field_errors }}
+        {% include "components/form_errors.html" with form=form %}
         <div class="space-y-3">
-          <div>
-            <label class="label">Username</label>
-            {{ form.username }}
-            {{ form.username.errors }}
-          </div>
-          <div>
-            <label class="label">Password</label>
-            {{ form.password1 }}
-            {{ form.password1.errors }}
-          </div>
-          <div>
-            <label class="label">Confirm password</label>
-            {{ form.password2 }}
-            {{ form.password2.errors }}
-          </div>
+          {% include "components/render_form_fields.html" with form=form %}
           <button class="btn btn-primary w-full" type="submit">Sign up</button>
         </div>
       </form>

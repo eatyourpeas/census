@@ -1,0 +1,12 @@
+{#
+  Renders all visible fields of a Django form using the form_field partial.
+  Expected context:
+  - form: Django Bound Form
+
+  Notes:
+  - For radio/checkbox groups, consider using components/choice_group.html for better semantics.
+  - You can still override per-field classes by including form_field directly instead of this helper.
+#}
+{% for f in form.visible_fields %}
+  {% include "components/form_field.html" with field=f label=f.label help=f.help_text %}
+{% endfor %}

@@ -4,7 +4,7 @@
 <div class="prose">
   <div class="">Your Surveys</div>
   {% if user.is_authenticated %}
-    <p><a class="btn btn-primary" href="/surveys/create/">Create survey</a></p>
+    <p><a class="btn btn-primary not-prose" href="/surveys/create/">Create survey</a></p>
   {% endif %}
   {% if surveys %}
     <ul>

@@ -83,6 +83,7 @@ See docs:
 - docs/api.md
 - docs/getting-started-api.md
 - docs/user-management.md
+- docs/themes.md
 - CONTRIBUTING.md
 
 
