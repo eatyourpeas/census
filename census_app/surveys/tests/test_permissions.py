@@ -77,7 +77,7 @@ def test_creator_cannot_edit_others_survey(client, users, org, surveys):
     admin, creator, viewer, outsider, participant = users
     s1, s2 = surveys
     login(client, creator)
-    res = client.get(reverse("surveys:builder", kwargs={"slug": s2.slug}))
+    res = client.get(reverse("surveys:groups", kwargs={"slug": s2.slug}))
     assert res.status_code == 403
 
 
@@ -86,7 +86,7 @@ def test_admin_can_edit_any_in_org(client, users, org, surveys):
     admin, creator, viewer, outsider, participant = users
     s1, s2 = surveys
     login(client, admin)
-    res = client.get(reverse("surveys:builder", kwargs={"slug": s1.slug}))
+    res = client.get(reverse("surveys:groups", kwargs={"slug": s1.slug}))
     assert res.status_code == 200
 
 
@@ -96,7 +96,7 @@ def test_participant_cannot_access_builder(client, users, org, surveys):
     s1, s2 = surveys
     # Simulate a participant (non-org) user
     login(client, participant)
-    res = client.get(reverse("surveys:builder", kwargs={"slug": s1.slug}))
+    res = client.get(reverse("surveys:groups", kwargs={"slug": s1.slug}))
     assert res.status_code == 403
 
 
@@ -129,7 +129,7 @@ def test_authenticated_without_rights_gets_403_on_other_views(client, users, org
         reverse("surveys:preview", kwargs={"slug": s1.slug}),
         reverse("surveys:dashboard", kwargs={"slug": s1.slug}),
         reverse("surveys:groups", kwargs={"slug": s1.slug}),
-        reverse("surveys:builder", kwargs={"slug": s1.slug}),
+    reverse("surveys:groups", kwargs={"slug": s1.slug}),
     ]
     for url in urls:
         resp = client.get(url)

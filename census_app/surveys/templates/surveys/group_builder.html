@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Question Builder - {{ survey.name }} · {{ group.name }}{% endblock %}
+{% block title %}Manage Questions - {{ survey.name }} · {{ group.name }}{% endblock %}
 {% block content %}
 <div class="flex flex-col gap-6">
   <div class="prose">
-    {% include 'components/breadcrumbs.html' with  crumb1_label="Survey Dashboard"  crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/"  crumb2_label="Question Group Builder"  crumb2_href="/surveys/"|add:survey.slug|add:"/builder/"  crumb3_label="Question Builder"  crumb3_href="/surveys/"|add:survey.slug|add:"/builder/groups/"|add:group.id|add:"/questions/" %}
+    {% include 'components/breadcrumbs.html' with  crumb1_label="Survey Dashboard"  crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/"  crumb2_label="Groups"  crumb2_href="/surveys/"|add:survey.slug|add:"/groups/"  crumb3_label="Manage Questions"  crumb3_href="/surveys/"|add:survey.slug|add:"/builder/groups/"|add:group.id|add:"/questions/" %}
     <h1 class="inline-flex items-center gap-2">
       {% include "components/icons/documents.html" with classes="w-6 h-6" %}
-      <span>Question Builder</span>
+      <span>Manage Questions</span>
     </h1>
     <h2 class="mt-0">Group: {{ group.name }}</h2>
     {% if group.description %}<p class="mt-0">{{ group.description }}</p>{% endif %}

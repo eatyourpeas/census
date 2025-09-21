@@ -15,7 +15,7 @@ from django import forms
 from django.utils.text import slugify
 from django.contrib.auth import get_user_model
 from .models import Survey, SurveyResponse, SurveyQuestion, QuestionGroup, Organization, OrganizationMembership, SurveyMembership, AuditLog
-from .permissions import require_can_view, require_can_edit, can_view_survey, can_manage_org_users, can_manage_survey_users
+from .permissions import require_can_view, require_can_edit, can_view_survey, can_manage_org_users, can_manage_survey_users, can_edit_survey
 from .utils import verify_key
 from .markdown_import import parse_bulk_markdown, BulkParseError
 from .color import hex_to_oklch
@@ -399,7 +399,20 @@ def survey_style_update(request: HttpRequest, slug: str) -> HttpResponse:
 def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     require_can_view(request.user, survey)
-    groups = survey.question_groups.filter(owner=request.user).order_by("name")
+    can_edit = can_edit_survey(request.user, survey)
+    groups_qs = (
+        survey.question_groups
+        .annotate(q_count=models.Count("surveyquestion", filter=models.Q(surveyquestion__survey=survey)))
+    )
+    # Apply explicit saved order if present in survey.style
+    order_ids = []
+    style = survey.style or {}
+    if isinstance(style.get("group_order"), list):
+        order_ids = [int(gid) for gid in style["group_order"] if str(gid).isdigit()]
+    groups_map = {g.id: g for g in groups_qs}
+    ordered = [groups_map[g_id] for g_id in order_ids if g_id in groups_map]
+    remaining = [g for g in groups_qs if g.id not in order_ids]
+    groups = ordered + sorted(remaining, key=lambda g: g.name.lower())
     # Apply style overrides so navigation reflects survey branding while managing groups
     style = survey.style or {}
     brand_overrides = {
@@ -411,7 +424,7 @@ def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
         "primary_hex": style.get("primary_color"),
         "font_css_url": style.get("font_css_url"),
     }
-    ctx = {"survey": survey, "groups": groups}
+    ctx = {"survey": survey, "groups": groups, "can_edit": can_edit}
     if any(v for k, v in brand_overrides.items() if k != "primary_hex") or brand_overrides.get("primary_hex"):
         ctx["brand"] = {
             "title": brand_overrides.get("title") or getattr(settings, "BRAND_TITLE", "Census"),
@@ -423,6 +436,27 @@ def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
             "primary": hex_to_oklch(brand_overrides.get("primary_hex") or ""),
         }
     return render(request, "surveys/groups.html", ctx)
+
+
+@login_required
+@require_http_methods(["POST"])
+def survey_groups_reorder(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    order_csv = request.POST.get("order", "")
+    ids = [int(i) for i in order_csv.split(",") if i.isdigit()]
+    # Filter to ids that belong to this survey
+    # Only allow reordering groups that belong to this survey (owner may differ; permission handled above)
+    valid_ids = set(
+        survey.question_groups.filter(id__in=ids).values_list("id", flat=True)
+    )
+    ids = [i for i in ids if i in valid_ids]
+    style = survey.style or {}
+    style["group_order"] = ids
+    survey.style = style
+    survey.save(update_fields=["style"])
+    messages.success(request, "Group order updated.")
+    return redirect("surveys:groups", slug=slug)
 
 
 @login_required
@@ -787,61 +821,7 @@ def survey_export_csv(request: HttpRequest, slug: str) -> HttpResponse:
 
 # -------------------- Builder (HTMX/SSR) --------------------
 
-@login_required
-def survey_builder(request: HttpRequest, slug: str) -> HttpResponse:
-    survey = get_object_or_404(Survey, slug=slug)
-    require_can_edit(request.user, survey)
-    questions = survey.questions.select_related("group").all()
-    _prepare_question_rendering(survey)
-    groups = survey.question_groups.filter(owner=request.user)
-    patient_group, demographics_fields = _get_patient_group_and_fields(survey)
-    show_patient_details = patient_group is not None
-    include_imd = bool((patient_group.schema or {}).get("include_imd")) if patient_group else False
-    prof_group, professional_fields, professional_ods = _get_professional_group_and_fields(survey)
-    show_professional_details = prof_group is not None
-    professional_ods_on = [k for k, v in (professional_ods or {}).items() if v]
-    professional_ods_pairs = [{"key": k, "label": PROFESSIONAL_FIELD_DEFS[k], "on": bool(v)} for k, v in (professional_ods or {}).items()]
-    style = survey.style or {}
-    brand_overrides = {
-        "title": style.get("title"),
-        "icon_url": style.get("icon_url"),
-        "theme_name": style.get("theme_name"),
-        "font_heading": style.get("font_heading"),
-        "font_body": style.get("font_body"),
-        "primary_hex": style.get("primary_color"),
-        "font_css_url": style.get("font_css_url"),
-    }
-    ctx = {
-        "survey": survey,
-        "questions": questions,
-        "groups": groups,
-        "show_patient_details": show_patient_details,
-        "demographics_fields": demographics_fields,
-        "demographic_defs": DEMOGRAPHIC_FIELD_DEFS,
-        "demographics_fields_with_labels": [(k, DEMOGRAPHIC_FIELD_DEFS[k]) for k in demographics_fields],
-        "include_imd": include_imd,
-        "show_professional_details": show_professional_details,
-        "professional_fields": professional_fields,
-        "professional_defs": PROFESSIONAL_FIELD_DEFS,
-        "professional_ods": professional_ods,
-        "professional_ods_on": professional_ods_on,
-        "professional_ods_pairs": professional_ods_pairs,
-    }
-    if any(v for k, v in brand_overrides.items() if k != "primary_hex") or brand_overrides.get("primary_hex"):
-        ctx["brand"] = {
-            "title": brand_overrides.get("title") or getattr(settings, "BRAND_TITLE", "Census"),
-            "icon_url": brand_overrides.get("icon_url") or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
-            "theme_name": brand_overrides.get("theme_name") or getattr(settings, "BRAND_THEME", "census"),
-            "font_heading": brand_overrides.get("font_heading") or getattr(settings, "BRAND_FONT_HEADING", "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'"),
-            "font_body": brand_overrides.get("font_body") or getattr(settings, "BRAND_FONT_BODY", "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"),
-            "font_css_url": brand_overrides.get("font_css_url") or getattr(settings, "BRAND_FONT_CSS_URL", "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap"),
-            "primary": hex_to_oklch(brand_overrides.get("primary_hex") or ""),
-        }
-    return render(
-        request,
-        "surveys/builder.html",
-        ctx,
-    )
+    
 
 
 @login_required
