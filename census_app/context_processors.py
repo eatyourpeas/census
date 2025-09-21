@@ -1,10 +1,45 @@
 from django.conf import settings
+import os
+import subprocess
+from datetime import datetime
 from django.contrib.auth.models import AnonymousUser
 from census_app.surveys.models import OrganizationMembership, SurveyMembership
 try:
     from census_app.core.models import SiteBranding  # optional if migration not yet applied
 except Exception:  # pragma: no cover - tolerate missing model during migrations
     SiteBranding = None
+
+
+_GIT_CACHE = None
+
+
+def _get_git_info():
+    global _GIT_CACHE
+    if _GIT_CACHE is not None:
+        return _GIT_CACHE
+    info = {"commit": None, "commit_date": None}
+    # Prefer environment variables (for Docker/CI)
+    env_sha = os.environ.get("GIT_COMMIT") or os.environ.get("GIT_SHA") or os.environ.get("SOURCE_VERSION")
+    env_time = os.environ.get("BUILD_TIMESTAMP")
+    if env_sha:
+        info["commit"] = env_sha[:7]
+    if env_time:
+        info["commit_date"] = env_time
+    # Attempt to read from local git repo if available
+    if info["commit"] is None:
+        try:
+            short = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
+            info["commit"] = short or None
+        except Exception:
+            pass
+    if info["commit_date"] is None:
+        try:
+            commit_date = subprocess.check_output(["git", "log", "-1", "--format=%cI"], stderr=subprocess.DEVNULL).decode().strip()
+            info["commit_date"] = commit_date or None
+        except Exception:
+            pass
+    _GIT_CACHE = info
+    return info
 
 
 def branding(request):
@@ -86,4 +121,13 @@ def branding(request):
             # During migrations or early setup, ignore DB failures
             pass
 
-    return {"brand": brand, "can_manage_any_users": can_manage_any_users}
+    # Build/version metadata
+    git = _get_git_info()
+    build = {
+        "version": os.environ.get("APP_VERSION") or getattr(settings, "APP_VERSION", None) or "dev",
+        "timestamp": os.environ.get("BUILD_TIMESTAMP") or getattr(settings, "BUILD_TIMESTAMP", None),
+        "commit": git.get("commit"),
+        "commit_date": git.get("commit_date"),
+    }
+
+    return {"brand": brand, "can_manage_any_users": can_manage_any_users, "build": build}
