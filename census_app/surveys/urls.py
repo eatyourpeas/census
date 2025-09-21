@@ -5,6 +5,8 @@ app_name = "surveys"
 
 urlpatterns = [
     path("", views.survey_list, name="list"),
+    # User management hub (must be before slug routes)
+    path("manage/users/", views.user_management_hub, name="user_management_hub"),
     path("<slug:slug>/bulk-upload/", views.bulk_upload, name="bulk_upload"),
     path("create/", views.survey_create, name="create"),
     path("<slug:slug>/groups/template/create", views.survey_group_create_from_template, name="groups_create_from_template"),
@@ -32,4 +34,7 @@ urlpatterns = [
     path("<slug:slug>/builder/groups/create", views.builder_group_create, name="builder_group_create"),
     path("<slug:slug>/builder/demographics/update", views.builder_demographics_update, name="builder_demographics_update"),
     path("<slug:slug>/builder/professional/update", views.builder_professional_update, name="builder_professional_update"),
+    # User management portal
+    path("org/<int:org_id>/users/", views.org_users, name="org_users"),
+    path("<slug:slug>/users/", views.survey_users, name="survey_users"),
 ]

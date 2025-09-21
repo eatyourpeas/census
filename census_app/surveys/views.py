@@ -13,8 +13,9 @@ from django_ratelimit.decorators import ratelimit
 from django.db import models
 from django import forms
 from django.utils.text import slugify
-from .models import Survey, SurveyResponse, SurveyQuestion, QuestionGroup
-from .permissions import require_can_view, require_can_edit, can_view_survey
+from django.contrib.auth import get_user_model
+from .models import Survey, SurveyResponse, SurveyQuestion, QuestionGroup, Organization, OrganizationMembership, SurveyMembership, AuditLog
+from .permissions import require_can_view, require_can_edit, can_view_survey, can_manage_org_users, can_manage_survey_users
 from .utils import verify_key
 from .markdown_import import parse_bulk_markdown, BulkParseError
 from .color import hex_to_oklch
@@ -420,6 +421,225 @@ def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
             "primary": hex_to_oklch(brand_overrides.get("primary_hex") or ""),
         }
     return render(request, "surveys/groups.html", ctx)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def org_users(request: HttpRequest, org_id: int) -> HttpResponse:
+    User = get_user_model()
+    org = get_object_or_404(Organization, id=org_id)
+    if not can_manage_org_users(request.user, org):
+        raise Http404
+    # Admin can list and edit memberships (promote/demote within org, but not self-promote to superuser etc.)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        user_id = request.POST.get("user_id")
+        email = (request.POST.get("email") or "").strip().lower()
+        target_user = None
+        if email:
+            target_user = User.objects.filter(email__iexact=email).first()
+        if not target_user and user_id:
+            target_user = get_object_or_404(User, id=user_id)
+        role = request.POST.get("role")
+        if action == "add" and target_user:
+            mem, created = OrganizationMembership.objects.update_or_create(
+                organization=org, user=target_user, defaults={"role": role or OrganizationMembership.Role.VIEWER}
+            )
+            AuditLog.objects.create(
+                actor=request.user,
+                scope=AuditLog.Scope.ORGANIZATION,
+                organization=org,
+                action=AuditLog.Action.ADD if created else AuditLog.Action.UPDATE,
+                target_user=target_user,
+                metadata={"role": mem.role},
+            )
+            messages.success(request, "User added/updated in organization.")
+        elif action == "update":
+            mem = get_object_or_404(OrganizationMembership, organization=org, user=target_user)
+            # Prevent self-demotion lockout: allow but warn (optional). For simplicity, allow update.
+            if role in dict(OrganizationMembership.Role.choices):
+                mem.role = role
+                mem.save(update_fields=["role"])
+                AuditLog.objects.create(
+                    actor=request.user,
+                    scope=AuditLog.Scope.ORGANIZATION,
+                    organization=org,
+                    action=AuditLog.Action.UPDATE,
+                    target_user=mem.user,
+                    metadata={"role": mem.role},
+                )
+                messages.success(request, "Membership updated.")
+        elif action == "remove":
+            mem = get_object_or_404(OrganizationMembership, organization=org, user=target_user)
+            # Prevent self-removal if this is the last admin
+            if mem.user_id == request.user.id and mem.role == OrganizationMembership.Role.ADMIN:
+                messages.error(request, "You cannot remove yourself as an organization admin.")
+                return redirect("surveys:org_users", org_id=org.id)
+            mem.delete()
+            AuditLog.objects.create(
+                actor=request.user,
+                scope=AuditLog.Scope.ORGANIZATION,
+                organization=org,
+                action=AuditLog.Action.REMOVE,
+                target_user=mem.user,
+                metadata={"role": mem.role},
+            )
+            messages.success(request, "User removed from organization.")
+        return redirect("surveys:org_users", org_id=org.id)
+
+    members = (
+        OrganizationMembership.objects.select_related("user")
+        .filter(organization=org)
+        .order_by("user__username")
+    )
+    return render(request, "surveys/org_users.html", {"org": org, "members": members})
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def survey_users(request: HttpRequest, slug: str) -> HttpResponse:
+    User = get_user_model()
+    survey = get_object_or_404(Survey, slug=slug)
+    # Creator, org admin, or owner can manage; viewers can only view
+    can_manage = can_manage_survey_users(request.user, survey)
+    if not can_manage and not can_view_survey(request.user, survey):
+        raise Http404
+
+    if request.method == "POST":
+        if not can_manage:
+            return HttpResponse(status=403)
+        action = request.POST.get("action")
+        user_id = request.POST.get("user_id")
+        email = (request.POST.get("email") or "").strip().lower()
+        target_user = None
+        if email:
+            target_user = User.objects.filter(email__iexact=email).first()
+        if not target_user and user_id:
+            target_user = get_object_or_404(User, id=user_id)
+        role = request.POST.get("role")
+        if role and role not in dict(SurveyMembership.Role.choices):
+            return HttpResponse(status=400)
+        if action == "add" and target_user:
+            smem, created = SurveyMembership.objects.update_or_create(
+                survey=survey, user=target_user, defaults={"role": role or SurveyMembership.Role.VIEWER}
+            )
+            AuditLog.objects.create(
+                actor=request.user,
+                scope=AuditLog.Scope.SURVEY,
+                survey=survey,
+                action=AuditLog.Action.ADD if created else AuditLog.Action.UPDATE,
+                target_user=target_user,
+                metadata={"role": smem.role},
+            )
+            messages.success(request, "User added to survey.")
+        elif action == "update":
+            mem = get_object_or_404(SurveyMembership, survey=survey, user=target_user)
+            # creators cannot promote to org admin here; only role is creator/viewer at survey level
+            mem.role = role or SurveyMembership.Role.VIEWER
+            mem.save(update_fields=["role"])
+            AuditLog.objects.create(
+                actor=request.user,
+                scope=AuditLog.Scope.SURVEY,
+                survey=survey,
+                action=AuditLog.Action.UPDATE,
+                target_user=mem.user,
+                metadata={"role": mem.role},
+            )
+            messages.success(request, "Membership updated.")
+        elif action == "remove":
+            mem = get_object_or_404(SurveyMembership, survey=survey, user=target_user)
+            mem.delete()
+            AuditLog.objects.create(
+                actor=request.user,
+                scope=AuditLog.Scope.SURVEY,
+                survey=survey,
+                action=AuditLog.Action.REMOVE,
+                target_user=mem.user,
+                metadata={"role": mem.role},
+            )
+            messages.success(request, "User removed from survey.")
+        return redirect("surveys:survey_users", slug=survey.slug)
+
+    memberships = (
+        SurveyMembership.objects.select_related("user")
+        .filter(survey=survey)
+        .order_by("user__username")
+    )
+    return render(request, "surveys/survey_users.html", {"survey": survey, "memberships": memberships, "can_manage": can_manage})
+@login_required
+def user_management_hub(request: HttpRequest) -> HttpResponse:
+    # Single organisation model: pick the organisation where user is ADMIN (or None)
+    org = (
+        Organization.objects.filter(memberships__user=request.user, memberships__role=OrganizationMembership.Role.ADMIN)
+        .select_related("owner")
+        .first()
+    )
+
+    if request.method == "POST":
+        # HTMX quick add flows
+        scope = request.POST.get("scope")
+        email = (request.POST.get("email") or "").strip().lower()
+        role = request.POST.get("role")
+        User = get_user_model()
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            return HttpResponse("User not found by email", status=400)
+        if scope == "org":
+            if not org or not can_manage_org_users(request.user, org):
+                return HttpResponse(status=403)
+            mem, created = OrganizationMembership.objects.update_or_create(
+                organization=org, user=user, defaults={"role": role or OrganizationMembership.Role.VIEWER}
+            )
+            AuditLog.objects.create(
+                actor=request.user,
+                scope=AuditLog.Scope.ORGANIZATION,
+                organization=org,
+                action=AuditLog.Action.ADD if created else AuditLog.Action.UPDATE,
+                target_user=user,
+                metadata={"role": mem.role},
+            )
+            return HttpResponse("Added/updated in org", status=200)
+        elif scope == "survey":
+            slug = request.POST.get("slug") or ""
+            survey = get_object_or_404(Survey, slug=slug)
+            if not can_manage_survey_users(request.user, survey):
+                return HttpResponse(status=403)
+            smem, created = SurveyMembership.objects.update_or_create(
+                survey=survey, user=user, defaults={"role": role or SurveyMembership.Role.VIEWER}
+            )
+            AuditLog.objects.create(
+                actor=request.user,
+                scope=AuditLog.Scope.SURVEY,
+                survey=survey,
+                action=AuditLog.Action.ADD if created else AuditLog.Action.UPDATE,
+                target_user=user,
+                metadata={"role": smem.role},
+            )
+            return HttpResponse("Added/updated in survey", status=200)
+    # Build users grouped by surveys for this organisation
+    grouped = []
+    manageable_surveys = Survey.objects.none()
+    members = OrganizationMembership.objects.none()
+    if org:
+        members = OrganizationMembership.objects.select_related("user").filter(organization=org).order_by("user__username")
+        manageable_surveys = (
+            Survey.objects.filter(organization=org)
+            .select_related("organization")
+            .order_by("name")
+        )
+        for sv in manageable_surveys:
+            sv_members = (
+                SurveyMembership.objects.select_related("user")
+                .filter(survey=sv)
+                .order_by("user__username")
+            )
+            grouped.append({"survey": sv, "members": sv_members})
+
+    return render(
+        request,
+        "surveys/user_management_hub.html",
+        {"org": org, "members": members, "grouped": grouped},
+    )
 
 
 @login_required

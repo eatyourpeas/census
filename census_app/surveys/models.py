@@ -97,6 +97,20 @@ class SurveyQuestion(models.Model):
         ordering = ["order", "id"]
 
 
+class SurveyMembership(models.Model):
+    class Role(models.TextChoices):
+        CREATOR = "creator", "Creator"
+        VIEWER = "viewer", "Viewer"
+
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="memberships")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="survey_memberships")
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.VIEWER)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("survey", "user")
+
+
 class SurveyResponse(models.Model):
     survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="responses")
     # Sensitive demographics encrypted per-survey
@@ -125,3 +139,29 @@ def validate_markdown_survey(md_text: str) -> list[dict]:
         raise ValidationError("Empty markdown")
     # Placeholder minimal validation
     return []
+
+
+class AuditLog(models.Model):
+    class Scope(models.TextChoices):
+        ORGANIZATION = "organization", "Organization"
+        SURVEY = "survey", "Survey"
+
+    class Action(models.TextChoices):
+        ADD = "add", "Add"
+        REMOVE = "remove", "Remove"
+        UPDATE = "update", "Update"
+
+    actor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="audit_logs")
+    scope = models.CharField(max_length=20, choices=Scope.choices)
+    organization = models.ForeignKey(Organization, null=True, blank=True, on_delete=models.CASCADE)
+    survey = models.ForeignKey(Survey, null=True, blank=True, on_delete=models.CASCADE)
+    action = models.CharField(max_length=20, choices=Action.choices)
+    target_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="audit_targets")
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["scope", "organization", "survey"]),
+            models.Index(fields=["created_at"]),
+        ]

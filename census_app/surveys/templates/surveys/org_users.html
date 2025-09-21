@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Organisation users: {{ org.name }}</h1>
+<table class="table w-full mb-6">
+  <thead><tr><th>User</th><th>Role</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for m in members %}
+    <tr>
+      <td>{{ m.user.username }}</td>
+      <td>{{ m.get_role_display }}</td>
+      <td>
+        <form method="post" class="inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="remove" />
+          <input type="hidden" name="user_id" value="{{ m.user.id }}" />
+          <button class="btn btn-sm">Remove</button>
+        </form>
+      </td>
+    </tr>
+  {% empty %}
+  <tr><td colspan="3">No users.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2 class="text-xl font-semibold mb-2">Add or update user</h2>
+<form method="post" class="space-y-2">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="add" />
+  <label class="block">Email (preferred) <input type="email" name="email" class="input input-bordered" /></label>
+  <div class="text-sm opacity-70">Or specify User ID if email not found:</div>
+  <label class="block">User ID <input name="user_id" class="input input-bordered" /></label>
+  <label class="block">Role
+    <select name="role" class="select select-bordered">
+      <option value="admin">Admin</option>
+      <option value="creator">Creator</option>
+      <option value="viewer">Viewer</option>
+    </select>
+  </label>
+  <button class="btn">Save</button>
+</form>
+{% endblock %}

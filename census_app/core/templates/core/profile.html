@@ -5,4 +5,26 @@
   <h1>Your Profile</h1>
   <p>Signed in as <strong>{{ request.user.username }}</strong></p>
 </div>
+
+<div class="mt-6 max-w-2xl">
+  {% if not can_manage_any_users %}
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <h2 class="card-title">Upgrade to organisation</h2>
+        <p class="opacity-80">Upgrading creates an organisation that you administer. You’ll be able to host surveys and build a team. Simple users cannot gain permissions inside someone else’s organisation, but you can create your own organisation at any time.</p>
+        <form method="post" class="space-y-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="upgrade_to_org" />
+          <label class="form-control">
+            <span class="label"><span class="label-text">Organisation name (optional)</span></span>
+            <input type="text" name="org_name" class="input input-bordered w-full" placeholder="e.g. Acme Health" />
+          </label>
+          <button type="submit" class="btn btn-primary">Create organisation</button>
+        </form>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info">You already have user management permissions.</div>
+  {% endif %}
+</div>
 {% endblock %}

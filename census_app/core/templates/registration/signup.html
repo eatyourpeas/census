@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Sign up - Census{% endblock %}
+{% block content %}
+<div class="max-w-xl mx-auto">
+  <h1 class="text-2xl font-semibold mb-4">Create your account</h1>
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    <p class="text-sm opacity-70">Your username will be your email address.</p>
+    {{ form.non_field_errors }}
+    <div class="grid gap-3">
+      <label class="form-control">
+        <span class="label"><span class="label-text">Email</span></span>
+        {{ form.email }}
+        {% if form.email.errors %}<span class="text-error text-sm">{{ form.email.errors|join:", " }}</span>{% endif %}
+      </label>
+      <label class="form-control">
+        <span class="label"><span class="label-text">Password</span></span>
+        {{ form.password1 }}
+        {% if form.password1.errors %}<span class="text-error text-sm">{{ form.password1.errors|join:", " }}</span>{% endif %}
+      </label>
+      <label class="form-control">
+        <span class="label"><span class="label-text">Confirm password</span></span>
+        {{ form.password2 }}
+        {% if form.password2.errors %}<span class="text-error text-sm">{{ form.password2.errors|join:", " }}</span>{% endif %}
+      </label>
+    </div>
+    <div class="divider"></div>
+    <fieldset class="space-y-2">
+      <legend class="font-semibold">Account type</legend>
+      <label class="label cursor-pointer">
+        <span class="label-text">Simple user</span>
+        <input type="radio" name="account_type" value="simple" class="radio" checked>
+      </label>
+      <p class="text-sm opacity-70">Simple users can complete surveys and create their own organisation later. They cannot gain permissions within someone else’s organisation.</p>
+      <label class="label cursor-pointer mt-2">
+        <span class="label-text">Organisation account</span>
+        <input type="radio" name="account_type" value="org" class="radio">
+      </label>
+      <p class="text-sm opacity-70">Organisation accounts can host surveys and build a team. We’ll create an organisation for you during sign up.</p>
+      <label class="form-control">
+        <span class="label"><span class="label-text">Organisation name (optional)</span></span>
+        <input type="text" name="org_name" class="input input-bordered w-full" placeholder="e.g. Acme Health" />
+      </label>
+    </fieldset>
+    <button type="submit" class="btn btn-primary">Create account</button>
+  </form>
+</div>
+{% endblock %}

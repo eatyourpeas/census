@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}User management · {{ block.super }}{% endblock %}
+{% block content %}
+  <h1 class="text-2xl font-semibold mb-4">User management</h1>
+
+  {% if not org %}
+    <div class="alert">You don't have an organisation to manage yet.</div>
+  {% else %}
+    <div class="card bg-base-100 shadow mb-6">
+      <div class="card-body">
+        <h2 class="card-title">Organisation: {{ org.name }}</h2>
+        <div class="mb-3">
+          <form hx-post="{% url 'surveys:user_management_hub' %}" hx-target="#org-add-result" hx-swap="innerHTML" method="post" class="flex items-end gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="scope" value="org">
+            <label class="form-control">
+              <span class="label"><span class="label-text">User email</span></span>
+              <input type="email" name="email" class="input input-bordered" placeholder="user@example.com" />
+            </label>
+            <label class="form-control">
+              <span class="label"><span class="label-text">Role</span></span>
+              <select name="role" class="select select-bordered">
+                <option value="viewer">Viewer</option>
+                <option value="creator">Creator</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+            <button type="submit" class="btn btn-primary">Add user to org</button>
+          </form>
+          <div id="org-add-result" class="text-sm mt-2 opacity-80"></div>
+        </div>
+
+        <h3 class="font-semibold">All users ({{ members|length }})</h3>
+        <ul class="list-disc pl-5">
+          {% for mem in members %}
+            <li>{{ mem.user.username }} <span class="badge badge-ghost">{{ mem.role }}</span></li>
+          {% empty %}
+            <li class="opacity-70">No users yet</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <h2 class="card-title">Users by survey</h2>
+        <div class="mb-3">
+          <form hx-post="{% url 'surveys:user_management_hub' %}" hx-target="#survey-add-result" hx-swap="innerHTML" method="post" class="flex items-end gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="scope" value="survey">
+            <label class="form-control">
+              <span class="label"><span class="label-text">Survey slug</span></span>
+              <input type="text" name="slug" class="input input-bordered w-48" placeholder="survey-slug" />
+            </label>
+            <label class="form-control">
+              <span class="label"><span class="label-text">User email</span></span>
+              <input type="email" name="email" class="input input-bordered" placeholder="user@example.com" />
+            </label>
+            <label class="form-control">
+              <span class="label"><span class="label-text">Role</span></span>
+              <select name="role" class="select select-bordered">
+                <option value="viewer">Viewer</option>
+                <option value="creator">Creator</option>
+              </select>
+            </label>
+            <button type="submit" class="btn btn-primary">Add user to survey</button>
+          </form>
+          <div id="survey-add-result" class="text-sm mt-2 opacity-80"></div>
+        </div>
+        <div class="space-y-4">
+          {% for item in grouped %}
+            <div>
+              <h3 class="font-semibold">
+                <a class="link link-primary" href="{% url 'surveys:survey_users' item.survey.slug %}">{{ item.survey.name }}</a>
+                <span class="badge badge-ghost">{{ item.members|length }} members</span>
+              </h3>
+              <ul class="list-disc pl-5">
+                {% for m in item.members %}
+                  <li>{{ m.user.username }} <span class="badge badge-ghost">{{ m.role }}</span></li>
+                {% empty %}
+                  <li class="opacity-70">No members</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% empty %}
+            <div class="opacity-70">No surveys yet</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

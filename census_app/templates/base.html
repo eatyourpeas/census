@@ -27,8 +27,16 @@
         <ul class="menu menu-horizontal">
           <li><a href="/surveys">Surveys</a></li>
           {% if user.is_authenticated %}
+            {% if can_manage_any_users %}
+              <li><a href="{% url 'surveys:user_management_hub' %}">User management</a></li>
+            {% endif %}
             <li><a href="/profile">Profile</a></li>
-            <li><a href="/accounts/logout/">Logout</a></li>
+            <li>
+              <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost btn-sm normal-case">Logout</button>
+              </form>
+            </li>
           {% else %}
             <li><a href="/accounts/login/">Login</a></li>
             <li><a href="/signup/">Sign up</a></li>

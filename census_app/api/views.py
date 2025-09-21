@@ -1,9 +1,10 @@
 from django.contrib.auth import get_user_model
 from rest_framework import viewsets, permissions, serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from census_app.surveys.models import Survey
-from census_app.surveys.models import SurveyQuestion, QuestionGroup, OrganizationMembership
+from census_app.surveys.models import SurveyQuestion, QuestionGroup, OrganizationMembership, SurveyMembership, Organization, AuditLog
 from rest_framework.decorators import action
 from census_app.surveys.permissions import can_view_survey, can_edit_survey
 
@@ -119,10 +120,239 @@ class SurveyViewSet(viewsets.ModelViewSet):
         return resp
 
 
+class OrganizationMembershipSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+    class Meta:
+        model = OrganizationMembership
+        fields = ["id", "organization", "user", "username", "role", "created_at"]
+        read_only_fields = ["created_at"]
+
+
+class SurveyMembershipSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+    class Meta:
+        model = SurveyMembership
+        fields = ["id", "survey", "user", "username", "role", "created_at"]
+        read_only_fields = ["created_at"]
+
+
+class OrganizationMembershipViewSet(viewsets.ModelViewSet):
+    serializer_class = OrganizationMembershipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Only orgs where the user is admin
+        admin_orgs = Organization.objects.filter(memberships__user=user, memberships__role=OrganizationMembership.Role.ADMIN)
+        return OrganizationMembership.objects.filter(organization__in=admin_orgs).select_related("user", "organization")
+
+    def perform_create(self, serializer):
+        org = serializer.validated_data.get("organization")
+        if not OrganizationMembership.objects.filter(organization=org, user=self.request.user, role=OrganizationMembership.Role.ADMIN).exists():
+            raise PermissionDenied("Not an admin for this organization")
+        instance = serializer.save()
+        AuditLog.objects.create(
+            actor=self.request.user,
+            scope=AuditLog.Scope.ORGANIZATION,
+            organization=org,
+            action=AuditLog.Action.ADD,
+            target_user=instance.user,
+            metadata={"role": instance.role},
+        )
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        org = instance.organization
+        if not OrganizationMembership.objects.filter(organization=org, user=self.request.user, role=OrganizationMembership.Role.ADMIN).exists():
+            raise PermissionDenied("Not an admin for this organization")
+        instance = serializer.save()
+        AuditLog.objects.create(
+            actor=self.request.user,
+            scope=AuditLog.Scope.ORGANIZATION,
+            organization=org,
+            action=AuditLog.Action.UPDATE,
+            target_user=instance.user,
+            metadata={"role": instance.role},
+        )
+
+    def perform_destroy(self, instance):
+        org = instance.organization
+        if not OrganizationMembership.objects.filter(organization=org, user=self.request.user, role=OrganizationMembership.Role.ADMIN).exists():
+            raise PermissionDenied("Not an admin for this organization")
+        # Prevent org admin removing themselves
+        if instance.user_id == self.request.user.id and instance.role == OrganizationMembership.Role.ADMIN:
+            raise PermissionDenied("You cannot remove yourself as an organization admin")
+        instance.delete()
+        AuditLog.objects.create(
+            actor=self.request.user,
+            scope=AuditLog.Scope.ORGANIZATION,
+            organization=org,
+            action=AuditLog.Action.REMOVE,
+            target_user=instance.user,
+            metadata={"role": instance.role},
+        )
+
+
+class SurveyMembershipViewSet(viewsets.ModelViewSet):
+    serializer_class = SurveyMembershipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # user can see memberships for surveys they can view
+        allowed_survey_ids = []
+        for s in Survey.objects.all():
+            if s.owner_id == user.id:
+                allowed_survey_ids.append(s.id)
+            elif s.organization_id and OrganizationMembership.objects.filter(
+                organization=s.organization, user=user, role=OrganizationMembership.Role.ADMIN
+            ).exists():
+                allowed_survey_ids.append(s.id)
+            elif SurveyMembership.objects.filter(user=user, survey=s).exists():
+                allowed_survey_ids.append(s.id)
+        return SurveyMembership.objects.filter(survey_id__in=allowed_survey_ids).select_related("user", "survey")
+
+    def _can_manage(self, survey: Survey) -> bool:
+        # org admin, owner, or survey creator can manage
+        if survey.owner_id == self.request.user.id:
+            return True
+        if survey.organization_id and OrganizationMembership.objects.filter(
+            organization=survey.organization, user=self.request.user, role=OrganizationMembership.Role.ADMIN
+        ).exists():
+            return True
+        return SurveyMembership.objects.filter(user=self.request.user, survey=survey, role=SurveyMembership.Role.CREATOR).exists()
+
+    def perform_create(self, serializer):
+        survey = serializer.validated_data.get("survey")
+        if not self._can_manage(survey):
+            raise PermissionDenied("Not allowed to manage users for this survey")
+        instance = serializer.save()
+        AuditLog.objects.create(
+            actor=self.request.user,
+            scope=AuditLog.Scope.SURVEY,
+            survey=instance.survey,
+            action=AuditLog.Action.ADD,
+            target_user=instance.user,
+            metadata={"role": instance.role},
+        )
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        if not self._can_manage(instance.survey):
+            raise PermissionDenied("Not allowed to manage users for this survey")
+        instance = serializer.save()
+        AuditLog.objects.create(
+            actor=self.request.user,
+            scope=AuditLog.Scope.SURVEY,
+            survey=instance.survey,
+            action=AuditLog.Action.UPDATE,
+            target_user=instance.user,
+            metadata={"role": instance.role},
+        )
+
+    def perform_destroy(self, instance):
+        if not self._can_manage(instance.survey):
+            raise PermissionDenied("Not allowed to manage users for this survey")
+        instance.delete()
+        AuditLog.objects.create(
+            actor=self.request.user,
+            scope=AuditLog.Scope.SURVEY,
+            survey=instance.survey,
+            action=AuditLog.Action.REMOVE,
+            target_user=instance.user,
+            metadata={"role": instance.role},
+        )
+
+
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAdminUser]
     queryset = User.objects.all()
+
+
+class ScopedUserCreateSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    email = serializers.EmailField(required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True)
+
+
+class ScopedUserViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=["post"], url_path="org/(?P<org_id>[^/.]+)/create")
+    def create_in_org(self, request, org_id=None):
+        # Only org admins can create users within their org context
+        org = Organization.objects.get(id=org_id)
+        if not OrganizationMembership.objects.filter(organization=org, user=request.user, role=OrganizationMembership.Role.ADMIN).exists():
+            raise PermissionDenied("Not an admin for this organization")
+        ser = ScopedUserCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        email = (data.get("email") or "").strip().lower()
+        if email:
+            user = User.objects.filter(email__iexact=email).first()
+            if not user:
+                if User.objects.filter(username=data["username"]).exists():
+                    raise serializers.ValidationError({"username": "already exists"})
+                user = User.objects.create_user(username=data["username"], email=email, password=data["password"])
+        else:
+            if User.objects.filter(username=data["username"]).exists():
+                raise serializers.ValidationError({"username": "already exists"})
+            user = User.objects.create_user(username=data["username"], email="", password=data["password"])
+        # Optionally add as viewer by default
+        OrganizationMembership.objects.get_or_create(organization=org, user=user, defaults={"role": OrganizationMembership.Role.VIEWER})
+        AuditLog.objects.create(
+            actor=request.user,
+            scope=AuditLog.Scope.ORGANIZATION,
+            organization=org,
+            action=AuditLog.Action.ADD,
+            target_user=user,
+            metadata={"created_via": "org"},
+        )
+        return Response({"id": user.id, "username": user.username, "email": user.email})
+
+    @action(detail=False, methods=["post"], url_path="survey/(?P<survey_id>[^/.]+)/create")
+    def create_in_survey(self, request, survey_id=None):
+        # Survey creators/admins/owner can create users within the survey context
+        survey = Survey.objects.get(id=survey_id)
+        # Reuse the SurveyMembershipViewSet _can_manage logic inline
+        def can_manage(user):
+            if survey.owner_id == user.id:
+                return True
+            if survey.organization_id and OrganizationMembership.objects.filter(organization=survey.organization, user=user, role=OrganizationMembership.Role.ADMIN).exists():
+                return True
+            return SurveyMembership.objects.filter(user=user, survey=survey, role=SurveyMembership.Role.CREATOR).exists()
+
+        if not can_manage(request.user):
+            raise PermissionDenied("Not allowed to manage users for this survey")
+        ser = ScopedUserCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        email = (data.get("email") or "").strip().lower()
+        if email:
+            user = User.objects.filter(email__iexact=email).first()
+            if not user:
+                if User.objects.filter(username=data["username"]).exists():
+                    raise serializers.ValidationError({"username": "already exists"})
+                user = User.objects.create_user(username=data["username"], email=email, password=data["password"])
+        else:
+            if User.objects.filter(username=data["username"]).exists():
+                raise serializers.ValidationError({"username": "already exists"})
+            user = User.objects.create_user(username=data["username"], email="", password=data["password"])
+        SurveyMembership.objects.get_or_create(survey=survey, user=user, defaults={"role": SurveyMembership.Role.VIEWER})
+        AuditLog.objects.create(
+            actor=request.user,
+            scope=AuditLog.Scope.SURVEY,
+            survey=survey,
+            action=AuditLog.Action.ADD,
+            target_user=user,
+            metadata={"created_via": "survey"},
+        )
+        return Response({"id": user.id, "username": user.username, "email": user.email})
 
 
 @api_view(["GET"])
