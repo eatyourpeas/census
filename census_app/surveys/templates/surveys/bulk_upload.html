@@ -2,8 +2,8 @@
 {% block title %}Bulk Upload - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose">
+  {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Bulk Upload" %}
   <h1>Bulk upload questions: {{ survey.name }}</h1>
-  <p><a class="btn btn-sm" href="/surveys/{{ survey.slug }}/dashboard/">Back to dashboard</a></p>
 </div>
 
 {% if error %}

@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Builder - {{ survey.name }} · {{ group.name }}{% endblock %}
+{% block title %}Question Builder - {{ survey.name }} · {{ group.name }}{% endblock %}
 {% block content %}
 <div class="flex flex-col gap-6">
   <div class="prose">
-    <h1>Group: {{ group.name }}</h1>
+    {% include 'components/breadcrumbs.html' with  crumb1_label="Survey Dashboard"  crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/"  crumb2_label="Question Group Builder"  crumb2_href="/surveys/"|add:survey.slug|add:"/builder/"  crumb3_label="Question Builder"  crumb3_href="/surveys/"|add:survey.slug|add:"/builder/groups/"|add:group.id|add:"/questions/" %}
+    <h1>Question Builder</h1>
+    <h2 class="mt-0">Group: {{ group.name }}</h2>
     {% if group.description %}<p class="mt-0">{{ group.description }}</p>{% endif %}
-    <a class="btn btn-sm" href="/surveys/{{ survey.slug }}/groups/">Back to groups</a>
   </div>
 
   <div class="grid md:grid-cols-3 gap-6">

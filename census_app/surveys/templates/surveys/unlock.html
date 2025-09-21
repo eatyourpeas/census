@@ -2,6 +2,8 @@
 {% block title %}Unlock Survey - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose">
+  {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Unlock" %}
+  %}
   <h1>Unlock {{ survey.name }}</h1>
   <p>Enter the one-time survey key to decrypt sensitive fields for this session.</p>
 </div>
@@ -9,7 +11,7 @@
   {% csrf_token %}
   <input type="password" name="key" class="input input-bordered w-full max-w-md" placeholder="Survey key" />
   <button class="btn btn-primary" type="submit">Unlock</button>
-  <a class="btn" href="/surveys/{{ survey.slug }}/dashboard/">Back to dashboard</a>
+  
 
 </form>
 {% endblock %}

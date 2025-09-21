@@ -88,14 +88,14 @@ module.exports = {
     themes: [
       {
         census: {
-          primary: "#993955",
-          secondary: "#a3c3d9",
+          primary: "#6d5aa5",
+          secondary: "#50e6ff",
           accent: "#98b6b1",
           neutral: "#e9ecf5",
           "base-100": "#ffffff",
           "base-200": "#f6f7f8",
           info: "#629677",
-          success: "#ae76a6",
+          success: "#37b77c",
           warning: "#ffffff",
           error: "#FFA500",
         },

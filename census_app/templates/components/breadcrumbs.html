@@ -1,0 +1,121 @@
+{# Reusable breadcrumbs component (DaisyUI with icons) #}
+
+<nav class="breadcrumbs text-sm">
+  <ul>
+    {# Pattern 1: items iterable of (label, href) from context #}
+    {% if items %}
+      {% for item in items %}
+        {% with label=item.0 href=item.1 %}
+          <li>
+            {% if href %}
+              <a href="{{ href }}" class="inline-flex items-center gap-1">
+                {% if forloop.first %}
+                  {# Clipboard icon for Survey #}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M9 2.25h6a1.5 1.5 0 011.5 1.5V6H7.5V3.75a1.5 1.5 0 011.5-1.5z"/>
+                    <path d="M6 6h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2z"/>
+                  </svg>
+                {% elif forloop.last %}
+                  {# Single document icon for Question #}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3.75H7.5a1.5 1.5 0 00-1.5 1.5v13.5A1.5 1.5 0 007.5 20.25h9a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5zM9 7.5h6M9 12h6M9 16.5h3"/></svg>
+                {% else %}
+                  {# Multiple documents icon for Question Groups #}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M7 3h8a2 2 0 012 2v9a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/>
+                    <path d="M9 7h8a2 2 0 012 2v9a2 2 0 01-2 2H9a2 2 0 01-2-2V9a2 2 0 012-2z"/>
+                  </svg>
+                {% endif %}
+                <span>{{ label }}</span>
+              </a>
+            {% else %}
+              <span class="inline-flex items-center gap-1">
+                {% if forloop.first %}
+                  {# Clipboard icon for Survey #}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M9 2.25h6a1.5 1.5 0 011.5 1.5V6H7.5V3.75a1.5 1.5 0 011.5-1.5z"/>
+                    <path d="M6 6h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2z"/>
+                  </svg>
+                {% elif forloop.last %}
+                  {# Single document icon for Question #}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3.75H7.5a1.5 1.5 0 00-1.5 1.5v13.5A1.5 1.5 0 007.5 20.25h9a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5zM9 7.5h6M9 12h6M9 16.5h3"/></svg>
+                {% else %}
+                  {# Multiple documents icon for Question Groups #}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M7 3h8a2 2 0 012 2v9a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/>
+                    <path d="M9 7h8a2 2 0 012 2v9a2 2 0 01-2 2H9a2 2 0 01-2-2V9a2 2 0 012-2z"/>
+                  </svg>
+                {% endif %}
+                <span>{{ label }}</span>
+              </span>
+            {% endif %}
+          </li>
+        {% endwith %}
+      {% endfor %}
+    {% else %}
+      {# Pattern 2: numbered crumb parameters #}
+      {% if crumb1_label %}
+        <li>
+          <a href="{{ crumb1_href }}" class="inline-flex items-center gap-1">
+            {# Clipboard icon for Survey #}
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M9 2.25h6a1.5 1.5 0 011.5 1.5V6H7.5V3.75a1.5 1.5 0 011.5-1.5z"/>
+              <path d="M6 6h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2z"/>
+            </svg>
+            <span>{{ crumb1_label }}</span>
+          </a>
+        </li>
+      {% endif %}
+      {% if crumb2_label %}
+        <li>
+          {% if crumb2_href %}
+            <a href="{{ crumb2_href }}" class="inline-flex items-center gap-1">
+              {# Multiple documents icon for Question Groups #}
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M7 3h8a2 2 0 012 2v9a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/>
+                <path d="M9 7h8a2 2 0 012 2v9a2 2 0 01-2 2H9a2 2 0 01-2-2V9a2 2 0 012-2z"/>
+              </svg>
+              <span>{{ crumb2_label }}</span>
+            </a>
+          {% else %}
+            <span class="inline-flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.5 6.75A2.25 2.25 0 016.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5A2.25 2.25 0 0117.25 19.5H6.75A2.25 2.25 0 014.5 17.25V6.75z"/></svg>
+              <span>{{ crumb2_label }}</span>
+            </span>
+          {% endif %}
+        </li>
+      {% endif %}
+      {% if crumb3_label %}
+        <li>
+          {% if crumb3_href %}
+            <a href="{{ crumb3_href }}" class="inline-flex items-center gap-1">
+              {# Single document icon for Question #}
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3.75H7.5a1.5 1.5 0 00-1.5 1.5v13.5A1.5 1.5 0 007.5 20.25h9a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5zM9 7.5h6M9 12h6M9 16.5h3"/></svg>
+              <span>{{ crumb3_label }}</span>
+            </a>
+          {% else %}
+            <span class="inline-flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.5 6.75A2.25 2.25 0 016.75 4.5h10.5A2.25 2.25 0 0119.5 6.75v10.5A2.25 2.25 0 0117.25 19.5H6.75A2.25 2.25 0 014.5 17.25V6.75z"/></svg>
+              <span>{{ crumb3_label }}</span>
+            </span>
+          {% endif %}
+        </li>
+      {% endif %}
+      {% if crumb4_label %}
+        <li>
+          {% if crumb4_href %}
+            <a href="{{ crumb4_href }}" class="inline-flex items-center gap-1">
+              {# Single document icon fallback #}
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3.75H7.5a1.5 1.5 0 00-1.5 1.5v13.5A1.5 1.5 0 007.5 20.25h9a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5zM9 7.5h6M9 12h6M9 16.5h3"/></svg>
+              <span>{{ crumb4_label }}</span>
+            </a>
+          {% else %}
+            <span class="inline-flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3.75H7.5a1.5 1.5 0 00-1.5 1.5v13.5A1.5 1.5 0 007.5 20.25h9a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5zM9 7.5h6M9 12h6M9 16.5h3"/></svg>
+              <span>{{ crumb4_label }}</span>
+            </span>
+          {% endif %}
+        </li>
+      {% endif %}
+    {% endif %}
+  </ul>
+</nav>

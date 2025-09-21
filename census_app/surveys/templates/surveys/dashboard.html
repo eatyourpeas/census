@@ -2,7 +2,8 @@
 {% block title %}Dashboard - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose">
-  <h1>Dashboard: {{ survey.name }}</h1>
+  {% include 'components/breadcrumbs.html' with crumb1_label="Surveys" crumb1_href="/surveys/" crumb2_label="Survey Dashboard" crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" %}
+  <h2>{{ survey.name }}</h2>
   <p>Status: {% if survey.is_live %}Live{% else %}Not live{% endif %}</p>
   <p>Total responses: <strong>{{ total }}</strong></p>
   <div class="flex gap-2">

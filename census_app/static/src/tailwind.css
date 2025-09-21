@@ -16,3 +16,17 @@
 
 /* Optional: put tiny global tweaks below using Tailwind layers if needed.
 	 Prefer Tailwind utilities in templates over custom CSS. */
+
+@layer components {
+	/* Breadcrumb links: lighter by default, underline only on hover */
+	.breadcrumbs a {
+		@apply no-underline text-base-content/70 hover:underline hover:text-base-content/90;
+	}
+	.breadcrumbs li > span {
+		@apply text-base-content/60;
+	}
+	/* When breadcrumbs are inside .prose, ensure Typography plugin doesn't re-add underline */
+	.prose :where(.breadcrumbs a):not(:where([class~="not-prose"])) {
+		@apply no-underline text-base-content/70 hover:underline hover:text-base-content/90;
+	}
+}

@@ -7,11 +7,11 @@
     <div class="card-body">
         <h2 class="card-title">{{ survey.name }}</h2>
         <p class="opacity-70">{{ survey.description }}</p>
-        {% if user.is_authenticated and user == survey.owner %}
-            <div class="card-actions justify-end">
-                <a class="btn btn-sm" href="/surveys/{{ survey.slug }}/dashboard/">Back to dashboard</a>
-            </div>
-        {% endif %}
+    {% if user.is_authenticated and user == survey.owner %}
+      <div class="card-actions justify-end">
+        {% include 'components/breadcrumbs.html' with crumb1_label="Surveys" crumb1_href="/surveys/" crumb2_label="Survey Dashboard" crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb3_label=survey.name %}
+      </div>
+    {% endif %}
         </div>
 </div>
 
