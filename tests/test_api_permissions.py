@@ -76,7 +76,7 @@ class TestAPIPermissions:
         assert resp.status_code in (401, 403)
 
     def test_retrieve_permissions(self, client):
-        owner, admin, creator, viewer, org, surveys = self.setup_data()
+        _, _, _, _, _, surveys = self.setup_data() # owner, admin, creator, viewer, org
         s1, s2, s3 = surveys
         url_s2 = f"/api/surveys/{s2.id}/"
 
@@ -105,7 +105,7 @@ class TestAPIPermissions:
         assert resp.status_code == 403
 
     def test_update_forbidden_without_rights(self, client):
-        owner, admin, creator, viewer, org, surveys = self.setup_data()
+        _, _, _, _, _, surveys = self.setup_data() # owner, admin, creator, viewer, org
         s2 = surveys[1]
         url_s2 = f"/api/surveys/{s2.id}/"
 
@@ -129,7 +129,7 @@ class TestAPIPermissions:
         assert resp.status_code in (401, 403)
 
     def test_seed_action_permissions(self, client):
-        owner, admin, creator, viewer, org, surveys = self.setup_data()
+        _, _, _, _, _, surveys = self.setup_data() # owner, admin, creator, viewer, org
         s2 = surveys[1]  # owned by creator
         url_seed = f"/api/surveys/{s2.id}/seed/"
         payload = [{"text": "Q1", "type": "text", "order": 1}]

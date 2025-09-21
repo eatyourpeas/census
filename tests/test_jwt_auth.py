@@ -27,7 +27,7 @@ class TestJWTEnforcement:
         return {"HTTP_AUTHORIZATION": f"Bearer {access}"}
 
     def test_missing_token_behaviour(self, client):
-        owner, org, survey = self.setup_data()
+        _, _, survey = self.setup_data() # ower, org, survey
 
         # List: requires authentication (anonymous should be denied)
         resp = client.get("/api/surveys/")

@@ -1,11 +1,10 @@
 from django.conf import settings
 import os
 import subprocess
-from datetime import datetime
 from django.contrib.auth.models import AnonymousUser
 from census_app.surveys.models import OrganizationMembership, SurveyMembership
 try:
-    from census_app.core.models import SiteBranding  # optional if migration not yet applied
+    from census_app.core.models import SiteBranding 
 except Exception:  # pragma: no cover - tolerate missing model during migrations
     SiteBranding = None
 

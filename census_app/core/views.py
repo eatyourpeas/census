@@ -1,5 +1,4 @@
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.shortcuts import redirect, render
 from django.http import Http404
@@ -11,10 +10,15 @@ from census_app.surveys.models import Organization, OrganizationMembership
 from .forms import SignupForm
 try:
     from .models import SiteBranding
-    from .theme_utils import normalize_daisyui_builder_css
-except Exception:
+except ImportError:
     SiteBranding = None
-    normalize_daisyui_builder_css = lambda s: s  # no-op if migrations not applied
+
+try:
+    from .theme_utils import normalize_daisyui_builder_css
+except ImportError:
+    def normalize_daisyui_builder_css(s: str) -> str:
+        """No-op fallback if theme utils or migrations are unavailable."""
+        return s
 
 
 def home(request):

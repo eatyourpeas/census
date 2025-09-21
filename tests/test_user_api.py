@@ -41,7 +41,7 @@ class TestUserAPI:
 
     def test_non_admin_cannot_manage_org_memberships(self, client):
         owner = User.objects.create_user(username="ownery", password=TEST_PASSWORD)
-        other = User.objects.create_user(username="othery", password=TEST_PASSWORD)
+        User.objects.create_user(username="othery", password=TEST_PASSWORD) # other
         org = Organization.objects.create(name="OrgAPI2", owner=owner)
         hdrs = self.auth(client, "othery", TEST_PASSWORD)
         r = client.post(

@@ -21,7 +21,7 @@ def test_org_admin_can_access_org_users(client):
 @pytest.mark.django_db
 def test_non_admin_cannot_access_org_users(client):
     owner = User.objects.create_user(username="owner1", password=TEST_PASSWORD)
-    other = User.objects.create_user(username="other", password=TEST_PASSWORD)
+    User.objects.create_user(username="other", password=TEST_PASSWORD)
     org = Organization.objects.create(name="OrgY", owner=owner)
     client.login(username="other", password=TEST_PASSWORD)
     resp = client.get(reverse("surveys:org_users", args=[org.id]))

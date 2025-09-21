@@ -27,7 +27,7 @@ def test_org_memberships_anonymous_blocked(client):
 @pytest.mark.django_db
 def test_org_memberships_non_admin_forbidden_on_mutations(client):
     admin = User.objects.create_user(username="adminx", password=TEST_PASSWORD)
-    nonadmin = User.objects.create_user(username="userx", password=TEST_PASSWORD)
+    User.objects.create_user(username="userx", password=TEST_PASSWORD) # nonadmin
     target = User.objects.create_user(username="targetx", password=TEST_PASSWORD)
     org = Organization.objects.create(name="OrgX", owner=admin)
     # Only admin membership
@@ -68,7 +68,7 @@ def test_survey_memberships_anonymous_blocked(client):
 @pytest.mark.django_db
 def test_survey_memberships_non_manager_forbidden_on_mutations(client):
     owner = User.objects.create_user(username="ownerx", password=TEST_PASSWORD)
-    other = User.objects.create_user(username="otherx", password=TEST_PASSWORD)
+    User.objects.create_user(username="otherx", password=TEST_PASSWORD) # other
     target = User.objects.create_user(username="targy", password=TEST_PASSWORD)
     org = Organization.objects.create(name="OrgY", owner=owner)
     survey = Survey.objects.create(owner=owner, organization=org, name="Sx", slug="sx")
@@ -101,7 +101,7 @@ def test_survey_memberships_non_manager_forbidden_on_mutations(client):
 @pytest.mark.django_db
 def test_scoped_user_create_org_permissions(client):
     admin = User.objects.create_user(username="adminz", password=TEST_PASSWORD)
-    nonadmin = User.objects.create_user(username="plainz", password=TEST_PASSWORD)
+    User.objects.create_user(username="plainz", password=TEST_PASSWORD) # nonadmin
     org = Organization.objects.create(name="OrgZ", owner=admin)
     OrganizationMembership.objects.create(organization=org, user=admin, role=OrganizationMembership.Role.ADMIN)
 
@@ -137,7 +137,7 @@ def test_scoped_user_create_org_permissions(client):
 @pytest.mark.django_db
 def test_scoped_user_create_survey_permissions(client):
     owner = User.objects.create_user(username="ownera", password=TEST_PASSWORD)
-    other = User.objects.create_user(username="othra", password=TEST_PASSWORD)
+    User.objects.create_user(username="othra", password=TEST_PASSWORD) # other
     org = Organization.objects.create(name="OrgA1", owner=owner)
     survey = Survey.objects.create(owner=owner, organization=org, name="S1", slug="s1a")
 
