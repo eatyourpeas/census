@@ -107,3 +107,79 @@ If running under Docker, rebuild the image or ensure your build step runs inside
 
 Do not add other `<link rel="stylesheet">` tags or separate CSS files; extend styling through Tailwind utilities, DaisyUI components, or minimal additions inside the unified entry file.
 
+
+## Breadcrumbs component
+
+We ship a reusable DaisyUI-style breadcrumbs component with icons.
+
+- File: `census_app/templates/components/breadcrumbs.html`
+- Purpose: Provide consistent navigation crumbs across survey pages
+- Icons:
+	- Survey: clipboard icon
+	- Question group: multiple documents icon
+	- Question (current): single document icon
+
+### How to use
+
+There are two ways to render breadcrumbs, depending on what’s most convenient in your template.
+
+1) Numbered crumb parameters (template-friendly)
+
+Pass labeled crumbs in order. For any crumb you pass, you can optionally include an `*_href` to make it a link. The last crumb usually omits `*_href` to indicate the current page.
+
+```django
+{% include 'components/breadcrumbs.html' with 
+	crumb1_label="Survey Dashboard" 
+	crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" 
+	crumb2_label="Question Group Builder" 
+	crumb2_href="/surveys/"|add:survey.slug|add:"/builder/" 
+	crumb3_label="Question Builder" 
+%}
+```
+
+2) Items iterable (tuple list)
+
+If you already have a list, pass `items` as an iterable of `(label, href)` tuples. Use `None` for href on the current page.
+
+```django
+{% include 'components/breadcrumbs.html' with 
+	items=(("Survey Dashboard", "/surveys/"|add:survey.slug|add:"/dashboard/"),
+				 ("Question Group Builder", "/surveys/"|add:survey.slug|add:"/builder/"),
+				 ("Question Builder", None)) 
+%}
+```
+
+### Styling
+
+Breadcrumbs inherit DaisyUI theme colors and are further tuned globally so that:
+
+- Links are lighter by default and only underline on hover
+- The current (non-link) crumb is slightly lighter to indicate context
+
+These tweaks live in the single CSS entry at `census_app/static/src/tailwind.css` in a small component layer block:
+
+```css
+@layer components {
+	.breadcrumbs a {
+		@apply no-underline text-base-content/70 hover:underline hover:text-base-content/90;
+	}
+	.breadcrumbs li > span {
+		@apply text-base-content/60;
+	}
+	/* Ensure Typography (.prose) doesn’t re-add underlines */
+	.prose :where(.breadcrumbs a):not(:where([class~="not-prose"])) {
+		@apply no-underline text-base-content/70 hover:underline hover:text-base-content/90;
+	}
+}
+```
+
+Any updates here require a CSS rebuild.
+
+### Page conventions
+
+- Survey dashboard pages begin with a clipboard icon crumb (Survey)
+- Survey-level builder links (groups) show multiple documents
+- Group-level question builder shows a single document for the active page
+
+Keep breadcrumb labels terse and consistent (e.g., “Survey Dashboard”, “Question Group Builder”, “Question Builder”).
+
