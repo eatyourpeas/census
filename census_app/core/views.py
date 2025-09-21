@@ -2,6 +2,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.shortcuts import redirect, render
+from django.http import Http404
+from pathlib import Path
+import markdown as mdlib
 from django.contrib import messages
 from django.db import transaction
 from census_app.surveys.models import Organization, OrganizationMembership
@@ -78,3 +81,49 @@ def signup(request):
     else:
         form = SignupForm()
     return render(request, "registration/signup.html", {"form": form})
+
+
+# --- Documentation views ---
+DOCS_DIR = Path(__file__).resolve().parent.parent.parent / "docs"
+
+DOC_PAGES = {
+    "index": "README.md",
+    "getting-started": "getting-started.md",
+    "getting-started-api": "getting-started-api.md",
+    "authentication-and-permissions": "authentication-and-permissions.md",
+    "api": "api.md",
+    "branding-and-theme-settings": "branding-and-theme-settings.md",
+    "surveys": "surveys.md",
+    "user-management": "user-management.md",
+}
+
+def _doc_title(slug: str) -> str:
+    # Convert slug to Title Case words (e.g., "getting-started" -> "Getting Started")
+    return " ".join(part.capitalize() for part in slug.replace("_", "-").split("-"))
+
+def _nav_pages():
+    return [
+        {"slug": s, "title": _doc_title(s)}
+        for s in DOC_PAGES.keys()
+        if s != "index"
+    ]
+
+
+def docs_index(request):
+    """Render docs index from docs/README.md with a simple TOC."""
+    index_file = DOCS_DIR / DOC_PAGES["index"]
+    if not index_file.exists():
+        raise Http404("Documentation not found")
+    html = mdlib.markdown(index_file.read_text(encoding="utf-8"), extensions=["fenced_code", "tables", "toc"])
+    return render(request, "core/docs.html", {"html": html, "active_slug": "index", "pages": _nav_pages()})
+
+
+def docs_page(request, slug: str):
+    """Render a specific documentation page by slug mapped to a whitelisted file."""
+    if slug not in DOC_PAGES:
+        raise Http404("Page not found")
+    file_path = DOCS_DIR / DOC_PAGES[slug]
+    if not file_path.exists():
+        raise Http404("Page not found")
+    html = mdlib.markdown(file_path.read_text(encoding="utf-8"), extensions=["fenced_code", "tables", "toc"])
+    return render(request, "core/docs.html", {"html": html, "active_slug": slug, "pages": _nav_pages()})
