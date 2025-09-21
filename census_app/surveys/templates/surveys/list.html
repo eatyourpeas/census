@@ -2,19 +2,22 @@
 {% block title %}Your Surveys - Census{% endblock %}
 {% block content %}
 <div class="prose">
-  <div class="">Your Surveys</div>
+  <h1 class="inline-flex items-center gap-2">
+    {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
+    <span>Your Surveys</span>
+  </h1>
   {% if user.is_authenticated %}
     <p><a class="btn btn-primary not-prose" href="/surveys/create/">Create survey</a></p>
   {% endif %}
   {% if surveys %}
-    <ul>
+    <ul class="list bg-base-100 rounded-box shadow-md">
       {% for s in surveys %}
-        <li class="flex items-center gap-2">
+        <li class="list-row">
           <span class="font-medium">{{ s.name }}</span>
           <a class="btn btn-xs" href="/surveys/{{ s.slug }}/dashboard/">Dashboard</a>
           <a class="btn btn-xs" href="/surveys/{{ s.slug }}/builder/">Edit</a>
           <a class="btn btn-xs" href="/surveys/{{ s.slug }}/preview/">Preview</a>
-            <a class="btn btn-xs" href="/surveys/{{ s.slug }}/bulk-upload/">Bulk upload</a>
+          <a class="btn btn-xs" href="/surveys/{{ s.slug }}/bulk-upload/">Import Questions</a>
         </li>
       {% endfor %}
     </ul>

@@ -91,6 +91,7 @@ def _get_professional_group_and_fields(
     return group, fields, ods_clean
 
 
+@login_required
 def survey_list(request: HttpRequest) -> HttpResponse:
     # Creators/Viewers: only see surveys they created (owner)
     # Admins: see all surveys in their organization
@@ -138,12 +139,13 @@ def survey_create(request: HttpRequest) -> HttpResponse:
     return render(request, "surveys/create.html", {"form": form})
 
 
+@login_required
 @require_http_methods(["GET", "POST"])
 @ratelimit(key="ip", rate="10/m", block=True)
 def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
-    if not survey.is_live() and not request.user.is_authenticated:
-        raise Http404
+    # Only authenticated users with view permission may access any survey
+    require_can_view(request.user, survey)
 
     # Prevent the survey owner from submitting responses directly in the live view
     if request.user.is_authenticated and survey.owner_id == request.user.id:

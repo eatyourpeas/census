@@ -1,9 +1,31 @@
 {% extends 'base.html' %}
+{% block head_theme_overrides %}
+  {% if survey.style.theme_css_light or survey.style.theme_css_dark %}
+  <style>
+    {% if survey.style.theme_css_light %}
+    [data-theme="census-light"] {
+      {{ survey.style.theme_css_light|safe }}
+    }
+    {% endif %}
+    {% if survey.style.theme_css_dark %}
+    [data-theme="census-dark"] {
+      {{ survey.style.theme_css_dark|safe }}
+    }
+    {% endif %}
+  </style>
+  {% endif %}
+  {% if survey.style.font_css_url %}
+    <link href="{{ survey.style.font_css_url }}" rel="stylesheet" />
+  {% endif %}
+{% endblock %}
 {% block title %}Groups - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose">
   {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Groups" %}
-  <h1>Groups for {{ survey.name }}</h1>
+  <h1 class="inline-flex items-center gap-2">
+    {% include "components/icons/documents.html" with classes="w-6 h-6" %}
+    <span>Groups for {{ survey.name }}</span>
+  </h1>
 </div>
 
 <div class="mt-4">

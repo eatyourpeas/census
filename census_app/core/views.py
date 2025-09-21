@@ -6,6 +6,12 @@ from django.contrib import messages
 from django.db import transaction
 from census_app.surveys.models import Organization, OrganizationMembership
 from .forms import SignupForm
+try:
+    from .models import SiteBranding
+    from .theme_utils import normalize_daisyui_builder_css
+except Exception:
+    SiteBranding = None
+    normalize_daisyui_builder_css = lambda s: s  # no-op if migrations not applied
 
 
 def home(request):
@@ -14,6 +20,7 @@ def home(request):
 
 @login_required
 def profile(request):
+    sb = None
     if request.method == "POST" and request.POST.get("action") == "upgrade_to_org":
         # Create a new organisation owned by this user, and make them ADMIN
         with transaction.atomic():
@@ -22,7 +29,35 @@ def profile(request):
             OrganizationMembership.objects.get_or_create(organization=org, user=request.user, defaults={"role": OrganizationMembership.Role.ADMIN})
         messages.success(request, "Organisation created. You are now an organisation admin and can host surveys and build a team.")
         return redirect("surveys:org_users", org_id=org.id)
-    return render(request, "core/profile.html")
+    if request.method == "POST" and request.POST.get("action") == "update_branding":
+        if not request.user.is_superuser:
+            return redirect("core:profile")
+        if SiteBranding is not None:
+            sb, _ = SiteBranding.objects.get_or_create(pk=1)
+            sb.default_theme = request.POST.get("default_theme") or sb.default_theme
+            sb.icon_url = (request.POST.get("icon_url") or "").strip()
+            if request.FILES.get("icon_file"):
+                sb.icon_file = request.FILES["icon_file"]
+            # Dark icon fields
+            sb.icon_url_dark = (request.POST.get("icon_url_dark") or "").strip()
+            if request.FILES.get("icon_file_dark"):
+                sb.icon_file_dark = request.FILES["icon_file_dark"]
+            sb.font_heading = (request.POST.get("font_heading") or "").strip()
+            sb.font_body = (request.POST.get("font_body") or "").strip()
+            sb.font_css_url = (request.POST.get("font_css_url") or "").strip()
+            raw_light = request.POST.get("theme_light_css") or ""
+            raw_dark = request.POST.get("theme_dark_css") or ""
+            sb.theme_light_css = normalize_daisyui_builder_css(raw_light)
+            sb.theme_dark_css = normalize_daisyui_builder_css(raw_dark)
+            sb.save()
+            messages.success(request, "Project theme saved.")
+        return redirect("core:profile")
+    if SiteBranding is not None and sb is None:
+        try:
+            sb = SiteBranding.objects.first()
+        except Exception:
+            sb = None
+    return render(request, "core/profile.html", {"sb": sb})
 
 
 def signup(request):

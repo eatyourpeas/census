@@ -1,11 +1,33 @@
 {% extends 'base.html' %}
+{% block head_theme_overrides %}
+  {% if survey.style.theme_css_light or survey.style.theme_css_dark %}
+  <style>
+    {% if survey.style.theme_css_light %}
+    [data-theme="census-light"] {
+      {{ survey.style.theme_css_light|safe }}
+    }
+    {% endif %}
+    {% if survey.style.theme_css_dark %}
+    [data-theme="census-dark"] {
+      {{ survey.style.theme_css_dark|safe }}
+    }
+    {% endif %}
+  </style>
+  {% endif %}
+  {% if survey.style.font_css_url %}
+    <link href="{{ survey.style.font_css_url }}" rel="stylesheet" />
+  {% endif %}
+{% endblock %}
 {% load survey_extras %}
 {% load static %}
 {% block title %}{{ survey.name }} - Census{% endblock %}
 {% block content %}
 <div class="card bg-base-100 image-full min-w-full shadow-sm">
     <div class="card-body">
-        <h2 class="card-title">{{ survey.name }}</h2>
+        <h2 class="card-title inline-flex items-center gap-2">
+          {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
+          <span>{{ survey.name }}</span>
+        </h2>
         <p class="opacity-70">{{ survey.description }}</p>
     {% if user.is_authenticated and user == survey.owner %}
       <div class="card-actions justify-end">
@@ -23,7 +45,10 @@
     {% if q.group_start %}
       <div class="card bg-base-100 shadow-sm mt-8">
         <div class="card-body py-3">
-          <h3 class="card-title text-base">{{ q.group.name }}</h3>
+          <h3 class="card-title text-base inline-flex items-center gap-2">
+            {% include "components/icons/documents.html" with classes="w-5 h-5" %}
+            <span>{{ q.group.name }}</span>
+          </h3>
           {% if q.group.description %}
             <p class="text-sm opacity-70">{{ q.group.description }}</p>
           {% endif %}
@@ -34,7 +59,10 @@
     {# Render question either inside the open group card or as its own card if ungrouped #}
     {% if q.group %}
       <div class="mb-4">
-        <h2 class="font-semibold"><span class="text-sm opacity-70 mr-2 select-none">{{ q.idx }}.</span> {{ q.text }} {% if q.required %}<span class="text-error">*</span>{% endif %}</h2>
+        <h2 class="font-semibold inline-flex items-center gap-2">
+          {% include "components/icons/document.html" with classes="w-4 h-4 opacity-70" %}
+          <span><span class="text-sm opacity-70 mr-2 select-none">{{ q.idx }}.</span> {{ q.text }} {% if q.required %}<span class="text-error">*</span>{% endif %}</span>
+        </h2>
         {% if q.type == 'text' %}
           {% with q.options|options_meta as meta %}
             {% if meta and meta.format == 'number' %}
@@ -137,7 +165,10 @@
     {% else %}
       <div class="card bg-base-100 shadow">
         <div class="card-body">
-          <h2 class="card-title"><span class="text-sm opacity-70 mr-2 select-none">{{ q.idx }}.</span> {{ q.text }} {% if q.required %}<span class="text-error">*</span>{% endif %}</h2>
+          <h2 class="card-title inline-flex items-center gap-2">
+            {% include "components/icons/document.html" with classes="w-4 h-4 opacity-70" %}
+            <span><span class="text-sm opacity-70 mr-2 select-none">{{ q.idx }}.</span> {{ q.text }} {% if q.required %}<span class="text-error">*</span>{% endif %}</span>
+          </h2>
           {% if q.type == 'text' %}
             {% with q.options.0 as meta %}
               {% if meta and meta.format == 'number' %}

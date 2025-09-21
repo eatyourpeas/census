@@ -1,5 +1,5 @@
 {% load form_extras %}
-{#
+{% comment %} 
   Shared DaisyUI form field partial
 
   Expected context:
@@ -13,8 +13,8 @@
   - textarea         => "textarea textarea-bordered w-full"
   - select           => "select select-bordered w-full"
 
-  Note: For checkbox/radio groups, use bespoke markup or pass classes explicitly.
-#}
+  Note: For checkbox/radio groups, use bespoke markup or pass classes explicitly. {% endcomment %}
+
 <label class="form-control">
   {% if label %}
     <span class="label"><span class="label-text">{{ label }}</span></span>
@@ -23,10 +23,10 @@
   {% if classes %}
     {{ field|add_classes:classes }}
   {% else %}
-    {% with wclass=field.field.widget.__class__.__name__ %}
-      {% if wclass == "Textarea" %}
+    {% with t=field|field_type %}
+      {% if t == "textarea" %}
         {{ field|add_classes:"textarea textarea-bordered w-full" }}
-      {% elif wclass == "Select" or wclass == "SelectMultiple" %}
+      {% elif t == "select" %}
         {{ field|add_classes:"select select-bordered w-full" }}
       {% else %}
         {{ field|add_classes:"input input-bordered w-full" }}

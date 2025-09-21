@@ -29,10 +29,9 @@ class TestJWTEnforcement:
     def test_missing_token_behaviour(self, client):
         owner, org, survey = self.setup_data()
 
-        # List: allowed for anonymous (read-only), but returns empty set because queryset is scoped
+        # List: requires authentication (anonymous should be denied)
         resp = client.get("/api/surveys/")
-        assert resp.status_code == 200
-        assert resp.json() == []
+        assert resp.status_code in (401, 403)
 
         # Detail GET without token: denied (401 or 403 depending on evaluation order)
         resp = client.get(f"/api/surveys/{survey.id}/")

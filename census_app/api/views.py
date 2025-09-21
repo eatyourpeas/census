@@ -46,12 +46,10 @@ class OrgOwnerOrAdminPermission(permissions.BasePermission):
 
 class SurveyViewSet(viewsets.ModelViewSet):
     serializer_class = SurveySerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, OrgOwnerOrAdminPermission]
+    permission_classes = [permissions.IsAuthenticated, OrgOwnerOrAdminPermission]
 
     def get_queryset(self):
         user = self.request.user
-        if not user.is_authenticated:
-            return Survey.objects.none()
         # Owner's surveys
         owned = Survey.objects.filter(owner=user)
         # Org-admin surveys: any survey whose organization has the user as ADMIN

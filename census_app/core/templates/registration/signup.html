@@ -1,9 +1,12 @@
 {% extends 'base.html' %}
-{% block title %}Sign up - Census{% endblock %}
+{% block title %}Sign up - {{ brand.title }}{% endblock %}
 {% block content %}
 <div class="max-w-xl mx-auto">
-  <h1 class="text-2xl font-semibold mb-4">Create your account</h1>
-  <form method="post" class="space-y-4">
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <div class="card-title">Create your account</div>
+
+      <form method="post" class="space-y-4">
     {% csrf_token %}
     <p class="text-sm opacity-70">Your username will be your email address.</p>
     {% include "components/form_errors.html" with form=form %}
@@ -29,6 +32,8 @@
       </label>
     </fieldset>
     <button type="submit" class="btn btn-primary">Create account</button>
-  </form>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

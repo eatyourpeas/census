@@ -1,4 +1,23 @@
 {% extends 'base.html' %}
+{% block head_theme_overrides %}
+  {% if survey.style.theme_css_light or survey.style.theme_css_dark %}
+  <style>
+    {% if survey.style.theme_css_light %}
+    [data-theme="census-light"] {
+      {{ survey.style.theme_css_light|safe }}
+    }
+    {% endif %}
+    {% if survey.style.theme_css_dark %}
+    [data-theme="census-dark"] {
+      {{ survey.style.theme_css_dark|safe }}
+    }
+    {% endif %}
+  </style>
+  {% endif %}
+  {% if survey.style.font_css_url %}
+    <link href="{{ survey.style.font_css_url }}" rel="stylesheet" />
+  {% endif %}
+{% endblock %}
 {% block title %}Dashboard - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose">
@@ -53,7 +72,10 @@
   </details>
 
   <div class="flex items-center justify-between">
-    <h2 class="text-xl font-semibold">Question Groups</h2>
+    <h2 class="text-xl font-semibold inline-flex items-center gap-2">
+      {% include "components/icons/documents.html" with classes="w-5 h-5" %}
+      <span>Question Groups</span>
+    </h2>
     <form method="post" action="/surveys/{{ survey.slug }}/groups/create">
       {% csrf_token %}
       <div class="join">

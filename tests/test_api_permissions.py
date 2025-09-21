@@ -71,15 +71,18 @@ class TestAPIPermissions:
         slugs = {s["slug"] for s in resp.json()}
         assert slugs == {"s3"}
 
-        # anonymous sees empty
+        # anonymous is not allowed
         resp = client.get(url)
-        assert resp.status_code == 200
-        assert resp.json() == []
+        assert resp.status_code in (401, 403)
 
     def test_retrieve_permissions(self, client):
         owner, admin, creator, viewer, org, surveys = self.setup_data()
         s1, s2, s3 = surveys
         url_s2 = f"/api/surveys/{s2.id}/"
+
+        # anonymous cannot retrieve
+        resp = client.get(url_s2)
+        assert resp.status_code in (401, 403)
 
         # owner of s1 cannot fetch s2 (not admin) -> explicit 403
         hdrs = self.get_auth_header(client, "owner", TEST_PASSWORD)
