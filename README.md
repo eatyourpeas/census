@@ -2,6 +2,26 @@
 
 Census is a survey platform for medical audit and research. It is secure with encrypted identifiers only visible to users entering the data.
 
+## Contributing
+
+Please read CONTRIBUTING.md for guidelines, especially around dummy credentials in tests and secret scanning.
+
+### Enable pre-commit hooks
+
+To run basic hygiene and secret scanning locally before each commit:
+
+```bash
+# macOS
+brew install pre-commit
+
+# Install hooks for this repo
+pre-commit install
+pre-commit install --hook-type commit-msg
+
+# Optional: run on the whole repo once
+pre-commit run --all-files
+```
+
 ## Core Requirements
 
 The application is open source and customizable for look and feel. Users create accounts to run surveys that they distribute by sharing a url
@@ -62,6 +82,9 @@ See docs:
 - docs/authentication-and-permissions.md
 - docs/api.md
 - docs/getting-started-api.md
+- docs/user-management.md
+- docs/themes.md
+- CONTRIBUTING.md
 
 
 ## Quickstart

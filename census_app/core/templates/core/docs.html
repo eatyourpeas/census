@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Documentation · {{ block.super }}{% endblock %}
+{% block content %}
+<div class="grid grid-cols-12 gap-6">
+  <aside class="col-span-12 lg:col-span-3">
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <h2 class="card-title">Documentation</h2>
+        <ul class="menu menu-sm">
+          <li class="menu-title">Pages</li>
+          {% for item in pages %}
+            <li>
+              <a class="{% if active_slug == item.slug %}active{% endif %}" href="{% url 'core:docs_page' slug=item.slug %}">{{ item.title }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </aside>
+  <section class="col-span-12 lg:col-span-9">
+    <article class="prose max-w-none">
+      {{ html|safe }}
+    </article>
+  </section>
+  </div>
+{% endblock %}

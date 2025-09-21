@@ -7,6 +7,7 @@ This document explains how users authenticate and what they can access in the sy
 - Web UI uses Django session authentication with CSRF protection.
 - API uses JWT (Bearer) authentication via SimpleJWT. Obtain a token pair using username/password, then include the access token in the `Authorization: Bearer <token>` header.
 - Anonymous users can access public participant survey pages (SSR) when a survey is live. They cannot access the builder or any API objects.
+- Usernames are equal to email addresses. Use your email as the username when logging in or obtaining tokens.
 
 ## Identity and roles
 
@@ -23,6 +24,10 @@ Role semantics used by the app:
 - Org ADMIN: Can view/edit all surveys that belong to their organization.
 - Org CREATOR or VIEWER: No additional rights beyond their personal ownership. They cannot access other members' surveys.
 - Participant (no membership): Can only submit responses via public links; cannot access builder or API survey objects.
+
+Single-organisation admin model:
+
+- A user can be an ADMIN of at most one organisation. The user management hub (`/surveys/manage/users/`) focuses on that single organisation context for each admin user.
 
 ## Enforcement in server-side views (SSR)
 

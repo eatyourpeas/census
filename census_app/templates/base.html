@@ -1,42 +1,103 @@
 {% load static %}
 <!doctype html>
-<html lang="en" data-theme="{{ brand.theme_name|default:'census' }}">
+<html lang="en" data-theme="{{ brand.theme_name|default:'census-light' }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}{{ brand.title }}{% endblock %}</title>
+    <link rel="icon" href="{% static 'icons/census_brand.svg' %}" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="{{ brand.font_css_url }}" rel="stylesheet">
+  {% if brand.font_css_url %}<link href="{{ brand.font_css_url }}" rel="stylesheet">{% endif %}
+  {% block head_fonts %}{% endblock %}
     <link rel="stylesheet" href="{% static 'build/styles.css' %}">
+    {% if brand.theme_css_light or brand.theme_css_dark %}
+    <style>
+      {% if brand.theme_css_light %}
+      [data-theme="census-light"] {
+        {{ brand.theme_css_light|safe }}
+      }
+      {% endif %}
+      {% if brand.theme_css_dark %}
+      [data-theme="census-dark"] {
+        {{ brand.theme_css_dark|safe }}
+      }
+      {% endif %}
+    </style>
+    {% endif %}
+    <style>
+      /* Show the appropriate brand icon depending on active theme */
+      .theme-dark-icon { display: none; }
+      [data-theme~="census-dark"] .theme-dark-icon { display: inline-block; }
+      [data-theme~="census-dark"] .theme-light-icon { display: none; }
+    </style>
+    {% block head_theme_overrides %}{% endblock %}
     <style>
       :root {
         --font-heading: {{ brand.font_heading }};
         --font-body: {{ brand.font_body }};
-        {% if brand.primary %}--p: {{ brand.primary }};{% endif %}
       }
       h1,h2,h3,h4,h5,h6,.font-heading { font-family: var(--font-heading); }
       body, .font-body { font-family: var(--font-body); }
     </style>
-    <link rel="icon" href="{{ brand.icon_url }}" />
+    {% block icon_link %}
+      {# Only render favicon link when an explicit icon URL is provided #}
+      {% if brand.icon_url %}
+        <link rel="icon" href="{{ brand.icon_url }}" />
+      {% endif %}
+    {% endblock %}
   </head>
   <body class="min-h-screen bg-base-200">
     <div class="navbar bg-base-100 shadow">
-      <div class="flex-1 px-2 text-xl font-semibold">{{ brand.title }}</div>
+      <div class="flex-1 px-2">
+        <a href="{% url 'core:home' %}" class="inline-flex items-center gap-2 text-xl font-semibold">
+          {# Light / default icon #}
+          <span class="theme-light-icon">
+            {% if brand.icon_url %}
+              <img src="{{ brand.icon_url }}" alt="{{ brand.icon_alt|default:brand.title }} icon" title="{{ brand.icon_title|default:brand.title }}" class="{{ brand.icon_size_class|default:'w-6 h-6' }}" />
+            {% else %}
+              {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-6 h-6' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
+            {% endif %}
+          </span>
+          {# Dark icon (optional) #}
+          <span class="theme-dark-icon">
+            {% if brand.icon_url_dark %}
+              <img src="{{ brand.icon_url_dark }}" alt="{{ brand.icon_alt|default:brand.title }} icon" title="{{ brand.icon_title|default:brand.title }}" class="{{ brand.icon_size_class|default:'w-6 h-6' }}" />
+            {% else %}
+              {% if brand.icon_url %}
+                <img src="{{ brand.icon_url }}" alt="{{ brand.icon_alt|default:brand.title }} icon" title="{{ brand.icon_title|default:brand.title }}" class="{{ brand.icon_size_class|default:'w-6 h-6' }}" />
+              {% else %}
+                {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-6 h-6' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
+              {% endif %}
+            {% endif %}
+          </span>
+          <span>{{ brand.title }}</span>
+        </a>
+      </div>
       <div class="flex-none">
         <ul class="menu menu-horizontal">
-          <li><a href="/surveys">Surveys</a></li>
           {% if user.is_authenticated %}
+            <li><a href="/surveys">Surveys</a></li>
+            {% if can_manage_any_users %}
+              <li><a href="{% url 'surveys:user_management_hub' %}">User management</a></li>
+            {% endif %}
             <li><a href="/profile">Profile</a></li>
-            <li><a href="/accounts/logout/">Logout</a></li>
+            <li><a href="{% url 'core:docs_index' %}">Documentation</a></li>
+            <li>
+              <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost btn-sm normal-case">Logout</button>
+              </form>
+            </li>
           {% else %}
             <li><a href="/accounts/login/">Login</a></li>
             <li><a href="/signup/">Sign up</a></li>
+            <li><a href="{% url 'core:docs_index' %}">Documentation</a></li>
           {% endif %}
         </ul>
       </div>
     </div>
-    <main class="container mx-auto p-4">
+  <main class="container mx-auto px-4 py-6" {% block theme_scope_attrs %}{% endblock %}>
       {% if messages %}
         <div class="space-y-2">
           {% for message in messages %}
@@ -46,6 +107,37 @@
       {% endif %}
       {% block content %}{% endblock %}
     </main>
+    <footer class="mt-10 border-t border-base-300 bg-base-100/60">
+      <div class="container mx-auto px-4 py-6 text-sm flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="text-xs opacity-60 w-full md:w-auto text-center md:text-right flex items-center gap-3">
+          © {% now 'Y' %} {{ brand.title }} · Built by
+          <a href="https://eatyourpeas.co.uk" target="_blank" rel="noopener" class="inline-flex items-center gap-2">
+            <img src="{% static 'icons/eatyourpeas_logo_2022.png' %}" alt="eatyourpeas" class="h-4 w-auto opacity-80" />
+            <span class="underline">eatyourpeas</span>
+          </a>
+          <span>•</span>
+          <a class="inline-flex items-center gap-1" href="https://github.com/eatyourpeas/census/tree/main/census_app" target="_blank" rel="noopener">
+              {% include "components/icons/github.html" with classes="w-4 h-4" %}
+              <span class="underline">GitHub</span>
+           </a>
+           <span>•</span>
+           <span>Version: {{ build.version }}</span>
+          {% if build.commit %}
+            <span>•</span>
+            <a class="link" href="https://github.com/eatyourpeas/census/commit/{{ build.commit }}" target="_blank" rel="noopener">Commit {{ build.commit }}</a>
+          {% endif %}
+          {% if build.timestamp %}
+            <span>•</span>
+            <span>Build: {{ build.timestamp }}</span>
+          {% elif build.commit_date %}
+            <span>•</span>
+            <span>{{ build.commit_date }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </footer>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="{% static 'js/theme-toggle.js' %}"></script>
+    {% block extra_js %}{% endblock %}
   </body>
   </html>

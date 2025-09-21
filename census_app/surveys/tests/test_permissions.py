@@ -77,7 +77,7 @@ def test_creator_cannot_edit_others_survey(client, users, org, surveys):
     admin, creator, viewer, outsider, participant = users
     s1, s2 = surveys
     login(client, creator)
-    res = client.get(reverse("surveys:builder", kwargs={"slug": s2.slug}))
+    res = client.get(reverse("surveys:groups", kwargs={"slug": s2.slug}))
     assert res.status_code == 403
 
 
@@ -86,7 +86,7 @@ def test_admin_can_edit_any_in_org(client, users, org, surveys):
     admin, creator, viewer, outsider, participant = users
     s1, s2 = surveys
     login(client, admin)
-    res = client.get(reverse("surveys:builder", kwargs={"slug": s1.slug}))
+    res = client.get(reverse("surveys:groups", kwargs={"slug": s1.slug}))
     assert res.status_code == 200
 
 
@@ -96,17 +96,44 @@ def test_participant_cannot_access_builder(client, users, org, surveys):
     s1, s2 = surveys
     # Simulate a participant (non-org) user
     login(client, participant)
-    res = client.get(reverse("surveys:builder", kwargs={"slug": s1.slug}))
+    res = client.get(reverse("surveys:groups", kwargs={"slug": s1.slug}))
     assert res.status_code == 403
 
 
 @pytest.mark.django_db
-def test_public_detail_access_for_live_survey(client, users, org, surveys, settings):
+def test_anonymous_cannot_access_survey_detail(client, users, org, surveys):
     admin, creator, viewer, outsider, participant = users
     s1, s2 = surveys
-    # Unauthenticated user can see detail if survey is live (default is live without date bounds)
     res = client.get(reverse("surveys:detail", kwargs={"slug": s1.slug}))
-    assert res.status_code == 200
+    # login_required should redirect anonymous users
+    assert res.status_code in (302, 401, 403)
+
+
+@pytest.mark.django_db
+def test_authenticated_without_rights_gets_403_on_detail(client, users, org, surveys):
+    admin, creator, viewer, outsider, participant = users
+    s1, s2 = surveys
+    # outsider is authenticated but not owner, not org admin, not member
+    client.force_login(outsider)
+    res = client.get(reverse("surveys:detail", kwargs={"slug": s1.slug}))
+    assert res.status_code == 403
+
+
+@pytest.mark.django_db
+def test_authenticated_without_rights_gets_403_on_other_views(client, users, org, surveys):
+    admin, creator, viewer, outsider, participant = users
+    s1, s2 = surveys
+    client.force_login(outsider)
+    # These SSR views should be forbidden to users who lack view/edit rights
+    urls = [
+        reverse("surveys:preview", kwargs={"slug": s1.slug}),
+        reverse("surveys:dashboard", kwargs={"slug": s1.slug}),
+        reverse("surveys:groups", kwargs={"slug": s1.slug}),
+    reverse("surveys:groups", kwargs={"slug": s1.slug}),
+    ]
+    for url in urls:
+        resp = client.get(url)
+        assert resp.status_code == 403
 
 
 @pytest.mark.django_db

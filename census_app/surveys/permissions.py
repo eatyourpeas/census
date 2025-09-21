@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.core.exceptions import PermissionDenied
 
-from .models import Organization, OrganizationMembership, Survey
+from .models import Organization, OrganizationMembership, Survey, SurveyMembership
 
 
 def is_org_admin(user, org: Organization | None) -> bool:
@@ -20,12 +20,34 @@ def can_view_survey(user, survey: Survey) -> bool:
         return True
     if survey.organization_id and is_org_admin(user, survey.organization):
         return True
+    # creators and viewers of the specific survey can view it
+    if SurveyMembership.objects.filter(user=user, survey=survey).exists():
+        return True
     return False
 
 
 def can_edit_survey(user, survey: Survey) -> bool:
-    # Same policy as view for now: owner or org admin
-    return can_view_survey(user, survey)
+    # Edit requires: owner, org admin, or survey-level creator
+    if not user.is_authenticated:
+        return False
+    if survey.owner_id == getattr(user, "id", None):
+        return True
+    if survey.organization_id and is_org_admin(user, survey.organization):
+        return True
+    return SurveyMembership.objects.filter(user=user, survey=survey, role=SurveyMembership.Role.CREATOR).exists()
+
+
+def can_manage_org_users(user, org: Organization) -> bool:
+    return is_org_admin(user, org)
+
+
+def can_manage_survey_users(user, survey: Survey) -> bool:
+    # Only survey creators (or org admins/owner) can manage users on a survey
+    if survey.organization_id and is_org_admin(user, survey.organization):
+        return True
+    if survey.owner_id == getattr(user, "id", None):
+        return True
+    return SurveyMembership.objects.filter(user=user, survey=survey, role=SurveyMembership.Role.CREATOR).exists()
 
 
 def require_can_view(user, survey: Survey) -> None:

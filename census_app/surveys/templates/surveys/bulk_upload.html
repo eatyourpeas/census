@@ -1,9 +1,12 @@
 {% extends 'base.html' %}
-{% block title %}Bulk Upload - {{ survey.name }}{% endblock %}
+{% block title %}Import Questions - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose">
-  <h1>Bulk upload questions: {{ survey.name }}</h1>
-  <p><a class="btn btn-sm" href="/surveys/{{ survey.slug }}/dashboard/">Back to dashboard</a></p>
+  {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Import Questions" %}
+  <h1 class="inline-flex items-center gap-2">
+    {% include "components/icons/document.html" with classes="w-6 h-6" %}
+    <span>Import questions: {{ survey.name }}</span>
+  </h1>
 </div>
 
 {% if error %}

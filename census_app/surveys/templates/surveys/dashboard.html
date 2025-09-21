@@ -1,13 +1,33 @@
 {% extends 'base.html' %}
+{% block head_theme_overrides %}
+  {% if survey.style.theme_css_light or survey.style.theme_css_dark %}
+  <style>
+    {% if survey.style.theme_css_light %}
+    [data-theme="census-light"] {
+      {{ survey.style.theme_css_light|safe }}
+    }
+    {% endif %}
+    {% if survey.style.theme_css_dark %}
+    [data-theme="census-dark"] {
+      {{ survey.style.theme_css_dark|safe }}
+    }
+    {% endif %}
+  </style>
+  {% endif %}
+  {% if survey.style.font_css_url %}
+    <link href="{{ survey.style.font_css_url }}" rel="stylesheet" />
+  {% endif %}
+{% endblock %}
 {% block title %}Dashboard - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose">
-  <h1>Dashboard: {{ survey.name }}</h1>
+  {% include 'components/breadcrumbs.html' with crumb1_label="Surveys" crumb1_href="/surveys/" crumb2_label="Survey Dashboard" crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" %}
+  <h2>{{ survey.name }}</h2>
   <p>Status: {% if survey.is_live %}Live{% else %}Not live{% endif %}</p>
   <p>Total responses: <strong>{{ total }}</strong></p>
   <div class="flex gap-2">
-    <a class="btn" href="/surveys/{{ survey.slug }}/preview/">Preview (read-only)</a>
-    <a class="btn" href="/surveys/{{ survey.slug }}/groups/">Manage groups</a>
+    <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/preview/">Preview (read-only)</a>
+    <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/groups/">Manage Survey Questions</a>
   </div>
 </div>
 
@@ -51,38 +71,6 @@
     </form>
   </details>
 
-  <div class="flex items-center justify-between">
-    <h2 class="text-xl font-semibold">Question Groups</h2>
-    <form method="post" action="/surveys/{{ survey.slug }}/groups/create">
-      {% csrf_token %}
-      <div class="join">
-        <input class="input input-bordered join-item" name="name" placeholder="New group name" />
-        <button class="btn join-item" type="submit">Create group</button>
-      </div>
-    </form>
-  </div>
-  {% if not groups %}
-    <div class="alert alert-info mt-3">
-      <span>Start by creating a question group (for example, “Tell me about your service”). Use “Manage groups”, then open a group to add questions.</span>
-    </div>
-  {% endif %}
-  <div class="grid md:grid-cols-2 gap-4 mt-3">
-    {% for g in groups %}
-      <div class="card bg-base-100 shadow">
-        <div class="card-body">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="font-medium">{{ g.name }}</div>
-              {% if g.description %}<div class="text-sm opacity-70">{{ g.description }}</div>{% endif %}
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="badge badge-neutral">{{ g.q_count|default:0 }} question{% if g.q_count|default:0 != 1 %}s{% endif %}</div>
-              <a class="btn btn-sm" href="/surveys/{{ survey.slug }}/builder/groups/{{ g.id }}/">Open</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
+  {# Intentionally removed group management from dashboard; use Groups page instead #}
 </div>
 {% endblock %}

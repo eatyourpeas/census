@@ -1,119 +1,58 @@
 {% extends 'base.html' %}
+{% block head_theme_overrides %}
+  {% if survey.style.theme_css_light or survey.style.theme_css_dark %}
+  <style>
+    {% if survey.style.theme_css_light %}
+    [data-theme="census-light"] {
+      {{ survey.style.theme_css_light|safe }}
+    }
+    {% endif %}
+    {% if survey.style.theme_css_dark %}
+    [data-theme="census-dark"] {
+      {{ survey.style.theme_css_dark|safe }}
+    }
+    {% endif %}
+  </style>
+  {% endif %}
+  {% if survey.style.font_css_url %}
+    <link href="{{ survey.style.font_css_url }}" rel="stylesheet" />
+  {% endif %}
+{% endblock %}
 {% load static %}
-{% block title %}Builder - {{ survey.name }}{% endblock %}
+{% block title %}Question Group Builder - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="flex flex-col gap-6">
   <div class="prose">
-    <h1>Survey Builder: {{ survey.name }}</h1>
-    <a class="btn btn-sm" href="/surveys/{{ survey.slug }}/dashboard/">Back to dashboard</a>
+    {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Question Group Builder" crumb2_href="/surveys/"|add:survey.slug|add:"/builder/" %}
+    <h1>Question Group Builder</h1>
+    <hr/>
+    <h2>{{ survey.name }}</h2>
   </div>
 
   <div class="grid md:grid-cols-3 gap-6">
     <div class="md:col-span-2">
       <div class="card bg-base-100 shadow">
         <div class="card-body">
-          <h2 class="card-title">Questions</h2>
+          <h2 class="card-title">All Questions</h2>
           {% include 'surveys/partials/questions_list.html' %}
         </div>
       </div>
     </div>
 
     <div>
-      {% include 'surveys/partials/demographics_builder.html' %}
-      {% include 'surveys/partials/professional_builder.html' %}
       <div class="card bg-base-100 shadow">
         <div class="card-body">
-          <h2 class="card-title">Add Question</h2>
-          <form id="create-question-form" hx-post="/surveys/{{ survey.slug }}/builder/questions/create" hx-target="#questions-list" hx-swap="outerHTML">
-            {% csrf_token %}
-                <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="likert" class="radio"> <span>Likert</span></label>
-                <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="image" class="radio"> <span>Image choice</span></label>
-              </div>
-            </fieldset>
-
-            <label class="label mt-2">Question text</label>
-            <input name="text" class="input input-bordered w-full" required />
-
-            <div data-section="text-options" class="mt-3">
-              <fieldset>
-                <legend class="label">Answer format</legend>
-                <div class="flex gap-3">
-                  <label class="label cursor-pointer gap-2"><input type="radio" name="text_format" value="free" class="radio" checked> <span>Free text</span></label>
-                  <label class="label cursor-pointer gap-2"><input type="radio" name="text_format" value="number" class="radio"> <span>Number</span></label>
-                </div>
-              </fieldset>
-            </div>
-
-            <div data-section="options" class="mt-3 hidden">
-              <label class="label">Options (one per line)</label>
-              <textarea name="options" class="textarea textarea-bordered w-full" placeholder="Option A
-Option B"></textarea>
-            </div>
-
-            <div data-section="likert" class="mt-3 hidden">
-              <fieldset>
-                <legend class="label">Likert mode</legend>
-                <div class="flex gap-3">
-                  <label class="label cursor-pointer gap-2"><input type="radio" name="likert_mode" value="categories" class="radio" checked> <span>Categories</span></label>
-                  <label class="label cursor-pointer gap-2"><input type="radio" name="likert_mode" value="number" class="radio"> <span>Number scale</span></label>
-                </div>
-              </fieldset>
-              <div data-likert="categories" class="mt-3">
-                <label class="label">Categories (one per line)</label>
-                <textarea name="likert_categories" class="textarea textarea-bordered w-full" placeholder="Strongly disagree
-Disagree
-Neutral
-Agree
-Strongly agree"></textarea>
-              </div>
-              <div data-likert="number" class="mt-3 hidden">
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="label">Min value</label>
-                    <input type="number" name="likert_min" class="input input-bordered w-full" value="1" />
-                  </div>
-                  <div>
-                    <label class="label">Max value</label>
-                    <input type="number" name="likert_max" class="input input-bordered w-full" value="5" />
-                  </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3 mt-3">
-                  <div>
-                    <label class="label">Left label</label>
-                    <input type="text" name="likert_left_label" class="input input-bordered w-full" placeholder="Low" />
-                  </div>
-                  <div>
-                    <label class="label">Right label</label>
-                    <input type="text" name="likert_right_label" class="input input-bordered w-full" placeholder="High" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-3">
-              <label class="label">Required</label>
-              <input type="checkbox" name="required" class="toggle" />
-            </div>
-
-            <div class="mt-3">
-              <label class="label">Group</label>
-              <select name="group_id" class="select select-bordered w-full">
-                <option value="">(none)</option>
-                {% for g in groups %}
-                  <option value="{{ g.id }}">{{ g.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <button class="btn btn-primary mt-4" type="submit">Add</button>
-          </form>
-          <div class="divider"></div>
-          <h3 class="font-semibold">Add Group</h3>
-          <form hx-post="/surveys/{{ survey.slug }}/builder/groups/create" hx-target="#questions-list" hx-swap="outerHTML">
-            {% csrf_token %}
-            <input name="name" class="input input-bordered w-full" placeholder="Group name" />
-            <button class="btn mt-2" type="submit">Create</button>
-          </form>
+          <h2 class="card-title">Groups</h2>
+          <p class="opacity-80">Create and manage groups, then add questions inside each group.</p>
+          <a class="btn btn-primary" href="/surveys/{{ survey.slug }}/groups/">Manage groups</a>
+          {% if groups %}
+            <div class="divider">Open a group</div>
+            <ul class="menu bg-base-100 rounded-box">
+              {% for g in groups %}
+                <li><a href="/surveys/{{ survey.slug }}/builder/groups/{{ g.id }}/">{{ g.name }}</a></li>
+              {% endfor %}
+            </ul>
+          {% endif %}
         </div>
       </div>
     </div>

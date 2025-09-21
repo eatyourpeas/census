@@ -7,6 +7,7 @@ Prerequisites:
 - The app is running (Docker or `python manage.py runserver`)
 - You have a user account (or a superuser)
 - Base URL in examples: `https://localhost:8000`
+- Usernames are equal to email addresses; log in with your email as the username.
 
 ## JWT with curl
 

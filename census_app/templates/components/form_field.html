@@ -1,0 +1,44 @@
+{% load form_extras %}
+{% comment %} 
+  Shared DaisyUI form field partial
+
+  Expected context:
+  - field: Django bound field (required)
+  - label: string (optional)
+  - help: string (optional)
+  - classes: string override for input/select/textarea (optional)
+
+  Auto-classes if not provided:
+  - text-like inputs => "input input-bordered w-full"
+  - textarea         => "textarea textarea-bordered w-full"
+  - select           => "select select-bordered w-full"
+
+  Note: For checkbox/radio groups, use bespoke markup or pass classes explicitly. {% endcomment %}
+
+<label class="form-control">
+  {% if label %}
+    <span class="label"><span class="label-text">{{ label }}</span></span>
+  {% endif %}
+
+  {% if classes %}
+    {{ field|add_classes:classes }}
+  {% else %}
+    {% with t=field|field_type %}
+      {% if t == "textarea" %}
+        {{ field|add_classes:"textarea textarea-bordered w-full" }}
+      {% elif t == "select" %}
+        {{ field|add_classes:"select select-bordered w-full" }}
+      {% else %}
+        {{ field|add_classes:"input input-bordered w-full" }}
+      {% endif %}
+    {% endwith %}
+  {% endif %}
+
+  {% if help %}
+    <div class="label"><span class="label-text-alt">{{ help }}</span></div>
+  {% endif %}
+
+  {% if field.errors %}
+    <div class="text-error text-sm">{{ field.errors|join:", " }}</div>
+  {% endif %}
+</label>

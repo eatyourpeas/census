@@ -13,8 +13,8 @@ env = environ.Env(
     SECURE_SSL_REDIRECT=(bool, False),
     CSRF_TRUSTED_ORIGINS=(list, []),
     BRAND_TITLE=(str, "Census"),
-    BRAND_ICON_URL=(str, "/static/favicon.ico"),
-    BRAND_THEME=(str, "census"),
+    BRAND_ICON_URL=(str, "/static/icons/census-default.svg"),
+    BRAND_THEME=(str, "census-light"),
     BRAND_FONT_HEADING=(str, "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'"),
     BRAND_FONT_BODY=(str, "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"),
     BRAND_FONT_CSS_URL=(str, "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap"),
@@ -106,6 +106,10 @@ STATICFILES_DIRS = [BASE_DIR / "census_app" / "static"]
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_MAX_AGE = 31536000 if not DEBUG else 0
 
+# Media uploads (used for admin-uploaded icons if configured)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Security headers
@@ -186,3 +190,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
 }
+
+# Email: console backend for development (password reset prints to console)
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "no-reply@example.com"

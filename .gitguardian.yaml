@@ -1,0 +1,24 @@
+# GitGuardian/ggshield configuration
+# Keep scanning strict but avoid noisy false positives for tests.
+# Docs: https://docs.gitguardian.com/ggshield-docs/configuration/yaml_config
+
+version: 2
+verbose: false
+
+# Do not exclude entire test directories by default to avoid missing real leaks.
+# Prefer precise ignores and low-entropy test placeholders.
+# You can add path excludes below if your policy requires it.
+paths:
+  # examples (commented out by default):
+  # - exclude: "**/fixtures/**"
+  # - exclude: "**/snapshots/**"
+
+# Allowlist: precise ignores (signature-based) get added by CLI automatically when using
+# `ggshield secret ignore` for a specific finding. Keeping this section empty by default.
+allowlist:
+  secrets: []
+  paths: []
+
+# Exit behavior in CI can be tuned; keep default (fail on findings) to remain safe.
+ci:
+  fail_on_secrets: true
