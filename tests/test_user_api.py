@@ -5,6 +5,7 @@ from census_app.surveys.models import Organization, OrganizationMembership, Surv
 
 
 User = get_user_model()
+TEST_PASSWORD = "test-pass"
 
 
 @pytest.mark.django_db
@@ -19,11 +20,11 @@ class TestUserAPI:
         return {"HTTP_AUTHORIZATION": f"Bearer {r.json()['access']}"}
 
     def test_org_admin_can_manage_org_memberships(self, client):
-        admin = User.objects.create_user(username="adminx", password="Passw0rd-Adminx!")
-        u2 = User.objects.create_user(username="u2", password="Passw0rd-u2!")
+        admin = User.objects.create_user(username="adminx", password=TEST_PASSWORD)
+        u2 = User.objects.create_user(username="u2", password=TEST_PASSWORD)
         org = Organization.objects.create(name="OrgAPI", owner=admin)
         OrganizationMembership.objects.create(organization=org, user=admin, role=OrganizationMembership.Role.ADMIN)
-        hdrs = self.auth(client, "adminx", "Passw0rd-Adminx!")
+        hdrs = self.auth(client, "adminx", TEST_PASSWORD)
 
         # create membership
         r = client.post(
@@ -39,10 +40,10 @@ class TestUserAPI:
         assert any(m["user"] == u2.id for m in r.json())
 
     def test_non_admin_cannot_manage_org_memberships(self, client):
-        owner = User.objects.create_user(username="ownery", password="Passw0rd-Ownery!")
-        other = User.objects.create_user(username="othery", password="Passw0rd-Othery!")
+        owner = User.objects.create_user(username="ownery", password=TEST_PASSWORD)
+        other = User.objects.create_user(username="othery", password=TEST_PASSWORD)
         org = Organization.objects.create(name="OrgAPI2", owner=owner)
-        hdrs = self.auth(client, "othery", "Passw0rd-Othery!")
+        hdrs = self.auth(client, "othery", TEST_PASSWORD)
         r = client.post(
             "/api/org-memberships/",
             data=json.dumps({"organization": org.id, "user": owner.id, "role": "admin"}),
@@ -52,12 +53,12 @@ class TestUserAPI:
         assert r.status_code in (403, 401)
 
     def test_survey_creator_can_manage_survey_memberships(self, client):
-        creator = User.objects.create_user(username="creatorx", password="Passw0rd-Creatorx!")
-        viewer = User.objects.create_user(username="viewerx", password="Passw0rd-Viewerx!")
+        creator = User.objects.create_user(username="creatorx", password=TEST_PASSWORD)
+        viewer = User.objects.create_user(username="viewerx", password=TEST_PASSWORD)
         org = Organization.objects.create(name="OrgAPI3", owner=creator)
         OrganizationMembership.objects.create(organization=org, user=creator, role=OrganizationMembership.Role.CREATOR)
         survey = Survey.objects.create(owner=creator, organization=org, name="SS", slug="ss")
-        hdrs = self.auth(client, "creatorx", "Passw0rd-Creatorx!")
+        hdrs = self.auth(client, "creatorx", TEST_PASSWORD)
 
         r = client.post(
             "/api/survey-memberships/",
@@ -69,12 +70,12 @@ class TestUserAPI:
         assert SurveyMembership.objects.filter(survey=survey, user=viewer).exists()
 
     def test_viewer_cannot_manage_survey_memberships(self, client):
-        owner = User.objects.create_user(username="ownerz", password="Passw0rd-Ownerz!")
-        viewer = User.objects.create_user(username="viewerzz", password="Passw0rd-Viewerzz!")
+        owner = User.objects.create_user(username="ownerz", password=TEST_PASSWORD)
+        viewer = User.objects.create_user(username="viewerzz", password=TEST_PASSWORD)
         org = Organization.objects.create(name="OrgAPI4", owner=owner)
         survey = Survey.objects.create(owner=owner, organization=org, name="SZ", slug="sz")
         SurveyMembership.objects.create(survey=survey, user=viewer, role=SurveyMembership.Role.VIEWER)
-        hdrs = self.auth(client, "viewerzz", "Passw0rd-Viewerzz!")
+        hdrs = self.auth(client, "viewerzz", TEST_PASSWORD)
         r = client.post(
             "/api/survey-memberships/",
             data=json.dumps({"survey": survey.id, "user": owner.id, "role": "viewer"}),
@@ -84,13 +85,13 @@ class TestUserAPI:
         assert r.status_code in (403, 401)
 
     def test_org_admin_can_create_user_in_org(self, client):
-        admin = User.objects.create_user(username="adminc", password="Passw0rd-Adminc!")
+        admin = User.objects.create_user(username="adminc", password=TEST_PASSWORD)
         org = Organization.objects.create(name="OrgAPI5", owner=admin)
         OrganizationMembership.objects.create(organization=org, user=admin, role=OrganizationMembership.Role.ADMIN)
-        hdrs = self.auth(client, "adminc", "Passw0rd-Adminc!")
+        hdrs = self.auth(client, "adminc", TEST_PASSWORD)
         r = client.post(
             f"/api/scoped-users/org/{org.id}/create/",
-            data=json.dumps({"username": "neworguser", "password": "Passw0rd-New!"}),
+            data=json.dumps({"username": "neworguser", "password": "example-password-for-tests"}),
             content_type="application/json",
             **hdrs,
         )
@@ -98,14 +99,14 @@ class TestUserAPI:
         assert User.objects.filter(username="neworguser").exists()
 
     def test_creator_can_create_user_in_survey(self, client):
-        creator = User.objects.create_user(username="creatorc", password="Passw0rd-Creatorc!")
+        creator = User.objects.create_user(username="creatorc", password=TEST_PASSWORD)
         org = Organization.objects.create(name="OrgAPI6", owner=creator)
         OrganizationMembership.objects.create(organization=org, user=creator, role=OrganizationMembership.Role.CREATOR)
         survey = Survey.objects.create(owner=creator, organization=org, name="SC", slug="sc")
-        hdrs = self.auth(client, "creatorc", "Passw0rd-Creatorc!")
+        hdrs = self.auth(client, "creatorc", TEST_PASSWORD)
         r = client.post(
             f"/api/scoped-users/survey/{survey.id}/create/",
-            data=json.dumps({"username": "newsurveyuser", "password": "Passw0rd-New!"}),
+            data=json.dumps({"username": "newsurveyuser", "password": "example-password-for-tests"}),
             content_type="application/json",
             **hdrs,
         )
@@ -113,15 +114,15 @@ class TestUserAPI:
         assert User.objects.filter(username="newsurveyuser").exists()
 
     def test_viewer_cannot_create_user_in_survey(self, client):
-        owner = User.objects.create_user(username="owneru", password="Passw0rd-Owneru!")
-        viewer = User.objects.create_user(username="vieweru", password="Passw0rd-Vieweru!")
+        owner = User.objects.create_user(username="owneru", password=TEST_PASSWORD)
+        viewer = User.objects.create_user(username="vieweru", password=TEST_PASSWORD)
         org = Organization.objects.create(name="OrgAPI7", owner=owner)
         survey = Survey.objects.create(owner=owner, organization=org, name="SV", slug="sv")
         SurveyMembership.objects.create(survey=survey, user=viewer, role=SurveyMembership.Role.VIEWER)
-        hdrs = self.auth(client, "vieweru", "Passw0rd-Vieweru!")
+        hdrs = self.auth(client, "vieweru", TEST_PASSWORD)
         r = client.post(
             f"/api/scoped-users/survey/{survey.id}/create/",
-            data=json.dumps({"username": "baduser", "password": "Passw0rd-Bad!"}),
+            data=json.dumps({"username": "baduser", "password": "example-password-for-tests"}),
             content_type="application/json",
             **hdrs,
         )

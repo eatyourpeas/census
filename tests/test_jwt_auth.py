@@ -5,12 +5,13 @@ from census_app.surveys.models import Organization, Survey
 
 
 User = get_user_model()
+TEST_PASSWORD = "test-pass"
 
 
 @pytest.mark.django_db
 class TestJWTEnforcement:
     def setup_data(self):
-        owner = User.objects.create_user(username="owner2", password="passw0rd-Owner2!")
+        owner = User.objects.create_user(username="owner2", password=TEST_PASSWORD)
         org = Organization.objects.create(name="Org-JWT", owner=owner)
         survey = Survey.objects.create(owner=owner, organization=org, name="Jwt S", slug="jwt-s")
         return owner, org, survey
@@ -82,12 +83,12 @@ class TestJWTEnforcement:
 
     def test_refresh_flow(self, client):
         """Basic happy-path for JWT obtain and refresh."""
-        User.objects.create_user(username="jwtuser", password="passw0rd-JWT!")
+        User.objects.create_user(username="jwtuser", password=TEST_PASSWORD)
 
         # Obtain
         obtain = client.post(
             "/api/token",
-            data=json.dumps({"username": "jwtuser", "password": "passw0rd-JWT!"}),
+            data=json.dumps({"username": "jwtuser", "password": TEST_PASSWORD}),
             content_type="application/json",
         )
         assert obtain.status_code == 200
@@ -113,7 +114,7 @@ class TestJWTEnforcement:
 
     def test_token_wrong_credentials_returns_401(self, client):
         """Wrong password should yield 401 Unauthorized from /api/token."""
-        User.objects.create_user(username="baduser", password="CorrectHorseBatteryStaple1!")
+        User.objects.create_user(username="baduser", password=TEST_PASSWORD)
         resp = client.post(
             "/api/token",
             data=json.dumps({"username": "baduser", "password": "wrong-password"}),

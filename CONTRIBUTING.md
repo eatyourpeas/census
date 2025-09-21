@@ -1,0 +1,39 @@
+# Contributing
+
+Thanks for contributing to this project! Please follow these guidelines to keep the codebase healthy and secure.
+
+## Tests and dummy credentials
+
+Secret scanners (e.g. GitGuardian, GitHub Secret Scanning, ggshield) run on this repo. To avoid false positives:
+
+- Use non-secret-like dummy values in tests.
+  - Prefer a low-entropy constant: `test-pass`
+  - Avoid realistic patterns: long base64/hex, JWT-like strings (`xxx.yyy.zzz`), PEM blocks, cloud key prefixes, or "CorrectHorseBatteryStaple"-style phrases.
+- If you need to construct tokens for parsing, break known signatures (shorten them, remove prefixes) so they don’t match detectors.
+- If a finding still occurs, resolve it one of these ways (in this order):
+  1. Refactor to a less-detectable string.
+  2. Use a precise per-secret ignore via ggshield (CLI) tied to the signature.
+  3. As a last resort, add an inline allowlist comment above the line if your team policy permits:
+     - Python: `# pragma: allowlist secret`
+
+## Commit hygiene
+
+- Keep changes focused; write clear commit messages.
+- Link issues/PRs where relevant.
+- Run the test suite locally before pushing.
+
+## Security practices
+
+- Do not commit real secrets, keys, or tokens.
+- Use `.env.example` as a template; never commit your real `.env`.
+- Follow existing security patterns (CSP, CSRF, HSTS, rate limiting) when adding features.
+
+## Style
+
+- Python: ruff/black-compatible; follow existing patterns.
+- Frontend: Tailwind + DaisyUI; keep components consistent with the current design.
+
+## Docs
+
+- Update `docs/` when behavior or APIs change.
+- Keep examples accurate and minimal.
