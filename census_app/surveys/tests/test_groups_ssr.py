@@ -4,7 +4,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
 
-from census_app.surveys.models import Organization, OrganizationMembership, Survey, QuestionGroup, SurveyMembership
+from census_app.surveys.models import Organization, Survey, QuestionGroup
 
 
 @pytest.mark.django_db
