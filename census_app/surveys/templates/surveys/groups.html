@@ -79,7 +79,10 @@
     <div class="flex flex-wrap gap-2 items-center">
   {% if can_edit %}
   <button id="save-order-btn" class="btn btn-primary btn-sm" type="button" disabled>{% trans "Save order" %}</button>
-  <button id="create-repeat-btn" class="btn btn-secondary btn-sm" type="button" disabled>{% trans "Create repeat from selection" %}</button>
+  <button id="create-repeat-btn" class="btn btn-secondary btn-sm inline-flex items-center gap-2" type="button" disabled>
+    {% include "components/icons/repeat.html" with classes="w-4 h-4" %}
+    <span>{% trans "Create repeat from selection" %}</span>
+  </button>
       {% endif %}
       <a class="btn btn-ghost btn-sm " href="/surveys/{{ survey.slug }}/dashboard/">{% trans "Back to dashboard" %}</a>
     </div>
@@ -182,13 +185,30 @@
       function refresh() {
         if (createBtn) createBtn.disabled = selected.size === 0;
       }
+      // Clicks on list items toggle selection (except when directly clicking the checkbox)
       root.addEventListener('click', function(e){
         var li = e.target.closest('li[data-gid]');
         if (!li) return;
-        if (e.target.closest('.drag-handle') || e.target.closest('form')) return; // don't toggle on drag/delete
+        // don't toggle on drag/delete or when clicking the checkbox itself
+        if (e.target.closest('.drag-handle') || e.target.closest('form') || e.target.closest('.select-checkbox')) return;
         var cb = li.querySelector('.select-checkbox');
-        if (cb) cb.checked = !cb.checked;
-        if (cb && cb.checked) {
+        if (!cb) return;
+        cb.checked = !cb.checked;
+        if (cb.checked) {
+          selected.add(li.dataset.gid);
+          li.classList.add('ring-2','ring-secondary');
+        } else {
+          selected.delete(li.dataset.gid);
+          li.classList.remove('ring-2','ring-secondary');
+        }
+        refresh();
+      });
+      // Changes on the checkbox (mouse/keyboard) update selection
+      root.addEventListener('change', function(e){
+        if (!e.target.classList.contains('select-checkbox')) return;
+        var li = e.target.closest('li[data-gid]');
+        if (!li) return;
+        if (e.target.checked) {
           selected.add(li.dataset.gid);
           li.classList.add('ring-2','ring-secondary');
         } else {
