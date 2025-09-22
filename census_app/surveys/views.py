@@ -569,6 +569,52 @@ def survey_groups_repeat_create(request: HttpRequest, slug: str) -> HttpResponse
 
 @login_required
 @require_http_methods(["POST"])
+def survey_group_repeat_remove(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
+    """Remove the given group from any repeats (collections) in this survey.
+
+    If a collection becomes empty after removal, delete it as well. This provides
+    a simple toggle-like UX from the Groups page to undo a repeat association.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid)
+    # Only allow removing if the group is attached to this survey
+    if not survey.question_groups.filter(id=group.id).exists():
+        return HttpResponse(status=404)
+
+    # Remove items linking this group within this survey's collections
+    items_qs = CollectionItem.objects.filter(
+        collection__survey=survey, item_type=CollectionItem.ItemType.GROUP, group=group
+    )
+    affected_collections = set(items_qs.values_list("collection_id", flat=True))
+    deleted, _ = items_qs.delete()
+
+    # Re-number remaining items per affected collection and delete empties
+    for cid in affected_collections:
+        col = CollectionDefinition.objects.filter(id=cid, survey=survey).first()
+        if not col:
+            continue
+        remaining = list(col.items.order_by("order", "id"))
+        if not remaining:
+            # If this collection is a child of a parent collection, remove its link too
+            CollectionItem.objects.filter(child_collection=col).delete()
+            col.delete()
+            continue
+        # Compact orders
+        for idx, it in enumerate(remaining):
+            if it.order != idx:
+                it.order = idx
+                it.save(update_fields=["order"])
+
+    if deleted:
+        messages.success(request, "Group removed from repeat.")
+    else:
+        messages.info(request, "This group was not part of a repeat.")
+    return redirect("surveys:groups", slug=slug)
+
+
+@login_required
+@require_http_methods(["POST"])
 def survey_groups_reorder(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     require_can_edit(request.user, survey)

@@ -33,11 +33,19 @@
 <div class="mt-4">
 
   <div class="space-y-3">
+    <div class="alert alert-info shadow-sm">
+      <div>
+        {% include "components/icons/repeat.html" with classes="w-5 h-5" %}
+      </div>
+      <div class="text-sm">
+        {% trans "Tip: Select groups by clicking their row or checkbox, then click ‘Create repeat’ to set a name. Selected rows are highlighted and show a small repeat icon." %}
+      </div>
+    </div>
     <ul id="groups-draggable" class="orderable-list w-full flex flex-col gap-3" aria-label="Reorder groups" data-reorder-url="/surveys/{{ survey.slug }}/groups/reorder" data-can-edit="{{ can_edit|yesno:'true,false' }}">
       {% for g in groups %}
         {% with info=repeat_info|get_item:g.id %}
         <li class="w-full" data-gid="{{ g.id }}" data-repeat="{{ info.is_repeated|default_if_none:False|yesno:'1,0' }}" title="{{ info.tooltip }}">
-          <div class="w-full bg-base-100 rounded-lg border border-base-300 p-3 selectable-group hover:border-primary cursor-pointer {% if info.is_repeated %}ring-1 ring-primary/40 bg-primary/5{% endif %}">
+          <div class="w-full bg-base-100 rounded-lg border border-base-300 p-3 selectable-group hover:border-primary cursor-pointer transition-colors {% if info.is_repeated %}ring-1 ring-primary/40 bg-primary/5{% endif %}">
             <div class="flex items-center gap-3">
               {% if can_edit %}
               <button type="button" class="drag-handle inline-flex items-center justify-center w-7 h-7 mr-1 rounded-md text-primary border border-primary/30 hover:bg-primary/20 shrink-0 cursor-move" style="background-color: color-mix(in oklch, var(--p) 12%, transparent);" aria-label="Drag to reorder" title="Drag to reorder">
@@ -48,8 +56,11 @@
               <input type="checkbox" class="checkbox checkbox-sm select-checkbox" aria-label="Select group" />
               {% endif %}
               <div class="q-number badge badge-primary badge-sm shrink-0">{{ forloop.counter }}</div>
-              <div class="flex-1 min-w-0">
+              <div class="flex-1 min-w-0 flex items-center gap-2">
                 <a class="font-medium link text-primary" href="/surveys/{{ survey.slug }}/builder/groups/{{ g.id }}/">{{ g.name }}</a>
+                <span class="sel-repeat-icon hidden tooltip" data-tip="{% trans "Selected for repeat" %}">
+                  {% include "components/icons/repeat.html" with classes="w-4 h-4 opacity-70" %}
+                </span>
                 {% if g.description %}<div class="text-sm opacity-70">{{ g.description }}</div>{% endif %}
               </div>
               {% if info.is_repeated %}
@@ -59,6 +70,14 @@
                     <span>Repeats</span>
                   </div>
                 </div>
+                {% if can_edit %}
+                <form method="post" action="/surveys/{{ survey.slug }}/groups/{{ g.id }}/repeat/remove" class="shrink-0" onsubmit="return confirm('{% trans "Remove this group from its repeat?" %}');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-xs btn-ghost" title="{% trans "Remove repeat" %}">
+                    ✕
+                  </button>
+                </form>
+                {% endif %}
               {% else %}
                 <div class="badge badge-neutral shrink-0 self-center">{{ g.q_count|default:0 }} question{% if g.q_count|default:0 != 1 %}s{% endif %}</div>
               {% endif %}
@@ -185,22 +204,16 @@
       function refresh() {
         if (createBtn) createBtn.disabled = selected.size === 0;
       }
-      // Clicks on list items toggle selection (except when directly clicking the checkbox)
+      // Clicks on list items toggle selection (except when directly clicking the checkbox or navigation link)
       root.addEventListener('click', function(e){
         var li = e.target.closest('li[data-gid]');
         if (!li) return;
-        // don't toggle on drag/delete or when clicking the checkbox itself
-        if (e.target.closest('.drag-handle') || e.target.closest('form') || e.target.closest('.select-checkbox')) return;
+        // don't toggle on drag/delete, on forms, checkboxes, or links
+        if (e.target.closest('.drag-handle') || e.target.closest('form') || e.target.closest('.select-checkbox') || e.target.closest('a')) return;
         var cb = li.querySelector('.select-checkbox');
         if (!cb) return;
         cb.checked = !cb.checked;
-        if (cb.checked) {
-          selected.add(li.dataset.gid);
-          li.classList.add('ring-2','ring-secondary');
-        } else {
-          selected.delete(li.dataset.gid);
-          li.classList.remove('ring-2','ring-secondary');
-        }
+        updateSelection(li, cb.checked);
         refresh();
       });
       // Changes on the checkbox (mouse/keyboard) update selection
@@ -208,15 +221,21 @@
         if (!e.target.classList.contains('select-checkbox')) return;
         var li = e.target.closest('li[data-gid]');
         if (!li) return;
-        if (e.target.checked) {
-          selected.add(li.dataset.gid);
-          li.classList.add('ring-2','ring-secondary');
-        } else {
-          selected.delete(li.dataset.gid);
-          li.classList.remove('ring-2','ring-secondary');
-        }
+        updateSelection(li, e.target.checked);
         refresh();
       });
+      function updateSelection(li, isChecked){
+        var icon = li.querySelector('.sel-repeat-icon');
+        if (isChecked) {
+          selected.add(li.dataset.gid);
+          li.classList.add('ring-2','ring-secondary','border-secondary','bg-secondary/10');
+          if (icon) icon.classList.remove('hidden');
+        } else {
+          selected.delete(li.dataset.gid);
+          li.classList.remove('ring-2','ring-secondary','border-secondary','bg-secondary/10');
+          if (icon) icon.classList.add('hidden');
+        }
+      }
       if (createBtn) createBtn.addEventListener('click', function(){
         if (!selected.size) return;
         if (inputIds) inputIds.value = Array.from(selected).join(',');
