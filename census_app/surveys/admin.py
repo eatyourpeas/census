@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Organization, QuestionGroup, Survey, SurveyQuestion, SurveyResponse
+from .models import Organization, QuestionGroup, Survey, SurveyQuestion, SurveyResponse, CollectionDefinition, CollectionItem
 
 
 @admin.register(Organization)
@@ -26,3 +26,19 @@ class SurveyAdmin(admin.ModelAdmin):
 @admin.register(SurveyResponse)
 class SurveyResponseAdmin(admin.ModelAdmin):
     list_display = ("survey", "submitted_at")
+
+
+class CollectionItemInline(admin.TabularInline):
+    model = CollectionItem
+    # CollectionItem has two FKs to CollectionDefinition (collection, child_collection)
+    # This inline should attach via the 'collection' FK
+    fk_name = "collection"
+    extra = 0
+
+
+@admin.register(CollectionDefinition)
+class CollectionDefinitionAdmin(admin.ModelAdmin):
+    list_display = ("name", "key", "survey", "cardinality", "parent")
+    list_filter = ("survey", "cardinality")
+    search_fields = ("name", "key")
+    inlines = [CollectionItemInline]

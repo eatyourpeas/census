@@ -270,6 +270,110 @@ Any updates here require a CSS rebuild.
 
 Keep breadcrumb labels terse and consistent (e.g., “Survey Dashboard”, “Question Group Builder”, “Question Builder”).
 
+## Internationalization (i18n)
+
+This project ships with Django i18n enabled. Themes and UI copy should use Django’s translation tags and helpers so labels, buttons, and help text can be translated cleanly without forking templates.
+
+### Template basics
+
+- Load i18n in templates that have translatable text:
+
+```django
+{% load i18n %}
+```
+
+- Translate short strings:
+
+```django
+{% trans "Manage groups" %}
+```
+
+- Translate sentences with variables using blocktrans:
+
+```django
+{% blocktrans %}Groups for {{ survey.name }}{% endblocktrans %}
+```
+
+- Prefer assigning translated values to variables when you need them inside attributes (e.g., placeholders) or component includes (breadcrumbs):
+
+```django
+{% trans "Surveys" as bc_surveys %}
+{% include 'components/breadcrumbs.html' with crumb1_label=bc_surveys crumb1_href="/surveys/" %}
+
+{% trans "Defaults to platform title" as ph_title %}
+<input placeholder="{{ ph_title }}" />
+```
+
+- Plurals with blocktrans:
+
+```django
+{% blocktrans count q=group.q_count %}
+{{ q }} question
+{% plural %}
+{{ q }} questions
+{% endblocktrans %}
+```
+
+Notes
+
+- Don’t wrap dynamic values (like `survey.name`) in `{% trans %}`; translate only the surrounding text.
+- Keep punctuation and capitalization stable to help translators.
+- For long help text, use `{% blocktrans %}` to keep the string intact for translators.
+
+### Python code
+
+Use Django’s translation utilities in Python code:
+
+```python
+from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
+
+msg = _("You don’t have permission to edit this survey.")
+
+label = ngettext(
+  "{count} response",  # singular
+  "{count} responses", # plural
+  total,
+).format(count=total)
+```
+
+For lazily-evaluated strings in model fields or settings, prefer `gettext_lazy`:
+
+```python
+from django.utils.translation import gettext_lazy as _
+
+class MyForm(forms.Form):
+  name = forms.CharField(label=_("Name"))
+```
+
+### Message extraction and compilation (Docker + Poetry)
+
+Run these inside the web container so they use the project environment. Replace `fr` with your target language code (ISO 639-1).
+
+```bash
+# Create/update .po files for templates and Python strings
+docker compose exec web poetry run python manage.py makemessages -l fr
+
+# Optionally, extract JavaScript strings (if using Django’s JS i18n)
+docker compose exec web poetry run python manage.py makemessages -d djangojs -l fr
+
+# After translating the .po files, compile to .mo
+docker compose exec web poetry run python manage.py compilemessages
+```
+
+Defaults and structure
+
+- Locale files can live per app (e.g., `census_app/surveys/locale/`) or at the project root `locale/`. Django will discover both.
+- Ensure `USE_I18N = True` in settings (it is by default in this project).
+- Ignore build and vendor dirs during extraction to avoid noise (Django’s `makemessages` respects `.gitignore` and you can add `-i` patterns if needed).
+
+### Theming + i18n tips
+
+- Translate UI labels, headings, and helper text; leave CSS variables and class names untouched.
+- When using DaisyUI/Tailwind inside `.prose`, prefer wrapping button links with `.btn` so Typography doesn’t restyle them. Translations won’t affect classes.
+- Breadcrumbs: translate labels via `{% trans %} … as var %}` before passing to the component.
+- For placeholders/tooltips, assign translated strings to variables and reference them in attributes.
+
 ## Theme selection (System/Light/Dark)
 
 End users can choose how the UI looks on the Profile page. The selector supports:

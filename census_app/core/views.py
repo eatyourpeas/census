@@ -97,8 +97,10 @@ DOC_PAGES = {
     "authentication-and-permissions": "authentication-and-permissions.md",
     "api": "api.md",
     "branding-and-theme-settings": "branding-and-theme-settings.md",
+    "themes": "themes.md",
     "surveys": "surveys.md",
     "user-management": "user-management.md",
+    "collections": "collections.md",
 }
 
 def _doc_title(slug: str) -> str:

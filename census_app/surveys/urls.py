@@ -9,6 +9,8 @@ urlpatterns = [
     path("manage/users/", views.user_management_hub, name="user_management_hub"),
     path("<slug:slug>/bulk-upload/", views.bulk_upload, name="bulk_upload"),
     path("create/", views.survey_create, name="create"),
+    # Repeats (collections) integrated with groups
+    path("<slug:slug>/groups/repeat/create", views.survey_groups_repeat_create, name="survey_groups_repeat_create"),
     path("<slug:slug>/groups/template/create", views.survey_group_create_from_template, name="groups_create_from_template"),
     path("<slug:slug>/preview/", views.survey_preview, name="preview"),
     path("<slug:slug>/", views.survey_detail, name="detail"),

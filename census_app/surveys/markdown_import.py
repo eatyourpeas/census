@@ -150,3 +150,89 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
                 raise BulkParseError(f"Unsupported question type '{q['type']}' for '{q['title']}'")
 
     return groups
+
+
+def parse_bulk_markdown_with_collections(md_text: str) -> Dict[str, Any]:
+    """
+    Parse markdown into groups/questions and detect simple REPEAT markers for collections.
+
+    Rules:
+    - A line (optionally prefixed by ">" for nesting) that equals "REPEAT" or "REPEAT-<N>"
+      applies to the next group heading at the same nesting depth.
+    - Nesting depth is the count of leading ">" characters before the REPEAT line and/or group heading.
+    - REPEAT without a number means unlimited (no max); REPEAT-5 means max_count=5.
+
+    Returns dict: {"groups": [...], "repeats": [{group_index, depth, max_count, parent_index} ...]}
+    """
+    if not md_text or not md_text.strip():
+        raise BulkParseError("Markdown is empty")
+
+    raw_lines = md_text.splitlines()
+    cleaned_lines: List[str] = []
+    pending_repeat: Dict[int, int | None] = {}  # depth -> max or None
+    repeats: List[Dict[str, int | None]] = []
+    import re as _re
+
+    # Track a stack of the most recent repeated group indices at each depth
+    repeat_stack: List[int] = []  # stores group_index at each depth
+    group_count_seen = 0
+
+    for raw in raw_lines:
+        # Count leading '>' as depth
+        s = raw
+        depth = 0
+        i = 0
+        while i < len(s):
+            if s[i] == '>':
+                depth += 1
+                i += 1
+                # optional space after '>'
+                if i < len(s) and s[i] == ' ':
+                    i += 1
+                continue
+            elif s[i] == ' ':
+                # allow leading spaces between blockquotes
+                i += 1
+                continue
+            break
+        content = s[i:].rstrip()
+
+        # REPEAT marker?
+        m = _re.match(r"^REPEAT(?:-(\d+))?$", content.strip(), flags=_re.IGNORECASE)
+        if m:
+            maxv = int(m.group(1)) if m.group(1) else None
+            pending_repeat[depth] = maxv
+            # do not include this line in cleaned markdown
+            continue
+
+        # Group heading detection (top-level groups only: '# ')
+        if content.strip().startswith('# ') and not content.strip().startswith('## '):
+            # Trim or expand repeat_stack to current depth
+            while len(repeat_stack) > depth:
+                repeat_stack.pop()
+            # add cleaned heading line (without blockquote)
+            cleaned_lines.append(content)
+            # If a repeat is pending at this depth, register it for this group index
+            if depth in pending_repeat:
+                parent_index = repeat_stack[-1] if repeat_stack else None
+                repeats.append({
+                    "group_index": group_count_seen,
+                    "depth": depth,
+                    "max_count": pending_repeat[depth],
+                    "parent_index": parent_index,
+                })
+                # Update stack: this group becomes the latest repeated group at this depth
+                repeat_stack.append(group_count_seen)
+                del pending_repeat[depth]
+            else:
+                # non-repeated group at this depth trims deeper stack but doesn't extend
+                pass
+            group_count_seen += 1
+            continue
+
+        # For all other lines, strip blockquote markers for parsing and include
+        cleaned_lines.append(content)
+
+    cleaned_md = "\n".join(cleaned_lines)
+    groups = parse_bulk_markdown(cleaned_md)
+    return {"groups": groups, "repeats": repeats}

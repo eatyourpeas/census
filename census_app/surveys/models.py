@@ -165,3 +165,102 @@ class AuditLog(models.Model):
             models.Index(fields=["scope", "organization", "survey"]),
             models.Index(fields=["created_at"]),
         ]
+
+
+# -------------------- Collections (definitions) --------------------
+
+class CollectionDefinition(models.Model):
+    class Cardinality(models.TextChoices):
+        ONE = "one", "One"
+        MANY = "many", "Many"
+
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="collections")
+    key = models.SlugField(help_text="Stable key used in response JSON; unique per survey")
+    name = models.CharField(max_length=255)
+    cardinality = models.CharField(max_length=10, choices=Cardinality.choices, default=Cardinality.MANY)
+    min_count = models.PositiveIntegerField(default=0)
+    max_count = models.PositiveIntegerField(null=True, blank=True)
+    parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="children")
+
+    class Meta:
+        unique_together = ("survey", "key")
+        indexes = [models.Index(fields=["survey", "parent"])]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.name} ({self.key})"
+
+    def ancestors(self) -> list["CollectionDefinition"]:
+        chain: list[CollectionDefinition] = []
+        node = self.parent
+        # Walk up the tree
+        while node is not None:
+            chain.append(node)
+            node = node.parent
+        return chain
+
+    def clean(self):  # pragma: no cover - covered via tests
+        from django.core.exceptions import ValidationError
+        # Parent must be in the same survey
+        if self.parent and self.parent.survey_id != self.survey_id:
+            raise ValidationError({"parent": "Parent collection must belong to the same survey."})
+        # Depth cap (2 levels: parent -> child). If parent has a parent, this would be level 3.
+        if self.parent and self.parent.parent_id:
+            raise ValidationError({"parent": "Maximum nesting depth is 2."})
+        # Cardinality constraints
+        if self.cardinality == self.Cardinality.ONE:
+            if self.max_count is not None and self.max_count != 1:
+                raise ValidationError({"max_count": "For cardinality 'one', max_count must be 1."})
+            if self.min_count not in (0, 1):
+                raise ValidationError({"min_count": "For cardinality 'one', min_count must be 0 or 1."})
+        # min/max relationship
+        if self.max_count is not None and self.min_count > self.max_count:
+            raise ValidationError({"min_count": "min_count cannot exceed max_count."})
+        # Cycle prevention: parent chain cannot include self
+        for anc in self.ancestors():
+            # If this instance already has a PK, ensure no ancestor is itself
+            if self.pk and anc.pk == self.pk:
+                raise ValidationError({"parent": "Collections cannot reference themselves (cycle)."})
+
+
+class CollectionItem(models.Model):
+    class ItemType(models.TextChoices):
+        GROUP = "group", "Group"
+        COLLECTION = "collection", "Collection"
+
+    collection = models.ForeignKey(CollectionDefinition, on_delete=models.CASCADE, related_name="items")
+    item_type = models.CharField(max_length=20, choices=ItemType.choices)
+    group = models.ForeignKey(QuestionGroup, null=True, blank=True, on_delete=models.CASCADE)
+    child_collection = models.ForeignKey(CollectionDefinition, null=True, blank=True, on_delete=models.CASCADE, related_name="parent_links")
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["collection", "order"], name="uq_collectionitem_order_per_collection"),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover
+        target = self.group or self.child_collection
+        return f"{self.item_type}: {target}"
+
+    def clean(self):  # pragma: no cover - covered via tests
+        from django.core.exceptions import ValidationError
+        # Exactly one of group or child_collection must be set
+        if bool(self.group) == bool(self.child_collection):
+            raise ValidationError("Provide either a group or a child_collection, not both.")
+        # item_type must match the provided field
+        if self.item_type == self.ItemType.GROUP and not self.group:
+            raise ValidationError({"group": "group must be set for item_type 'group'."})
+        if self.item_type == self.ItemType.COLLECTION and not self.child_collection:
+            raise ValidationError({"child_collection": "child_collection must be set for item_type 'collection'."})
+        # Group must belong to the same survey
+        if self.group:
+            survey_id = self.collection.survey_id
+            if not self.group.surveys.filter(id=survey_id).exists():
+                raise ValidationError({"group": "Selected group is not attached to this survey."})
+        # Child collection must be in same survey and be a direct child of this collection
+        if self.child_collection:
+            if self.child_collection.survey_id != self.collection.survey_id:
+                raise ValidationError({"child_collection": "Child collection must belong to the same survey."})
+            if self.child_collection.parent_id != self.collection_id:
+                raise ValidationError({"child_collection": "Child collection's parent must be this collection."})
