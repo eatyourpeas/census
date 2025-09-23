@@ -85,83 +85,98 @@
     renumberQuestions(document);
   });
 
-  if (window.htmx) {
-    // Add CSRF header to all HTMX requests
-    document.body.addEventListener("htmx:configRequest", function (evt) {
-      evt.detail.headers["X-CSRFToken"] = csrfToken();
-    });
-    // Re-init Sortable after swaps that touch the questions list
-    document.body.addEventListener("htmx:afterSwap", function (evt) {
-      const target = (evt.detail && evt.detail.target) || evt.target;
-      if (!target) return;
-      if (
-        target.id === "questions-list" ||
-        (target.closest && target.closest("#questions-list"))
-      ) {
-        initSortable(document);
-        scheduleDismissals(document);
-        renumberQuestions(document);
-        // If this swap was triggered by the create-question form submission, reset the form
-        const src = evt.detail && evt.detail.elt ? evt.detail.elt : null;
-        const form = document.getElementById("create-question-form");
-        if (
-          src &&
-          form &&
-          (src === form ||
-            (src.closest && src.closest("#create-question-form")))
-        ) {
-          // Reset to initial defaults
-          form.reset();
-          // Re-apply conditional visibility based on defaults
-          if (typeof form._refreshCreateToggles === "function") {
-            form._refreshCreateToggles();
-          } else {
-            // Fallback: trigger a change event to force recompute
-            const evtChange = new Event("change", { bubbles: true });
-            const checkedType = form.querySelector(
-              'input[name="type"]:checked'
-            );
-            if (checkedType) checkedType.dispatchEvent(evtChange);
-          }
-          // Focus first usable input for faster entry
-          const firstField = form.querySelector(
-            "input:not([type=hidden]):not([disabled]), textarea, select"
-          );
-          if (firstField && firstField.focus) firstField.focus();
-        }
-      }
-      // Re-bind toggles for the create form if present
-      if (document.getElementById("create-question-form")) {
-        initCreateFormToggles();
-      }
-    });
+  // Add CSRF header to all HTMX requests
+  document.body.addEventListener("htmx:configRequest", function (evt) {
+    evt.detail.headers["X-CSRFToken"] = csrfToken();
+  });
 
-    // Also reset form after the request completes successfully, even if no swap occurred
-    document.body.addEventListener("htmx:afterRequest", function (evt) {
+  // Disable the Add button while submitting to avoid double posts
+  document.body.addEventListener("htmx:beforeRequest", function (evt) {
+    const src = evt.detail && evt.detail.elt ? evt.detail.elt : null;
+    const form = document.getElementById("create-question-form");
+    if (
+      src &&
+      form &&
+      (src === form || (src.closest && src.closest("#create-question-form")))
+    ) {
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn) btn.disabled = true;
+    }
+  });
+  // Re-init Sortable after swaps that touch the questions list
+  document.body.addEventListener("htmx:afterSwap", function (evt) {
+    const target = (evt.detail && evt.detail.target) || evt.target;
+    if (!target) return;
+    if (
+      target.id === "questions-list" ||
+      (target.closest && target.closest("#questions-list"))
+    ) {
+      initSortable(document);
+      scheduleDismissals(document);
+      renumberQuestions(document);
+      // If this swap was triggered by the create-question form submission, reset the form
       const src = evt.detail && evt.detail.elt ? evt.detail.elt : null;
+      const form = document.getElementById("create-question-form");
       if (
-        !src ||
-        !(
-          src.id === "create-question-form" ||
-          (src.closest && src.closest("#create-question-form"))
-        )
-      )
-        return;
-      const xhr = evt.detail && evt.detail.xhr ? evt.detail.xhr : null;
-      if (xhr && xhr.status >= 200 && xhr.status < 300) {
-        const form = document.getElementById("create-question-form") || src;
-        if (!form) return;
+        src &&
+        form &&
+        (src === form || (src.closest && src.closest("#create-question-form")))
+      ) {
+        // Reset to initial defaults
         form.reset();
+        // Re-apply conditional visibility based on defaults
         if (typeof form._refreshCreateToggles === "function") {
           form._refreshCreateToggles();
+        } else {
+          // Fallback: trigger a change event to force recompute
+          const evtChange = new Event("change", { bubbles: true });
+          const checkedType = form.querySelector('input[name="type"]:checked');
+          if (checkedType) checkedType.dispatchEvent(evtChange);
         }
+        // Focus first usable input for faster entry
         const firstField = form.querySelector(
           "input:not([type=hidden]):not([disabled]), textarea, select"
         );
         if (firstField && firstField.focus) firstField.focus();
       }
-    });
-  }
+    }
+    // Re-bind toggles for the create form if present
+    if (document.getElementById("create-question-form")) {
+      initCreateFormToggles();
+    }
+  });
+
+  // Also reset form after the request completes successfully, even if no swap occurred
+  document.body.addEventListener("htmx:afterRequest", function (evt) {
+    const src = evt.detail && evt.detail.elt ? evt.detail.elt : null;
+    if (
+      !src ||
+      !(
+        src.id === "create-question-form" ||
+        (src.closest && src.closest("#create-question-form"))
+      )
+    )
+      return;
+    const xhr = evt.detail && evt.detail.xhr ? evt.detail.xhr : null;
+    if (xhr && xhr.status >= 200 && xhr.status < 300) {
+      const form = document.getElementById("create-question-form") || src;
+      if (!form) return;
+      form.reset();
+      if (typeof form._refreshCreateToggles === "function") {
+        form._refreshCreateToggles();
+      }
+      const firstField = form.querySelector(
+        "input:not([type=hidden]):not([disabled]), textarea, select"
+      );
+      if (firstField && firstField.focus) firstField.focus();
+    }
+    // Always re-enable submit button after request completes
+    const form = document.getElementById("create-question-form") || src;
+    if (form) {
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn) btn.disabled = false;
+    }
+  });
 
   function initCreateFormToggles() {
     const form = document.getElementById("create-question-form");

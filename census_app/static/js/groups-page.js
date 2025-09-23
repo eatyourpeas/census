@@ -57,10 +57,9 @@
         e.target.closest(".select-checkbox")
       )
         return;
+      // If the click is on a builder link, allow normal navigation
       var a = e.target.closest('a[href*="/builder/"]');
-      if (a && !(e.metaKey || e.ctrlKey || e.shiftKey)) {
-        e.preventDefault();
-      }
+      if (a) return;
       var cb = li.querySelector(".select-checkbox");
       if (!cb) return;
       cb.checked = !cb.checked;
