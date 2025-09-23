@@ -9,6 +9,14 @@ Prerequisites:
 - Base URL in examples: `https://localhost:8000`
 - Usernames are equal to email addresses; log in with your email as the username.
 
+## Interactive documentation
+
+- Swagger UI: /api/docs
+- ReDoc: /api/redoc
+- OpenAPI JSON: /api/schema
+
+Tip: In Swagger UI, paste your JWT into browser localStorage under the key `jwt` to auto-authorize requests.
+
 ## JWT with curl
 
 1. Obtain a token pair (access and refresh):

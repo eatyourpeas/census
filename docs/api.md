@@ -1,43 +1,18 @@
 # API reference and protections
 
-This document summarizes the REST API endpoints and their permission model.
+Use the interactive documentation for the full, always-up-to-date list of endpoints and schemas:
+
+- Swagger UI: /api/docs
+- ReDoc: /api/redoc
+- OpenAPI JSON: /api/schema
+
+Notes:
+
+- We link out to interactive docs instead of embedding them directly into this Markdown to respect our strict Content Security Policy (no inline scripts in docs pages).
 
 ## Authentication
 
 - JWT (Bearer) authentication via SimpleJWT. Obtain tokens at `/api/token` and `/api/token/refresh` and pass the access token in `Authorization: Bearer <token>`.
-
-## Endpoints
-
-Base path: `/api/`
-
-- `GET /health` — health check (AllowAny)
-- `POST /token` — obtain JWT access/refresh pair
-- `POST /token/refresh` — refresh access token
-- `GET /surveys/` — list surveys visible to the current user
-- `POST /surveys/` — create a survey (authenticated); returns `one_time_key_b64` once
-- `GET /surveys/{id}/` — retrieve a survey (owner or org ADMIN)
-- `PATCH /surveys/{id}/` — update a survey (owner or org ADMIN)
-- `DELETE /surveys/{id}/` — delete a survey (owner or org ADMIN)
-- `POST /surveys/{id}/seed/` — bulk create questions (owner or org ADMIN)
-- `GET /surveys/{id}/publish/` — get publish settings (owner/org ADMIN/creator/viewer with view permission)
-- `PUT /surveys/{id}/publish/` — update publish settings (owner/org ADMIN/creator)
-- `GET /surveys/{id}/metrics/responses/` — response counts (total/today/last7/last14) for admins/creators/viewers with view permission
-- `GET /users/` — admin-only read-only list
-
-### Invite tokens
-
-- `GET /surveys/{id}/tokens/` — list up to 500 most recent invite tokens (owner/org ADMIN/creator)
-- `POST /surveys/{id}/tokens/` — create up to 1000 tokens with optional expiry/note (owner/org ADMIN/creator)
-
-### OpenAPI and interactive docs
-
-- `GET /api/schema` — OpenAPI schema (JSON)
-- `GET /api/docs` — Embedded Swagger UI (CSP-exempt). Paste a JWT into localStorage key `jwt` to authorize requests automatically.
-- `GET /api/redoc` — Embedded ReDoc documentation (CSP-exempt), rendering `/api/schema`.
-
-Notes:
-
-- We link out to interactive docs instead of embedding them directly into this Markdown to keep our strict Content Security Policy intact and avoid inline scripts in docs pages.
 
 ## Permissions matrix (summary)
 
