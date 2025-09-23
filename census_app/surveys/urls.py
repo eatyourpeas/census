@@ -18,6 +18,7 @@ urlpatterns = [
     path("<slug:slug>/take/", views.survey_take, name="take"),
     path("<slug:slug>/take/unlisted/<str:key>/", views.survey_take_unlisted, name="take_unlisted"),
     path("<slug:slug>/take/token/<str:token>/", views.survey_take_token, name="take_token"),
+    path("<slug:slug>/thank-you/", views.survey_thank_you, name="thank_you"),
     path("<slug:slug>/", views.survey_detail, name="detail"),
     path("<slug:slug>/dashboard/", views.survey_dashboard, name="dashboard"),
     path("<slug:slug>/dashboard/publish", views.survey_publish_update, name="publish_update"),

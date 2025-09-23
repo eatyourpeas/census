@@ -18,6 +18,8 @@ env = environ.Env(
     BRAND_FONT_HEADING=(str, "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'"),
     BRAND_FONT_BODY=(str, "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"),
     BRAND_FONT_CSS_URL=(str, "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap"),
+    HCAPTCHA_SITEKEY=(str, ""),
+    HCAPTCHA_SECRET=(str, ""),
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -147,9 +149,13 @@ CSP_SCRIPT_SRC = (
     "'self'",
     "https://unpkg.com",
     "https://cdn.jsdelivr.net",
+    # hCaptcha widget script
+    "https://js.hcaptcha.com",
 )
 CSP_IMG_SRC = ("'self'", "data:")
-CSP_CONNECT_SRC = ("'self'",)
+CSP_CONNECT_SRC = ("'self'", "https://hcaptcha.com", "https://*.hcaptcha.com")
+CSPO_FRAME_SRC = ("'self'", "https://hcaptcha.com", "https://*.hcaptcha.com")
+CSP_FRAME_SRC = ("'self'", "https://hcaptcha.com", "https://*.hcaptcha.com")
 
 # CORS minimal
 CORS_ALLOWED_ORIGINS = []

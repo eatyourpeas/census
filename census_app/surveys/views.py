@@ -100,17 +100,30 @@ def _survey_collects_patient_data(survey: Survey) -> bool:
 
 
 def _verify_captcha(request: HttpRequest) -> bool:
-    """Pluggable CAPTCHA verification.
+    """Server-side hCaptcha verification.
 
-    Placeholder: returns True if CAPTCHA not configured. Wire to reCAPTCHA/hCaptcha later.
-    Expect a POST field like 'captcha_token' and verify server-side.
+    Expects POST token in 'h-captcha-response'. Uses settings.HCAPTCHA_SECRET.
+    Returns True if verification passes or if not configured (fails closed only when required upstream).
     """
-    # TODO: integrate a real CAPTCHA provider; for now, allow when not explicitly blocked.
-    token = request.POST.get("captcha_token")
-    if token is None:
-        # Treat as pass in dev unless survey requires and we enforce presence below
+    secret = getattr(settings, "HCAPTCHA_SECRET", None)
+    if not secret:
+        # Not configured; treat as pass. Enforcement happens in views based on survey.captcha_required.
+        return True
+    token = request.POST.get("h-captcha-response")
+    if not token:
         return False
-    return True
+    try:
+        import urllib.request
+        import urllib.parse
+        data = urllib.parse.urlencode({"secret": secret, "response": token, "remoteip": request.META.get("REMOTE_ADDR", "")}).encode()
+        req = urllib.request.Request("https://hcaptcha.com/siteverify", data=data)
+        req.add_header("Content-Type", "application/x-www-form-urlencoded")
+        with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310
+            import json as _json
+            payload = _json.loads(resp.read().decode("utf-8"))
+            return bool(payload.get("success"))
+    except Exception:
+        return False
 
 
 @login_required
@@ -584,9 +597,9 @@ def _handle_participant_submission(request: HttpRequest, survey: Survey, token_o
             json.dumps({"answers": answers, "submitted_at": resp.submitted_at.isoformat()}, indent=2)
         )
 
-        messages.success(request, "Thank you for your response.")
-        # Redirect to a simple thank-you page or back to survey with GET
-        return redirect("surveys:take", slug=survey.slug)
+    messages.success(request, "Thank you for your response.")
+    # Redirect to thank-you page
+    return redirect("surveys:thank_you", slug=survey.slug)
 
     # GET: render using existing detail template
     _prepare_question_rendering(survey)
@@ -615,6 +628,17 @@ def _handle_participant_submission(request: HttpRequest, survey: Survey, token_o
         "professional_ods": professional_ods,
     }
     return render(request, "surveys/detail.html", ctx)
+
+
+@require_http_methods(["GET"])
+def survey_thank_you(request: HttpRequest, slug: str) -> HttpResponse:
+    """Simple post-submission landing page for participants.
+
+    Does not leak whether a survey exists beyond being reachable from a valid submission.
+    """
+    survey = Survey.objects.filter(slug=slug).first()
+    # Render generic thank you even if survey missing to avoid information leakage
+    return render(request, "surveys/thank_you.html", {"survey": survey})
 
 
 @login_required
