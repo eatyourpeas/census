@@ -11,29 +11,18 @@
     el.dataset.bound = "1";
     var canEdit = (el.getAttribute("data-can-edit") || "false") === "true";
     if (!window.Sortable || !canEdit) return;
-    var dirty = false;
-    var saveBtn = document.getElementById("save-order-btn");
     new Sortable(el, {
       handle: ".drag-handle",
       animation: 150,
       forceFallback: true,
       onEnd: function () {
         renumber(el);
-        dirty = true;
-        if (saveBtn) saveBtn.disabled = false;
+        // Auto-save on drop
+        submitOrder(el);
       },
     });
     // initial numbering
     renumber(el);
-    if (saveBtn)
-      saveBtn.addEventListener("click", function () {
-        if (!dirty) return;
-        submitOrder(el).then(function (ok) {
-          if (ok === false) return;
-          dirty = false;
-          saveBtn.disabled = true;
-        });
-      });
   }
 
   function renumber(root) {
@@ -55,12 +44,16 @@
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         "X-CSRFToken": csrfToken(),
+        "X-Requested-With": "XMLHttpRequest",
       },
       body: body,
     })
       .then(function (resp) {
         if (resp.ok) {
           // Do not reload; let the badge numbers remain as-is
+          if (typeof window.showToast === "function") {
+            window.showToast("Order saved", "success");
+          }
           return true;
         } else {
           console.error("Failed to save order");

@@ -6,8 +6,8 @@
   <div class="prose">
     {% include 'components/breadcrumbs.html' with  crumb1_label="Survey Dashboard"  crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/"  crumb2_label="Groups"  crumb2_href="/surveys/"|add:survey.slug|add:"/groups/"  crumb3_label="Manage Questions"  crumb3_href="/surveys/"|add:survey.slug|add:"/builder/groups/"|add:group.id|add:"/questions/" %}
     <h1 class="inline-flex items-center gap-2">
-      {% include "components/icons/documents.html" with classes="w-6 h-6" %}
-      <span>Manage Questions</span>
+      {% include "components/icons/documents.html" with classes="w-6 h-6 text-primary" %}
+      <span class="text-primary">Manage Questions</span>
     </h1>
     <h2 class="mt-0">Group: {{ group.name }}</h2>
     {% if group.description %}<p class="mt-0">{{ group.description }}</p>{% endif %}
@@ -28,8 +28,8 @@
       <div class="md:col-span-2">
         <div class="card bg-base-100 shadow">
           <div class="card-body">
-            <h2 class="card-title inline-flex items-center gap-2">
-              {% include "components/icons/document.html" with classes="w-5 h-5" %}
+            <h2 class="card-title inline-flex items-center gap-2 text-primary">
+              {% include "components/icons/document.html" with classes="w-5 h-5 text-primary" %}
               <span>Questions in this group</span>
             </h2>
             <div id="questions-list">
@@ -48,8 +48,8 @@
       <div>
         <div class="card bg-base-100 shadow">
           <div class="card-body">
-            <h2 class="card-title inline-flex items-center gap-2">
-              {% include "components/icons/document.html" with classes="w-5 h-5" %}
+            <h2 class="card-title inline-flex items-center gap-2 text-primary">
+              {% include "components/icons/document.html" with classes="w-5 h-5 text-primary" %}
               <span>Add Question</span>
             </h2>
             <form id="create-question-form" hx-post="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/create" hx-target="#questions-list" hx-swap="outerHTML">

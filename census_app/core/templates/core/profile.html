@@ -12,14 +12,26 @@
 {% endblock %}
 {% block content %}
 <div class="prose">
-  <h1>Your Profile</h1>
+  <h1 class="inline-flex items-center gap-2 text-primary">
+    {% include "components/icons/users.html" with classes="w-6 h-6 text-primary" %}
+    <span>Your Profile</span>
+  </h1>
   <p>Signed in as <strong>{{ request.user.username }}</strong></p>
+  {% if org %}
+  <h2 class="inline-flex items-center gap-2 text-primary mt-2">
+    {% include "components/icons/building.html" with classes="w-5 h-5 text-primary" %}
+    <span>Your organisation: {{ org.name }}</span>
+  </h2>
+  {% endif %}
 </div>
 
 <div class="mt-6 max-w-2xl">
   <div class="card bg-base-100 shadow mb-6">
     <div class="card-body">
-      <h2 class="card-title">Your badges</h2>
+      <h2 class="card-title inline-flex items-center gap-2 text-primary">
+        {% include "components/icons/users.html" with classes="w-5 h-5 text-primary" %}
+        <span>Your badges</span>
+      </h2>
       <div class="flex flex-wrap gap-2 items-center">
         {% if stats.is_superuser %}
           <span class="badge badge-primary">Superuser</span>
@@ -59,15 +71,24 @@
   </div>
   <div class="card bg-base-100 shadow mb-6">
     <div class="card-body">
-      <h2 class="card-title">Appearance</h2>
+      <h2 class="card-title inline-flex items-center gap-2 text-primary">
+        {% include "components/icons/bolt.html" with classes="w-5 h-5 text-primary" %}
+        <span>Appearance</span>
+      </h2>
       <p class="opacity-80">Choose your theme. This only affects your view and is saved in your browser.</p>
       <div class="form-control">
-        <label class="label" for="theme-select"><span class="label-text">Theme</span></label>
-        <select id="theme-select" class="select select-bordered w-full max-w-xs">
-          <option value="system">System</option>
-          <option value="census-light">Light</option>
-          <option value="census-dark">Dark</option>
-        </select>
+        <span class="label"><span class="label-text">Theme</span></span>
+        <div class="dropdown">
+          <div id="theme-dropdown-btn" tabindex="0" role="button" class="btn w-48 justify-between">
+            <span id="theme-current-label">System</span>
+            <!-- caret handled by button styles -->
+          </div>
+          <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-10 w-48 p-2 shadow">
+            <li><button type="button" data-theme-choice="system">System</button></li>
+            <li><button type="button" data-theme-choice="census-light">Light</button></li>
+            <li><button type="button" data-theme-choice="census-dark">Dark</button></li>
+          </ul>
+        </div>
         <noscript>
           <div class="alert alert-warning mt-3">Enable JavaScript to change theme.</div>
         </noscript>
@@ -78,7 +99,10 @@
   {% if request.user.is_superuser %}
   <div class="card bg-base-100 shadow mb-6">
     <div class="card-body">
-      <h2 class="card-title">Project theme and brand (admins)</h2>
+      <h2 class="card-title inline-flex items-center gap-2 text-primary">
+        {% include "components/icons/hammer_wrench.html" with classes="w-5 h-5 text-primary" %}
+        <span>Project theme and brand (admins)</span>
+      </h2>
       <p class="opacity-80">Paste DaisyUI Builder output (light and dark) to reskin the whole app. Fonts and icon apply globally.</p>
       <div class="flex items-center gap-3 mb-3 flex-wrap">
         <div class="flex items-center gap-2">
@@ -154,7 +178,10 @@
   {% if not can_manage_any_users %}
     <div class="card bg-base-100 shadow">
       <div class="card-body">
-        <h2 class="card-title">Upgrade to organisation</h2>
+        <h2 class="card-title inline-flex items-center gap-2 text-primary">
+          {% include "components/icons/building.html" with classes="w-5 h-5 text-primary" %}
+          <span>Upgrade to organisation</span>
+        </h2>
         <p class="opacity-80">Upgrading creates an organisation that you administer. You’ll be able to host surveys and build a team. Simple users cannot gain permissions inside someone else’s organisation, but you can create your own organisation at any time.</p>
         <form method="post" class="space-y-3">
           {% csrf_token %}

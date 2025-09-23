@@ -34,19 +34,33 @@
         const ids = Array.from(el.querySelectorAll("[data-qid]")).map(
           (li) => li.dataset.qid
         );
-        const form = new FormData();
-        form.append("order", ids.join(","));
+        const body = new URLSearchParams({ order: ids.join(",") });
         fetch(
           el.dataset.reorderUrl ||
             window.location.pathname.replace(/\/$/, "") + "/questions/reorder",
           {
             method: "POST",
-            headers: { "X-CSRFToken": csrfToken() },
-            body: form,
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+              "X-CSRFToken": csrfToken(),
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            body,
           }
-        ).then(() => {
-          renumberQuestions(el);
-        });
+        )
+          .then((resp) => {
+            if (!resp.ok) {
+              console.error("Failed to persist question order", resp.status);
+              return;
+            }
+            renumberQuestions(el);
+            if (typeof window.showToast === "function") {
+              window.showToast("Order saved", "success");
+            }
+          })
+          .catch((err) => {
+            console.error("Error persisting question order", err);
+          });
       },
     });
   }
