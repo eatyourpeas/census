@@ -32,6 +32,6 @@ def field_type(field):
     name = w.__class__.__name__
     if name in ("Textarea",):
         return "textarea"
-    if name in ("Select", "SelectMultiple"): 
+    if name in ("Select", "SelectMultiple"):
         return "select"
     return "text"

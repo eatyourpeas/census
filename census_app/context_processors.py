@@ -1,14 +1,17 @@
-from django.conf import settings
 import os
 import subprocess
+
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+
 from census_app.surveys.models import OrganizationMembership, SurveyMembership
+
 try:
     from importlib import metadata as _importlib_metadata  # Python 3.8+
 except Exception:  # pragma: no cover
     _importlib_metadata = None
 try:
-    from census_app.core.models import SiteBranding 
+    from census_app.core.models import SiteBranding
 except Exception:  # pragma: no cover - tolerate missing model during migrations
     SiteBranding = None
 
@@ -44,19 +47,38 @@ def _get_git_info():
     # Attempt to read from local git repo if available
     if info["commit"] is None:
         try:
-            short = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
+            short = (
+                subprocess.check_output(
+                    ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL
+                )
+                .decode()
+                .strip()
+            )
             info["commit"] = short or None
         except Exception:
             pass
     if info["commit_date"] is None:
         try:
-            commit_date = subprocess.check_output(["git", "log", "-1", "--format=%cI"], stderr=subprocess.DEVNULL).decode().strip()
+            commit_date = (
+                subprocess.check_output(
+                    ["git", "log", "-1", "--format=%cI"], stderr=subprocess.DEVNULL
+                )
+                .decode()
+                .strip()
+            )
             info["commit_date"] = commit_date or None
         except Exception:
             pass
     if info.get("branch") is None:
         try:
-            branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
+            branch = (
+                subprocess.check_output(
+                    ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                    stderr=subprocess.DEVNULL,
+                )
+                .decode()
+                .strip()
+            )
             # When in detached HEAD (e.g., CI), this may return 'HEAD'; treat that as None
             info["branch"] = branch if branch and branch != "HEAD" else None
         except Exception:
@@ -75,8 +97,12 @@ def branding(request):
     can_manage_any_users = False
     if user and user.is_authenticated:
         can_manage_any_users = (
-            OrganizationMembership.objects.filter(user=user, role=OrganizationMembership.Role.ADMIN).exists()
-            or SurveyMembership.objects.filter(user=user, role=SurveyMembership.Role.CREATOR).exists()
+            OrganizationMembership.objects.filter(
+                user=user, role=OrganizationMembership.Role.ADMIN
+            ).exists()
+            or SurveyMembership.objects.filter(
+                user=user, role=SurveyMembership.Role.CREATOR
+            ).exists()
         )
 
     # Defaults from settings
@@ -92,9 +118,21 @@ def branding(request):
         # Icon size (Tailwind classes). Prefer explicit class; fall back to numeric size -> w-{n} h-{n}
         "icon_size_class": None,
         "theme_name": getattr(settings, "BRAND_THEME", "census-light"),
-        "font_heading": getattr(settings, "BRAND_FONT_HEADING", "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'"),
-        "font_body": getattr(settings, "BRAND_FONT_BODY", "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"),
-        "font_css_url": getattr(settings, "BRAND_FONT_CSS_URL", "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap"),
+        "font_heading": getattr(
+            settings,
+            "BRAND_FONT_HEADING",
+            "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'",
+        ),
+        "font_body": getattr(
+            settings,
+            "BRAND_FONT_BODY",
+            "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif",
+        ),
+        "font_css_url": getattr(
+            settings,
+            "BRAND_FONT_CSS_URL",
+            "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap",
+        ),
         # Optional CSS overrides injected into head to support DaisyUI builder pastes
         "theme_css_light": getattr(settings, "BRAND_THEME_CSS_LIGHT", ""),
         "theme_css_dark": getattr(settings, "BRAND_THEME_CSS_DARK", ""),
@@ -104,7 +142,9 @@ def branding(request):
         size_class = getattr(settings, "BRAND_ICON_SIZE_CLASS", None)
         if not size_class:
             raw_size = getattr(settings, "BRAND_ICON_SIZE", None)
-            if isinstance(raw_size, int) or (isinstance(raw_size, str) and raw_size.isdigit()):
+            if isinstance(raw_size, int) or (
+                isinstance(raw_size, str) and raw_size.isdigit()
+            ):
                 size_class = f"w-{raw_size} h-{raw_size}"
             elif isinstance(raw_size, str) and ("w-" in raw_size or "h-" in raw_size):
                 size_class = raw_size
@@ -122,9 +162,11 @@ def branding(request):
                 try:
                     if getattr(sb, "icon_file", None) and sb.icon_file.name:
                         from django.conf import settings as _s
+
                         icon_href = f"{_s.MEDIA_URL}{sb.icon_file.name}"
                     if getattr(sb, "icon_file_dark", None) and sb.icon_file_dark.name:
                         from django.conf import settings as _s2
+
                         dark_icon_href = f"{_s2.MEDIA_URL}{sb.icon_file_dark.name}"
                 except Exception:
                     pass
@@ -136,7 +178,8 @@ def branding(request):
                         "font_heading": sb.font_heading or brand["font_heading"],
                         "font_body": sb.font_body or brand["font_body"],
                         "font_css_url": sb.font_css_url or brand["font_css_url"],
-                        "theme_css_light": sb.theme_light_css or brand["theme_css_light"],
+                        "theme_css_light": sb.theme_light_css
+                        or brand["theme_css_light"],
                         "theme_css_dark": sb.theme_dark_css or brand["theme_css_dark"],
                     }
                 )
@@ -147,7 +190,9 @@ def branding(request):
     # Build/version metadata
     git = _get_git_info()
     # Resolve version: env -> settings -> installed package metadata -> 'dev'
-    version_val = os.environ.get("APP_VERSION") or getattr(settings, "APP_VERSION", None)
+    version_val = os.environ.get("APP_VERSION") or getattr(
+        settings, "APP_VERSION", None
+    )
     if not version_val and _importlib_metadata is not None:
         try:
             version_val = _importlib_metadata.version("census")
@@ -155,10 +200,15 @@ def branding(request):
             version_val = None
     build = {
         "version": version_val or "dev",
-        "timestamp": os.environ.get("BUILD_TIMESTAMP") or getattr(settings, "BUILD_TIMESTAMP", None),
+        "timestamp": os.environ.get("BUILD_TIMESTAMP")
+        or getattr(settings, "BUILD_TIMESTAMP", None),
         "commit": git.get("commit"),
         "branch": git.get("branch"),
         "commit_date": git.get("commit_date"),
     }
 
-    return {"brand": brand, "can_manage_any_users": can_manage_any_users, "build": build}
+    return {
+        "brand": brand,
+        "can_manage_any_users": can_manage_any_users,
+        "build": build,
+    }

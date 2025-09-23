@@ -5,18 +5,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0002_sitebranding_icon_file'),
+        ("core", "0002_sitebranding_icon_file"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='sitebranding',
-            name='icon_url_dark',
-            field=models.URLField(blank=True, default=''),
+            model_name="sitebranding",
+            name="icon_url_dark",
+            field=models.URLField(blank=True, default=""),
         ),
         migrations.AddField(
-            model_name='sitebranding',
-            name='icon_file_dark',
-            field=models.FileField(blank=True, null=True, upload_to='branding/'),
+            model_name="sitebranding",
+            name="icon_file_dark",
+            field=models.FileField(blank=True, null=True, upload_to="branding/"),
         ),
     ]

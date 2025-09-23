@@ -6,7 +6,6 @@ from django.utils import timezone
 
 from census_app.surveys.models import Organization, OrganizationMembership, Survey
 
-
 TEST_PASSWORD = "test-pass"
 
 
@@ -41,7 +40,7 @@ def test_anon_cannot_access_management_pages(client):
     # Management endpoints must redirect unauthenticated users to login
     urls = [
         reverse("surveys:dashboard", kwargs={"slug": survey.slug}),
-    reverse("surveys:groups", kwargs={"slug": survey.slug}),
+        reverse("surveys:groups", kwargs={"slug": survey.slug}),
         reverse("surveys:groups", kwargs={"slug": survey.slug}),
         reverse("surveys:preview", kwargs={"slug": survey.slug}),
     ]

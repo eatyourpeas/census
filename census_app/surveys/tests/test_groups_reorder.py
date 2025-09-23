@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import pytest
-from django.urls import reverse
 from django.contrib.auth.models import User
+from django.urls import reverse
 
-from census_app.surveys.models import Organization, OrganizationMembership, Survey, QuestionGroup, SurveyMembership
+from census_app.surveys.models import (
+    Organization,
+    OrganizationMembership,
+    QuestionGroup,
+    Survey,
+    SurveyMembership,
+)
 
 
 @pytest.fixture
@@ -20,16 +26,22 @@ def users(db):
 def org(db, users):
     owner, org_admin, viewer, outsider = users
     org = Organization.objects.create(name="Org", owner=owner)
-    OrganizationMembership.objects.create(organization=org, user=org_admin, role=OrganizationMembership.Role.ADMIN)
+    OrganizationMembership.objects.create(
+        organization=org, user=org_admin, role=OrganizationMembership.Role.ADMIN
+    )
     return org
 
 
 @pytest.fixture
 def survey_with_groups(db, users, org):
     owner, org_admin, viewer, outsider = users
-    survey = Survey.objects.create(owner=owner, organization=org, name="My Survey", slug="mysurvey")
+    survey = Survey.objects.create(
+        owner=owner, organization=org, name="My Survey", slug="mysurvey"
+    )
     # Assign viewer to survey as VIEWER role to ensure cannot edit
-    SurveyMembership.objects.create(user=viewer, survey=survey, role=SurveyMembership.Role.VIEWER)
+    SurveyMembership.objects.create(
+        user=viewer, survey=survey, role=SurveyMembership.Role.VIEWER
+    )
     g1 = QuestionGroup.objects.create(name="G1", owner=owner)
     g2 = QuestionGroup.objects.create(name="G2", owner=owner)
     g3 = QuestionGroup.objects.create(name="G3", owner=owner)

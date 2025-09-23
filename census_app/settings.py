@@ -1,9 +1,10 @@
 import os
-from pathlib import Path
-import environ
 
 # SimpleJWT defaults
 from datetime import timedelta
+from pathlib import Path
+
+import environ
 
 env = environ.Env(
     DEBUG=(bool, False),
@@ -15,9 +16,18 @@ env = environ.Env(
     BRAND_TITLE=(str, "Census"),
     BRAND_ICON_URL=(str, "/static/icons/census-default.svg"),
     BRAND_THEME=(str, "census-light"),
-    BRAND_FONT_HEADING=(str, "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'"),
-    BRAND_FONT_BODY=(str, "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"),
-    BRAND_FONT_CSS_URL=(str, "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap"),
+    BRAND_FONT_HEADING=(
+        str,
+        "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'",
+    ),
+    BRAND_FONT_BODY=(
+        str,
+        "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif",
+    ),
+    BRAND_FONT_CSS_URL=(
+        str,
+        "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap",
+    ),
     HCAPTCHA_SITEKEY=(str, ""),
     HCAPTCHA_SECRET=(str, ""),
 )
@@ -91,8 +101,13 @@ WSGI_APPLICATION = "census_app.wsgi.application"
 ASGI_APPLICATION = "census_app.asgi.application"
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 12}},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 12},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]

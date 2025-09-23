@@ -1,19 +1,27 @@
-from django.contrib.auth import get_user_model
-from rest_framework import viewsets, permissions, serializers
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
-from census_app.surveys.models import Survey, SurveyAccessToken
-from census_app.surveys.models import SurveyQuestion, QuestionGroup, OrganizationMembership, SurveyMembership, Organization, AuditLog
-from rest_framework.decorators import action
-from census_app.surveys.permissions import can_view_survey, can_edit_survey
-from django.utils import timezone
-from django.utils.dateparse import parse_datetime
 import secrets
 from typing import Any
-from csp.decorators import csp_exempt
-from django.shortcuts import render
 
+from csp.decorators import csp_exempt
+from django.contrib.auth import get_user_model
+from django.shortcuts import render
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+from rest_framework import permissions, serializers, viewsets
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
+
+from census_app.surveys.models import (
+    AuditLog,
+    Organization,
+    OrganizationMembership,
+    QuestionGroup,
+    Survey,
+    SurveyAccessToken,
+    SurveyMembership,
+    SurveyQuestion,
+)
+from census_app.surveys.permissions import can_edit_survey, can_view_survey
 
 User = get_user_model()
 
@@ -29,7 +37,9 @@ class SurveyPublishSettingsSerializer(serializers.Serializer):
     visibility = serializers.ChoiceField(choices=Survey.Visibility.choices)
     start_at = serializers.DateTimeField(allow_null=True, required=False)
     end_at = serializers.DateTimeField(allow_null=True, required=False)
-    max_responses = serializers.IntegerField(allow_null=True, required=False, min_value=1)
+    max_responses = serializers.IntegerField(
+        allow_null=True, required=False, min_value=1
+    )
     captcha_required = serializers.BooleanField(required=False)
     no_patient_data_ack = serializers.BooleanField(required=False)
 
@@ -48,7 +58,9 @@ class SurveyPublishSettingsSerializer(serializers.Serializer):
         if instance.visibility == Survey.Visibility.PUBLIC:
             data["public_link"] = f"/surveys/{instance.slug}/take/"
         if instance.visibility == Survey.Visibility.UNLISTED and instance.unlisted_key:
-            data["unlisted_link"] = f"/surveys/{instance.slug}/take/unlisted/{instance.unlisted_key}/"
+            data["unlisted_link"] = (
+                f"/surveys/{instance.slug}/take/unlisted/{instance.unlisted_key}/"
+            )
         return data
 
 
@@ -101,13 +113,16 @@ class SurveyViewSet(viewsets.ModelViewSet):
         """
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         lookup_value = self.kwargs.get(lookup_url_kwarg)
-        obj = Survey.objects.select_related("organization").get(**{self.lookup_field: lookup_value})
+        obj = Survey.objects.select_related("organization").get(
+            **{self.lookup_field: lookup_value}
+        )
         self.check_object_permissions(self.request, obj)
         return obj
 
     def perform_create(self, serializer):
         obj = serializer.save(owner=self.request.user)
         import os
+
         key = os.urandom(32)
         obj.set_key(key)
         # Attach to serializer context for response augmentation
@@ -129,7 +144,9 @@ class SurveyViewSet(viewsets.ModelViewSet):
             group = None
             gname = item.get("group_name")
             if gname:
-                group, _ = QuestionGroup.objects.get_or_create(name=gname, owner=request.user)
+                group, _ = QuestionGroup.objects.get_or_create(
+                    name=gname, owner=request.user
+                )
             SurveyQuestion.objects.create(
                 survey=survey,
                 group=group,
@@ -148,10 +165,16 @@ class SurveyViewSet(viewsets.ModelViewSet):
         key = getattr(self, "_created_key", None)
         if key is not None:
             import base64
+
             resp.data["one_time_key_b64"] = base64.b64encode(key).decode("ascii")
         return resp
 
-    @action(detail=True, methods=["get", "put"], permission_classes=[permissions.IsAuthenticated, OrgOwnerOrAdminPermission], url_path="publish")
+    @action(
+        detail=True,
+        methods=["get", "put"],
+        permission_classes=[permissions.IsAuthenticated, OrgOwnerOrAdminPermission],
+        url_path="publish",
+    )
     def publish_settings(self, request, pk=None):
         """GET/PUT publish settings with SSR-equivalent validation and safeguards."""
         survey = self.get_object()
@@ -169,16 +192,30 @@ class SurveyViewSet(viewsets.ModelViewSet):
         end_at = data.get("end_at", survey.end_at)
         max_responses = data.get("max_responses", survey.max_responses)
         captcha_required = data.get("captcha_required", survey.captcha_required)
-        no_patient_data_ack = data.get("no_patient_data_ack", survey.no_patient_data_ack)
+        no_patient_data_ack = data.get(
+            "no_patient_data_ack", survey.no_patient_data_ack
+        )
 
         # Enforce patient-data + non-auth visibility disclaimer
         from census_app.surveys.views import _survey_collects_patient_data
+
         collects_patient = _survey_collects_patient_data(survey)
-        non_auth_vis = {Survey.Visibility.PUBLIC, Survey.Visibility.UNLISTED, Survey.Visibility.TOKEN}
-        if visibility in non_auth_vis and collects_patient and not no_patient_data_ack and visibility != Survey.Visibility.AUTHENTICATED:
-            raise serializers.ValidationError({
-                "no_patient_data_ack": "To use public, unlisted, or tokenized visibility, confirm that no patient data is collected.",
-            })
+        non_auth_vis = {
+            Survey.Visibility.PUBLIC,
+            Survey.Visibility.UNLISTED,
+            Survey.Visibility.TOKEN,
+        }
+        if (
+            visibility in non_auth_vis
+            and collects_patient
+            and not no_patient_data_ack
+            and visibility != Survey.Visibility.AUTHENTICATED
+        ):
+            raise serializers.ValidationError(
+                {
+                    "no_patient_data_ack": "To use public, unlisted, or tokenized visibility, confirm that no patient data is collected.",
+                }
+            )
 
         prev_status = survey.status
         survey.status = status
@@ -188,14 +225,23 @@ class SurveyViewSet(viewsets.ModelViewSet):
         survey.max_responses = max_responses
         survey.captcha_required = captcha_required
         survey.no_patient_data_ack = no_patient_data_ack
-        if prev_status != Survey.Status.PUBLISHED and status == Survey.Status.PUBLISHED and not survey.published_at:
+        if (
+            prev_status != Survey.Status.PUBLISHED
+            and status == Survey.Status.PUBLISHED
+            and not survey.published_at
+        ):
             survey.published_at = timezone.now()
         if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
             survey.unlisted_key = secrets.token_urlsafe(24)
         survey.save()
         return Response(SurveyPublishSettingsSerializer(instance=survey).data)
 
-    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated, OrgOwnerOrAdminPermission], url_path="metrics/responses")
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=[permissions.IsAuthenticated, OrgOwnerOrAdminPermission],
+        url_path="metrics/responses",
+    )
     def responses_metrics(self, request, pk=None):
         """Return counts of completed responses for this survey.
 
@@ -206,16 +252,26 @@ class SurveyViewSet(viewsets.ModelViewSet):
         start_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
         total = survey.responses.count()
         today = survey.responses.filter(submitted_at__gte=start_today).count()
-        last7 = survey.responses.filter(submitted_at__gte=now - timezone.timedelta(days=7)).count()
-        last14 = survey.responses.filter(submitted_at__gte=now - timezone.timedelta(days=14)).count()
-        return Response({
-            "total": total,
-            "today": today,
-            "last7": last7,
-            "last14": last14,
-        })
+        last7 = survey.responses.filter(
+            submitted_at__gte=now - timezone.timedelta(days=7)
+        ).count()
+        last14 = survey.responses.filter(
+            submitted_at__gte=now - timezone.timedelta(days=14)
+        ).count()
+        return Response(
+            {
+                "total": total,
+                "today": today,
+                "last7": last7,
+                "last14": last14,
+            }
+        )
 
-    @action(detail=True, methods=["get", "post"], permission_classes=[permissions.IsAuthenticated, OrgOwnerOrAdminPermission])
+    @action(
+        detail=True,
+        methods=["get", "post"],
+        permission_classes=[permissions.IsAuthenticated, OrgOwnerOrAdminPermission],
+    )
     def tokens(self, request, pk=None):
         """List or create invite tokens for a survey."""
         survey = self.get_object()
@@ -244,7 +300,11 @@ class SurveyViewSet(viewsets.ModelViewSet):
         expires_raw = request.data.get("expires_at")
         expires_at = None
         if expires_raw:
-            expires_at = parse_datetime(expires_raw) if isinstance(expires_raw, str) else expires_raw
+            expires_at = (
+                parse_datetime(expires_raw)
+                if isinstance(expires_raw, str)
+                else expires_raw
+            )
         created = []
         for _ in range(count):
             t = SurveyAccessToken(
@@ -255,12 +315,14 @@ class SurveyViewSet(viewsets.ModelViewSet):
                 note=note,
             )
             t.save()
-            created.append({
-                "token": t.token,
-                "created_at": t.created_at,
-                "expires_at": t.expires_at,
-                "note": t.note,
-            })
+            created.append(
+                {
+                    "token": t.token,
+                    "created_at": t.created_at,
+                    "expires_at": t.expires_at,
+                    "note": t.note,
+                }
+            )
         return Response({"created": len(created), "items": created})
 
 
@@ -291,12 +353,20 @@ class OrganizationMembershipViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         # Only orgs where the user is admin
-        admin_orgs = Organization.objects.filter(memberships__user=user, memberships__role=OrganizationMembership.Role.ADMIN)
-        return OrganizationMembership.objects.filter(organization__in=admin_orgs).select_related("user", "organization")
+        admin_orgs = Organization.objects.filter(
+            memberships__user=user, memberships__role=OrganizationMembership.Role.ADMIN
+        )
+        return OrganizationMembership.objects.filter(
+            organization__in=admin_orgs
+        ).select_related("user", "organization")
 
     def perform_create(self, serializer):
         org = serializer.validated_data.get("organization")
-        if not OrganizationMembership.objects.filter(organization=org, user=self.request.user, role=OrganizationMembership.Role.ADMIN).exists():
+        if not OrganizationMembership.objects.filter(
+            organization=org,
+            user=self.request.user,
+            role=OrganizationMembership.Role.ADMIN,
+        ).exists():
             raise PermissionDenied("Not an admin for this organization")
         instance = serializer.save()
         AuditLog.objects.create(
@@ -311,7 +381,11 @@ class OrganizationMembershipViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         instance = self.get_object()
         org = instance.organization
-        if not OrganizationMembership.objects.filter(organization=org, user=self.request.user, role=OrganizationMembership.Role.ADMIN).exists():
+        if not OrganizationMembership.objects.filter(
+            organization=org,
+            user=self.request.user,
+            role=OrganizationMembership.Role.ADMIN,
+        ).exists():
             raise PermissionDenied("Not an admin for this organization")
         instance = serializer.save()
         AuditLog.objects.create(
@@ -325,11 +399,20 @@ class OrganizationMembershipViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         org = instance.organization
-        if not OrganizationMembership.objects.filter(organization=org, user=self.request.user, role=OrganizationMembership.Role.ADMIN).exists():
+        if not OrganizationMembership.objects.filter(
+            organization=org,
+            user=self.request.user,
+            role=OrganizationMembership.Role.ADMIN,
+        ).exists():
             raise PermissionDenied("Not an admin for this organization")
         # Prevent org admin removing themselves
-        if instance.user_id == self.request.user.id and instance.role == OrganizationMembership.Role.ADMIN:
-            raise PermissionDenied("You cannot remove yourself as an organization admin")
+        if (
+            instance.user_id == self.request.user.id
+            and instance.role == OrganizationMembership.Role.ADMIN
+        ):
+            raise PermissionDenied(
+                "You cannot remove yourself as an organization admin"
+            )
         instance.delete()
         AuditLog.objects.create(
             actor=self.request.user,
@@ -352,23 +435,37 @@ class SurveyMembershipViewSet(viewsets.ModelViewSet):
         for s in Survey.objects.all():
             if s.owner_id == user.id:
                 allowed_survey_ids.append(s.id)
-            elif s.organization_id and OrganizationMembership.objects.filter(
-                organization=s.organization, user=user, role=OrganizationMembership.Role.ADMIN
-            ).exists():
+            elif (
+                s.organization_id
+                and OrganizationMembership.objects.filter(
+                    organization=s.organization,
+                    user=user,
+                    role=OrganizationMembership.Role.ADMIN,
+                ).exists()
+            ):
                 allowed_survey_ids.append(s.id)
             elif SurveyMembership.objects.filter(user=user, survey=s).exists():
                 allowed_survey_ids.append(s.id)
-        return SurveyMembership.objects.filter(survey_id__in=allowed_survey_ids).select_related("user", "survey")
+        return SurveyMembership.objects.filter(
+            survey_id__in=allowed_survey_ids
+        ).select_related("user", "survey")
 
     def _can_manage(self, survey: Survey) -> bool:
         # org admin, owner, or survey creator can manage
         if survey.owner_id == self.request.user.id:
             return True
-        if survey.organization_id and OrganizationMembership.objects.filter(
-            organization=survey.organization, user=self.request.user, role=OrganizationMembership.Role.ADMIN
-        ).exists():
+        if (
+            survey.organization_id
+            and OrganizationMembership.objects.filter(
+                organization=survey.organization,
+                user=self.request.user,
+                role=OrganizationMembership.Role.ADMIN,
+            ).exists()
+        ):
             return True
-        return SurveyMembership.objects.filter(user=self.request.user, survey=survey, role=SurveyMembership.Role.CREATOR).exists()
+        return SurveyMembership.objects.filter(
+            user=self.request.user, survey=survey, role=SurveyMembership.Role.CREATOR
+        ).exists()
 
     def perform_create(self, serializer):
         survey = serializer.validated_data.get("survey")
@@ -431,7 +528,9 @@ class ScopedUserViewSet(viewsets.ViewSet):
     def create_in_org(self, request, org_id=None):
         # Only org admins can create users within their org context
         org = Organization.objects.get(id=org_id)
-        if not OrganizationMembership.objects.filter(organization=org, user=request.user, role=OrganizationMembership.Role.ADMIN).exists():
+        if not OrganizationMembership.objects.filter(
+            organization=org, user=request.user, role=OrganizationMembership.Role.ADMIN
+        ).exists():
             raise PermissionDenied("Not an admin for this organization")
         ser = ScopedUserCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -442,13 +541,21 @@ class ScopedUserViewSet(viewsets.ViewSet):
             if not user:
                 if User.objects.filter(username=data["username"]).exists():
                     raise serializers.ValidationError({"username": "already exists"})
-                user = User.objects.create_user(username=data["username"], email=email, password=data["password"])
+                user = User.objects.create_user(
+                    username=data["username"], email=email, password=data["password"]
+                )
         else:
             if User.objects.filter(username=data["username"]).exists():
                 raise serializers.ValidationError({"username": "already exists"})
-            user = User.objects.create_user(username=data["username"], email="", password=data["password"])
+            user = User.objects.create_user(
+                username=data["username"], email="", password=data["password"]
+            )
         # Optionally add as viewer by default
-        OrganizationMembership.objects.get_or_create(organization=org, user=user, defaults={"role": OrganizationMembership.Role.VIEWER})
+        OrganizationMembership.objects.get_or_create(
+            organization=org,
+            user=user,
+            defaults={"role": OrganizationMembership.Role.VIEWER},
+        )
         AuditLog.objects.create(
             actor=request.user,
             scope=AuditLog.Scope.ORGANIZATION,
@@ -459,17 +566,29 @@ class ScopedUserViewSet(viewsets.ViewSet):
         )
         return Response({"id": user.id, "username": user.username, "email": user.email})
 
-    @action(detail=False, methods=["post"], url_path="survey/(?P<survey_id>[^/.]+)/create")
+    @action(
+        detail=False, methods=["post"], url_path="survey/(?P<survey_id>[^/.]+)/create"
+    )
     def create_in_survey(self, request, survey_id=None):
         # Survey creators/admins/owner can create users within the survey context
         survey = Survey.objects.get(id=survey_id)
+
         # Reuse the SurveyMembershipViewSet _can_manage logic inline
         def can_manage(user):
             if survey.owner_id == user.id:
                 return True
-            if survey.organization_id and OrganizationMembership.objects.filter(organization=survey.organization, user=user, role=OrganizationMembership.Role.ADMIN).exists():
+            if (
+                survey.organization_id
+                and OrganizationMembership.objects.filter(
+                    organization=survey.organization,
+                    user=user,
+                    role=OrganizationMembership.Role.ADMIN,
+                ).exists()
+            ):
                 return True
-            return SurveyMembership.objects.filter(user=user, survey=survey, role=SurveyMembership.Role.CREATOR).exists()
+            return SurveyMembership.objects.filter(
+                user=user, survey=survey, role=SurveyMembership.Role.CREATOR
+            ).exists()
 
         if not can_manage(request.user):
             raise PermissionDenied("Not allowed to manage users for this survey")
@@ -482,12 +601,18 @@ class ScopedUserViewSet(viewsets.ViewSet):
             if not user:
                 if User.objects.filter(username=data["username"]).exists():
                     raise serializers.ValidationError({"username": "already exists"})
-                user = User.objects.create_user(username=data["username"], email=email, password=data["password"])
+                user = User.objects.create_user(
+                    username=data["username"], email=email, password=data["password"]
+                )
         else:
             if User.objects.filter(username=data["username"]).exists():
                 raise serializers.ValidationError({"username": "already exists"})
-            user = User.objects.create_user(username=data["username"], email="", password=data["password"])
-        SurveyMembership.objects.get_or_create(survey=survey, user=user, defaults={"role": SurveyMembership.Role.VIEWER})
+            user = User.objects.create_user(
+                username=data["username"], email="", password=data["password"]
+            )
+        SurveyMembership.objects.get_or_create(
+            survey=survey, user=user, defaults={"role": SurveyMembership.Role.VIEWER}
+        )
         AuditLog.objects.create(
             actor=request.user,
             scope=AuditLog.Scope.SURVEY,

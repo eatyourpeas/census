@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 import os
 from typing import Tuple
-from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 from cryptography.hazmat.primitives import hashes, hmac
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
 
 def derive_key(passphrase: bytes, salt: bytes | None = None) -> Tuple[bytes, bytes]:
@@ -38,13 +39,17 @@ def decrypt_sensitive(passphrase_key: bytes, blob: bytes) -> dict:
 
 def make_key_hash(key: bytes) -> tuple[bytes, bytes]:
     salt = os.urandom(16)
-    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=200_000)
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(), length=32, salt=salt, iterations=200_000
+    )
     digest = kdf.derive(key)
     return digest, salt
 
 
 def verify_key(key: bytes, digest: bytes, salt: bytes) -> bool:
-    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=200_000)
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(), length=32, salt=salt, iterations=200_000
+    )
     try:
         kdf.verify(key, digest)
         return True
@@ -54,7 +59,9 @@ def verify_key(key: bytes, digest: bytes, salt: bytes) -> bool:
 
 def demographics_fingerprint(key: bytes, demographics: dict) -> bytes:
     # Create a stable representation
-    payload = json.dumps(demographics, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    payload = json.dumps(demographics, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
     h = hmac.HMAC(key, hashes.SHA256())
     h.update(payload)
     return h.finalize()

@@ -1,8 +1,13 @@
 import pytest
-from django.urls import reverse
 from django.contrib.auth import get_user_model
-from census_app.surveys.models import Organization, OrganizationMembership, Survey, SurveyMembership
+from django.urls import reverse
 
+from census_app.surveys.models import (
+    Organization,
+    OrganizationMembership,
+    Survey,
+    SurveyMembership,
+)
 
 User = get_user_model()
 TEST_PASSWORD = "test-pass"
@@ -12,7 +17,9 @@ TEST_PASSWORD = "test-pass"
 def test_org_admin_can_access_org_users(client):
     admin = User.objects.create_user(username="admin1", password=TEST_PASSWORD)
     org = Organization.objects.create(name="OrgX", owner=admin)
-    OrganizationMembership.objects.create(organization=org, user=admin, role=OrganizationMembership.Role.ADMIN)
+    OrganizationMembership.objects.create(
+        organization=org, user=admin, role=OrganizationMembership.Role.ADMIN
+    )
     client.login(username="admin1", password=TEST_PASSWORD)
     resp = client.get(reverse("surveys:org_users", args=[org.id]))
     assert resp.status_code == 200
@@ -32,7 +39,9 @@ def test_non_admin_cannot_access_org_users(client):
 def test_survey_creator_can_manage_survey_users(client):
     creator = User.objects.create_user(username="creator1", password=TEST_PASSWORD)
     org = Organization.objects.create(name="OrgZ", owner=creator)
-    OrganizationMembership.objects.create(organization=org, user=creator, role=OrganizationMembership.Role.CREATOR)
+    OrganizationMembership.objects.create(
+        organization=org, user=creator, role=OrganizationMembership.Role.CREATOR
+    )
     survey = Survey.objects.create(owner=creator, organization=org, name="S", slug="s")
 
     client.login(username="creator1", password=TEST_PASSWORD)
@@ -42,9 +51,13 @@ def test_survey_creator_can_manage_survey_users(client):
 
     # Add a viewer
     viewer = User.objects.create_user(username="viewer1", password=TEST_PASSWORD)
-    resp = client.post(url, data={"action": "add", "user_id": viewer.id, "role": "viewer"})
+    resp = client.post(
+        url, data={"action": "add", "user_id": viewer.id, "role": "viewer"}
+    )
     assert resp.status_code in (302, 200)
-    assert SurveyMembership.objects.filter(survey=survey, user=viewer, role=SurveyMembership.Role.VIEWER).exists()
+    assert SurveyMembership.objects.filter(
+        survey=survey, user=viewer, role=SurveyMembership.Role.VIEWER
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -53,8 +66,12 @@ def test_viewer_cannot_manage_survey_users(client):
     viewer = User.objects.create_user(username="viewer2", password=TEST_PASSWORD)
     org = Organization.objects.create(name="OrgA", owner=owner)
     survey = Survey.objects.create(owner=owner, organization=org, name="S2", slug="s2")
-    SurveyMembership.objects.create(survey=survey, user=viewer, role=SurveyMembership.Role.VIEWER)
+    SurveyMembership.objects.create(
+        survey=survey, user=viewer, role=SurveyMembership.Role.VIEWER
+    )
     client.login(username="viewer2", password=TEST_PASSWORD)
     url = reverse("surveys:survey_users", args=[survey.slug])
-    resp = client.post(url, data={"action": "add", "user_id": owner.id, "role": "viewer"})
+    resp = client.post(
+        url, data={"action": "add", "user_id": owner.id, "role": "viewer"}
+    )
     assert resp.status_code == 403

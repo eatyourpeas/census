@@ -4,8 +4,9 @@ import math
 import re
 from typing import Tuple
 
-
-HEX_RE = re.compile(r"^#(?P<r>[0-9a-fA-F]{2})(?P<g>[0-9a-fA-F]{2})(?P<b>[0-9a-fA-F]{2})$")
+HEX_RE = re.compile(
+    r"^#(?P<r>[0-9a-fA-F]{2})(?P<g>[0-9a-fA-F]{2})(?P<b>[0-9a-fA-F]{2})$"
+)
 
 
 def _srgb_to_linear(c: float) -> float:
@@ -18,9 +19,9 @@ def _oklab_from_linear_rgb(r: float, g: float, b: float) -> Tuple[float, float, 
     m_ = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b
     s_ = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b
 
-    l_cbrt = l_ ** (1/3)
-    m = m_ ** (1/3)
-    s = s_ ** (1/3)
+    l_cbrt = l_ ** (1 / 3)
+    m = m_ ** (1 / 3)
+    s = s_ ** (1 / 3)
 
     L = 0.2104542553 * l_cbrt + 0.7936177850 * m - 0.0040720468 * s
     a = 1.9779984951 * l_cbrt - 2.4285922050 * m + 0.4505937099 * s

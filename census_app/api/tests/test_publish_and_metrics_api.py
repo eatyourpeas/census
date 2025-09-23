@@ -1,7 +1,13 @@
 import pytest
-from rest_framework.test import APIClient
-from census_app.surveys.models import Survey, SurveyMembership, QuestionGroup, SurveyResponse
 from django.utils import timezone
+from rest_framework.test import APIClient
+
+from census_app.surveys.models import (
+    QuestionGroup,
+    Survey,
+    SurveyMembership,
+    SurveyResponse,
+)
 
 
 @pytest.mark.django_db
@@ -12,7 +18,9 @@ def test_publish_settings_get_requires_view_permission(django_user_model):
     client.force_authenticate(viewer)
     survey = Survey.objects.create(owner=owner, name="S1", slug="s1")
     # Viewer has survey membership
-    SurveyMembership.objects.create(user=viewer, survey=survey, role=SurveyMembership.Role.VIEWER)
+    SurveyMembership.objects.create(
+        user=viewer, survey=survey, role=SurveyMembership.Role.VIEWER
+    )
     url = f"/api/surveys/{survey.id}/publish/"
     resp = client.get(url)
     assert resp.status_code == 200
@@ -26,15 +34,21 @@ def test_publish_settings_put_requires_edit_permission(django_user_model):
     client = APIClient()
     survey = Survey.objects.create(owner=owner, name="S1", slug="s1")
     # Grant viewer membership to viewer
-    SurveyMembership.objects.create(user=viewer, survey=survey, role=SurveyMembership.Role.VIEWER)
+    SurveyMembership.objects.create(
+        user=viewer, survey=survey, role=SurveyMembership.Role.VIEWER
+    )
     client.force_authenticate(viewer)
     url = f"/api/surveys/{survey.id}/publish/"
-    resp = client.put(url, {"status": "published", "visibility": "authenticated"}, format="json")
+    resp = client.put(
+        url, {"status": "published", "visibility": "authenticated"}, format="json"
+    )
     # Viewer cannot edit
     assert resp.status_code in (403, 401)
     # Owner can edit
     client.force_authenticate(owner)
-    resp2 = client.put(url, {"status": "published", "visibility": "authenticated"}, format="json")
+    resp2 = client.put(
+        url, {"status": "published", "visibility": "authenticated"}, format="json"
+    )
     assert resp2.status_code == 200
     assert resp2.data["status"] == "published"
 
@@ -47,8 +61,12 @@ def test_metrics_counts_and_permissions(django_user_model):
     outsider = django_user_model.objects.create_user(username="outsider3", password="x")
     client = APIClient()
     survey = Survey.objects.create(owner=owner, name="S1", slug="s1")
-    SurveyMembership.objects.create(user=creator, survey=survey, role=SurveyMembership.Role.CREATOR)
-    SurveyMembership.objects.create(user=viewer, survey=survey, role=SurveyMembership.Role.VIEWER)
+    SurveyMembership.objects.create(
+        user=creator, survey=survey, role=SurveyMembership.Role.CREATOR
+    )
+    SurveyMembership.objects.create(
+        user=viewer, survey=survey, role=SurveyMembership.Role.VIEWER
+    )
     # Seed some responses
     SurveyResponse.objects.create(survey=survey, answers={}, submitted_by=owner)
     SurveyResponse.objects.create(survey=survey, answers={}, submitted_by=creator)
@@ -85,10 +103,15 @@ def test_patient_data_ack_required_for_public_visibility(django_user_model):
     client.force_authenticate(owner)
     survey = Survey.objects.create(owner=owner, name="S1", slug="s1")
     # Add a patient details group to enforce the safeguard
-    QuestionGroup.objects.create(owner=owner, name="Patient details", schema={"template": "patient_details_encrypted", "fields": ["first_name"]})
+    QuestionGroup.objects.create(
+        owner=owner,
+        name="Patient details",
+        schema={"template": "patient_details_encrypted", "fields": ["first_name"]},
+    )
     survey.question_groups.add(QuestionGroup.objects.first())
     url = f"/api/surveys/{survey.id}/publish/"
-    resp = client.put(url, {"status": "published", "visibility": "public"}, format="json")
+    resp = client.put(
+        url, {"status": "published", "visibility": "public"}, format="json"
+    )
     assert resp.status_code == 400
     assert "no_patient_data_ack" in resp.data
-
