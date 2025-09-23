@@ -24,9 +24,20 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - id: setup-python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432; then
+              echo "Postgres is ready"; break;
+            fi
+            echo "Waiting for Postgres... ($i)"; sleep 2;
+          done
       - name: Cache Poetry virtualenvs
         uses: actions/cache@v4
         with:
