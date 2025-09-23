@@ -102,6 +102,10 @@
     {% include "components/icons/repeat.html" with classes="w-4 h-4" %}
     <span>{% trans "Create repeat from selection" %}</span>
   </button>
+  <span id="selection-toolbar" class="text-sm opacity-80 hidden">
+    <span id="selection-count">0</span> {% trans "selected" %}
+    <button type="button" id="clear-selection" class="btn btn-ghost btn-xs ml-2">{% trans "Clear" %}</button>
+  </span>
       {% endif %}
       <a class="btn btn-ghost btn-sm " href="/surveys/{{ survey.slug }}/dashboard/">{% trans "Back to dashboard" %}</a>
     </div>
@@ -203,13 +207,24 @@
       var selected = new Set();
       function refresh() {
         if (createBtn) createBtn.disabled = selected.size === 0;
+        var bar = document.getElementById('selection-toolbar');
+        var count = document.getElementById('selection-count');
+        if (bar && count) {
+          count.textContent = String(selected.size);
+          bar.classList.toggle('hidden', selected.size === 0);
+        }
       }
-      // Clicks on list items toggle selection (except when directly clicking the checkbox or navigation link)
+      // Clicks on list items toggle selection. Anchor clicks without modifier also toggle.
       root.addEventListener('click', function(e){
         var li = e.target.closest('li[data-gid]');
         if (!li) return;
-        // don't toggle on drag/delete, on forms, checkboxes, or links
-        if (e.target.closest('.drag-handle') || e.target.closest('form') || e.target.closest('.select-checkbox') || e.target.closest('a')) return;
+        // don't toggle on drag/delete, on forms, checkboxes
+        if (e.target.closest('.drag-handle') || e.target.closest('form') || e.target.closest('.select-checkbox')) return;
+        // If clicking the title link without ctrl/cmd/shift, toggle selection instead of navigation
+        var a = e.target.closest('a');
+        if (a && !(e.metaKey || e.ctrlKey || e.shiftKey)) {
+          e.preventDefault();
+        }
         var cb = li.querySelector('.select-checkbox');
         if (!cb) return;
         cb.checked = !cb.checked;
@@ -241,6 +256,26 @@
         if (inputIds) inputIds.value = Array.from(selected).join(',');
         if (modal && modal.showModal) modal.showModal();
       });
+      var clearBtn = document.getElementById('clear-selection');
+      if (clearBtn) clearBtn.addEventListener('click', function(){
+        root.querySelectorAll('li[data-gid]').forEach(function(li){
+          var cb = li.querySelector('.select-checkbox');
+          if (!cb) return;
+          cb.checked = false;
+          updateSelection(li, false);
+        });
+        selected.clear();
+        refresh();
+      });
+      // Initialize state in case some boxes are pre-checked by browser auto-fill
+      root.querySelectorAll('li[data-gid]').forEach(function(li){
+        var cb = li.querySelector('.select-checkbox');
+        if (cb && cb.checked) {
+          selected.add(li.dataset.gid);
+          updateSelection(li, true);
+        }
+      });
+      refresh();
     })();
   </script>
 {% endblock %}
