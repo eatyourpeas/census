@@ -379,6 +379,12 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     require_can_view(request.user, survey)
     total = survey.responses.count()
+    # Simple analytics
+    now = timezone.now()
+    start_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    last7 = now - timezone.timedelta(days=7)
+    today_count = survey.responses.filter(submitted_at__gte=start_today).count()
+    last7_count = survey.responses.filter(submitted_at__gte=last7).count()
     # Derived status
     is_live = survey.is_live()
     visible = survey.get_visibility_display() if hasattr(survey, "get_visibility_display") else "Authenticated"
@@ -399,7 +405,7 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
         "primary_hex": style.get("primary_color"),
         "font_css_url": style.get("font_css_url"),
     }
-    ctx = {"survey": survey, "total": total, "groups": groups, "is_live": is_live, "visible": visible}
+    ctx = {"survey": survey, "total": total, "groups": groups, "is_live": is_live, "visible": visible, "today_count": today_count, "last7_count": last7_count}
     if any(v for k, v in brand_overrides.items() if k != "primary_hex") or brand_overrides.get("primary_hex"):
         ctx["brand"] = {
             "title": brand_overrides.get("title") or getattr(settings, "BRAND_TITLE", "Census"),

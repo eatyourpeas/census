@@ -36,6 +36,18 @@
     <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/preview/">{% trans "Preview (read-only)" %}</a>
     <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/groups/">{% trans "Manage groups" %}</a>
   </div>
+  <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="stat bg-base-100 rounded-box shadow-sm">
+      <div class="stat-title">{% trans "Today" %}</div>
+      <div class="stat-value text-primary">{{ today_count }}</div>
+      <div class="stat-desc">{% trans "Submissions" %}</div>
+    </div>
+    <div class="stat bg-base-100 rounded-box shadow-sm">
+      <div class="stat-title">{% trans "Last 7 days" %}</div>
+      <div class="stat-value text-primary">{{ last7_count }}</div>
+      <div class="stat-desc">{% trans "Submissions" %}</div>
+    </div>
+  </div>
   <div class="mt-3 text-sm opacity-80 max-w-3xl">
     <p>{% blocktrans %}<strong>Groups</strong> are reusable sets of questions. You can mark one or more groups as a repeating entity (for example, <em>People</em> or <em>Visits</em>) directly on the Groups page, with optional one-level nesting.{% endblocktrans %}</p>
   </div>
