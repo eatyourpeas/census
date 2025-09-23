@@ -11,9 +11,9 @@ Prerequisites:
 
 ## Interactive documentation
 
-- Swagger UI: /api/docs
-- ReDoc: /api/redoc
-- OpenAPI JSON: /api/schema
+ [![Swagger UI](https://img.shields.io/badge/Swagger-UI-85EA2D?logo=swagger&logoColor=white)](/api/docs)
+ [![ReDoc](https://img.shields.io/badge/ReDoc-Docs-E6522C?logo=readthedocs&logoColor=white)](/api/redoc)
+ [![OpenAPI JSON](https://img.shields.io/badge/OpenAPI-JSON-6BA539?logo=openapiinitiative&logoColor=white)](/api/schema)
 
 Tip: In Swagger UI, paste your JWT into browser localStorage under the key `jwt` to auto-authorize requests.
 

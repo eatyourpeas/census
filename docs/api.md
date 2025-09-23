@@ -2,9 +2,12 @@
 
 Use the interactive documentation for the full, always-up-to-date list of endpoints and schemas:
 
-- Swagger UI: /api/docs
-- ReDoc: /api/redoc
-- OpenAPI JSON: /api/schema
+[![Swagger UI](https://img.shields.io/badge/Swagger-UI-85EA2D?logo=swagger&logoColor=white)](/api/docs)
+[![ReDoc](https://img.shields.io/badge/ReDoc-Docs-E6522C?logo=readthedocs&logoColor=white)](/api/redoc)
+[![OpenAPI JSON](https://img.shields.io/badge/OpenAPI-JSON-6BA539?logo=openapiinitiative&logoColor=white)](/api/schema)
+[![API Health](https://img.shields.io/badge/API-Health-0ea5e9?logo=heartbeat&logoColor=white)](/api/health)
+[![JWT Token](https://img.shields.io/badge/JWT-Token-1f2937?logo=jsonwebtokens&logoColor=white)](/api/token)
+[![JWT Refresh](https://img.shields.io/badge/JWT-Refresh-334155?logo=jsonwebtokens&logoColor=white)](/api/token/refresh)
 
 Notes:
 
