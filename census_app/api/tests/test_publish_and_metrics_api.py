@@ -1,7 +1,6 @@
 import pytest
-from django.urls import reverse
 from rest_framework.test import APIClient
-from census_app.surveys.models import Survey, Organization, OrganizationMembership, SurveyMembership, QuestionGroup, SurveyResponse
+from census_app.surveys.models import Survey, SurveyMembership, QuestionGroup, SurveyResponse
 from django.utils import timezone
 
 

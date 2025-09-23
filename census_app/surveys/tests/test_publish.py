@@ -1,6 +1,5 @@
 import pytest
 from django.urls import reverse
-from django.utils import timezone
 from census_app.surveys.models import Survey, QuestionGroup, SurveyAccessToken
 
 

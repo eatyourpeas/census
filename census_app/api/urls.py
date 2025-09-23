@@ -7,7 +7,6 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework.schemas import get_schema_view
 from rest_framework.permissions import AllowAny
-from django.views.generic import TemplateView
 
 router = DefaultRouter()
 router.register(r'surveys', views.SurveyViewSet, basename='survey')
