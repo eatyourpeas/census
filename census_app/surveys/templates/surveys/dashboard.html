@@ -26,9 +26,12 @@
   {% trans "Survey Dashboard" as bc_survey_dashboard %}
   {% include 'components/breadcrumbs.html' with crumb1_label=bc_surveys crumb1_href="/surveys/" crumb2_label=bc_survey_dashboard crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" %}
   <h2>{{ survey.name }}</h2>
-  <p>{% trans "Status" %}: <strong>{{ survey.status }}</strong> · {% trans "Visibility" %}: <strong>{{ visible }}</strong></p>
-  <p>{% trans "Window" %}: {{ survey.start_at|default:'—' }} → {{ survey.end_at|default:'—' }}</p>
-  <p>{% trans "Total responses" %}: <strong>{{ total }}</strong>{% if survey.max_responses %} / {{ survey.max_responses }}{% endif %}</p>
+  <div class="flex flex-wrap gap-2 items-center">
+    <span class="badge badge-primary badge-outline">{% trans "Status" %}: {{ survey.status }}</span>
+    <span class="badge badge-primary badge-outline">{% trans "Visibility" %}: {{ visible }}</span>
+    <span class="badge badge-primary badge-outline">{% trans "Window" %}: {{ survey.start_at|default:'—' }} → {{ survey.end_at|default:'—' }}</span>
+    <span class="badge badge-primary badge-outline">{% trans "Total responses" %}: {{ total }}{% if survey.max_responses %} / {{ survey.max_responses }}{% endif %}</span>
+  </div>
   <div class="flex gap-2">
     <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/preview/">{% trans "Preview (read-only)" %}</a>
     <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/groups/">{% trans "Manage groups" %}</a>
