@@ -2,33 +2,41 @@
 {% load static %}
 {% block title %}Your Surveys - Census{% endblock %}
 {% block content %}
-<div class="prose">
+<div class="prose max-w-none">
+  {% include 'components/breadcrumbs.html' with crumb1_label='Surveys' crumb1_href='/surveys/' %}
   <h1 class="inline-flex items-center gap-2">
-    {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
-    <span>Your Surveys</span>
+    {% include "components/icons/clipboard.html" with classes="w-6 h-6 text-primary" %}
+    <span class="text-primary">Your Surveys</span>
   </h1>
   {% if user.is_authenticated %}
     <p><a class="btn btn-primary not-prose" href="/surveys/create/">Create survey</a></p>
   {% endif %}
   {% if surveys %}
-  <ul class="not-prose list bg-base-100 rounded-box shadow-md">
+  <ul class="not-prose w-full flex flex-col gap-3">
       {% for s in surveys %}
-  <li class="list-row w-full p-4 sm:p-5 flex flex-col gap-3">
-          <div class="flex items-center gap-4">
-            <div class="flex-shrink-0 inline-flex items-center justify-center">
-            {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-8 h-8' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
+        <li class="w-full">
+          <div class="w-full bg-base-100 rounded-lg border border-base-300 p-3 sm:p-4 hover:border-primary transition-colors">
+            <div class="flex items-center gap-4 min-w-0">
+              <div class="flex-shrink-0 inline-flex items-center justify-center">
+                {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-8 h-8' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
+              </div>
+              <div class="min-w-0 w-full">
+                <div class="flex items-center gap-2 min-w-0">
+                  <div class="font-medium leading-tight truncate">{{ s.name }}</div>
+                  <span class="badge badge-primary badge-outline whitespace-nowrap">{{ s.get_status_display|default:s.status }}</span>
+                </div>
+                {% if s.description %}
+                  <div class="text-sm opacity-70 truncate">{{ s.description }}</div>
+                {% endif %}
+              </div>
             </div>
-            <div class="min-w-0">
-              <div class="font-medium leading-tight">{{ s.name }}</div>
-              <div class="text-xs uppercase font-semibold opacity-60 truncate">{{ s.description }}</div>
-            </div>
-          </div>
-          <div class="-mx-1 overflow-x-auto">
-            <div class="px-1 min-w-max flex items-center gap-2">
-              <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/dashboard/">Dashboard</a>
-              <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/groups/">Groups</a>
-              <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/preview/">Preview</a>
-              <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/bulk-upload/">Import</a>
+            <div class="-mx-1 overflow-x-auto mt-3">
+              <div class="px-1 min-w-max flex items-center gap-2">
+                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/dashboard/">Dashboard</a>
+                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/groups/">Groups</a>
+                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/preview/">Preview</a>
+                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/bulk-upload/">Import</a>
+              </div>
             </div>
           </div>
         </li>

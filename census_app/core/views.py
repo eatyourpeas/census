@@ -74,6 +74,12 @@ def profile(request):
             sb = None
     # Lightweight stats for badges
     user = request.user
+    # Pick a primary organisation if present: prefer one the user owns; else first membership
+    primary_owned_org = Organization.objects.filter(owner=user).first()
+    first_membership = (
+        OrganizationMembership.objects.filter(user=user).select_related("organization").first()
+    )
+    org = primary_owned_org or (first_membership.organization if first_membership else None)
     stats = {
         "is_superuser": getattr(user, "is_superuser", False),
         "is_staff": getattr(user, "is_staff", False),
@@ -87,7 +93,7 @@ def profile(request):
         "responses_submitted": SurveyResponse.objects.filter(submitted_by=user).count(),
         "tokens_created": SurveyAccessToken.objects.filter(created_by=user).count(),
     }
-    return render(request, "core/profile.html", {"sb": sb, "stats": stats})
+    return render(request, "core/profile.html", {"sb": sb, "stats": stats, "org": org})
 
 
 def signup(request):
