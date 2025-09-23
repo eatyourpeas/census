@@ -4,6 +4,10 @@ import subprocess
 from django.contrib.auth.models import AnonymousUser
 from census_app.surveys.models import OrganizationMembership, SurveyMembership
 try:
+    from importlib import metadata as _importlib_metadata  # Python 3.8+
+except Exception:  # pragma: no cover
+    _importlib_metadata = None
+try:
     from census_app.core.models import SiteBranding 
 except Exception:  # pragma: no cover - tolerate missing model during migrations
     SiteBranding = None
@@ -16,14 +20,27 @@ def _get_git_info():
     global _GIT_CACHE
     if _GIT_CACHE is not None:
         return _GIT_CACHE
-    info = {"commit": None, "commit_date": None}
+    info = {"commit": None, "commit_date": None, "branch": None}
     # Prefer environment variables (for Docker/CI)
-    env_sha = os.environ.get("GIT_COMMIT") or os.environ.get("GIT_SHA") or os.environ.get("SOURCE_VERSION")
+    env_sha = (
+        os.environ.get("GIT_COMMIT")
+        or os.environ.get("GIT_SHA")
+        or os.environ.get("GITHUB_SHA")
+        or os.environ.get("SOURCE_VERSION")
+    )
     env_time = os.environ.get("BUILD_TIMESTAMP")
+    env_branch = (
+        os.environ.get("GIT_BRANCH")
+        or os.environ.get("BRANCH_NAME")
+        or os.environ.get("SOURCE_BRANCH")
+        or os.environ.get("GITHUB_REF_NAME")
+    )
     if env_sha:
         info["commit"] = env_sha[:7]
     if env_time:
         info["commit_date"] = env_time
+    if env_branch:
+        info["branch"] = env_branch
     # Attempt to read from local git repo if available
     if info["commit"] is None:
         try:
@@ -35,6 +52,13 @@ def _get_git_info():
         try:
             commit_date = subprocess.check_output(["git", "log", "-1", "--format=%cI"], stderr=subprocess.DEVNULL).decode().strip()
             info["commit_date"] = commit_date or None
+        except Exception:
+            pass
+    if info.get("branch") is None:
+        try:
+            branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
+            # When in detached HEAD (e.g., CI), this may return 'HEAD'; treat that as None
+            info["branch"] = branch if branch and branch != "HEAD" else None
         except Exception:
             pass
     _GIT_CACHE = info
@@ -122,10 +146,18 @@ def branding(request):
 
     # Build/version metadata
     git = _get_git_info()
+    # Resolve version: env -> settings -> installed package metadata -> 'dev'
+    version_val = os.environ.get("APP_VERSION") or getattr(settings, "APP_VERSION", None)
+    if not version_val and _importlib_metadata is not None:
+        try:
+            version_val = _importlib_metadata.version("census")
+        except Exception:
+            version_val = None
     build = {
-        "version": os.environ.get("APP_VERSION") or getattr(settings, "APP_VERSION", None) or "dev",
+        "version": version_val or "dev",
         "timestamp": os.environ.get("BUILD_TIMESTAMP") or getattr(settings, "BUILD_TIMESTAMP", None),
         "commit": git.get("commit"),
+        "branch": git.get("branch"),
         "commit_date": git.get("commit_date"),
     }
 

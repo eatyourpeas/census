@@ -10,6 +10,8 @@ All notable changes to this project are documented here. This file focuses on de
 - CI: Publish pytest JUnit XML report and upload as artifact.
 - CI: Upload Docker service logs (Postgres, web) on failure to speed up triage.
 - Docs UI: Add API docs links and CSP-safe badges (Swagger, ReDoc, OpenAPI schema) on home and docs pages.
+- UI: Footer now shows Version, Branch, Commit, and Build time (sourced from environment where available: APP_VERSION, GITHUB_REF_NAME/BRANCH_NAME, GITHUB_SHA, BUILD_TIMESTAMP; falls back to git on host).
+- Auth: Reordered AUTHENTICATION_BACKENDS so ModelBackend runs before AxesStandaloneBackend. This avoids Axes raising AxesBackendRequestParameterRequired during tests that call client.login (no request object). Axes protections remain active via middleware and for request-aware authenticate calls.
 - OpenAPI: Fixed missing dependencies (`inflection`, `uritemplate`); verified /api/schema.
 - API Docs: Embedded Swagger UI and ReDoc pages served under /api/docs and /api/redoc.
 - Security: Tight CSP; docs pages are CSP-exempt where required; no inline JS elsewhere.

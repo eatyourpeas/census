@@ -99,8 +99,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Authentication backends: include AxesStandaloneBackend (renamed in django-axes >= 5.0)
 AUTHENTICATION_BACKENDS = [
-    "axes.backends.AxesStandaloneBackend",
+    # Prefer the default ModelBackend first so authenticate() can work without a request
+    # in test helpers like client.login; Axes middleware and backend will still enforce
+    # lockouts for request-aware flows.
     "django.contrib.auth.backends.ModelBackend",
+    "axes.backends.AxesStandaloneBackend",
 ]
 
 LANGUAGE_CODE = "en-gb"
