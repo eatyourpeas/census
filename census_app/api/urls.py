@@ -6,6 +6,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from rest_framework.schemas import get_schema_view
+from rest_framework.permissions import AllowAny
 from django.views.generic import TemplateView
 
 router = DefaultRouter()
@@ -23,7 +24,8 @@ urlpatterns = [
     path('schema', get_schema_view(
         title="Census API",
         description="OpenAPI schema for the Census API",
-        version="1.0.0"
+        version="1.0.0",
+        permission_classes=[AllowAny],
     ), name='openapi-schema'),
     # Embedded Swagger UI (CSP exempt)
     path('docs', views.swagger_ui, name='swagger-ui'),
