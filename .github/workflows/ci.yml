@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/census
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/census
       DJANGO_SETTINGS_MODULE: census_app.settings
       PYTHONWARNINGS: default
     services:
@@ -19,6 +19,8 @@ jobs:
           POSTGRES_DB: census
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 10s
@@ -36,7 +38,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
           for i in {1..60}; do
-            if pg_isready -h postgres -p 5432 -U postgres; then
+            if pg_isready -h localhost -p 5432 -U postgres; then
               echo "Postgres is ready"; break;
             fi
             echo "Waiting for Postgres... ($i)"; sleep 2;
