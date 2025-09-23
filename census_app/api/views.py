@@ -11,6 +11,8 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 import secrets
 from typing import Any
+from csp.decorators import csp_exempt
+from django.shortcuts import render
 
 
 User = get_user_model()
@@ -192,6 +194,26 @@ class SurveyViewSet(viewsets.ModelViewSet):
             survey.unlisted_key = secrets.token_urlsafe(24)
         survey.save()
         return Response(SurveyPublishSettingsSerializer(instance=survey).data)
+
+    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated, OrgOwnerOrAdminPermission], url_path="metrics/responses")
+    def responses_metrics(self, request, pk=None):
+        """Return counts of completed responses for this survey.
+
+        SAFE method follows can_view_survey rules via OrgOwnerOrAdminPermission.
+        """
+        survey = self.get_object()
+        now = timezone.now()
+        start_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        total = survey.responses.count()
+        today = survey.responses.filter(submitted_at__gte=start_today).count()
+        last7 = survey.responses.filter(submitted_at__gte=now - timezone.timedelta(days=7)).count()
+        last14 = survey.responses.filter(submitted_at__gte=now - timezone.timedelta(days=14)).count()
+        return Response({
+            "total": total,
+            "today": today,
+            "last7": last7,
+            "last14": last14,
+        })
 
     @action(detail=True, methods=["get", "post"], permission_classes=[permissions.IsAuthenticated, OrgOwnerOrAdminPermission])
     def tokens(self, request, pk=None):
@@ -481,3 +503,12 @@ class ScopedUserViewSet(viewsets.ViewSet):
 @permission_classes([permissions.AllowAny])
 def healthcheck(request):
     return Response({"status": "ok"})
+
+
+@csp_exempt
+def swagger_ui(request):
+    """Render an embedded Swagger UI that points at the API schema endpoint.
+
+    CSP is exempted on this route to allow loading Swagger UI assets.
+    """
+    return render(request, "api/swagger.html", {})

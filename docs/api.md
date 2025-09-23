@@ -19,7 +19,20 @@ Base path: `/api/`
 - `PATCH /surveys/{id}/` — update a survey (owner or org ADMIN)
 - `DELETE /surveys/{id}/` — delete a survey (owner or org ADMIN)
 - `POST /surveys/{id}/seed/` — bulk create questions (owner or org ADMIN)
+- `GET /surveys/{id}/publish/` — get publish settings (owner/org ADMIN/creator/viewer with view permission)
+- `PUT /surveys/{id}/publish/` — update publish settings (owner/org ADMIN/creator)
+- `GET /surveys/{id}/metrics/responses/` — response counts (total/today/last7/last14) for admins/creators/viewers with view permission
 - `GET /users/` — admin-only read-only list
+
+### Invite tokens
+
+- `GET /surveys/{id}/tokens/` — list up to 500 most recent invite tokens (owner/org ADMIN/creator)
+- `POST /surveys/{id}/tokens/` — create up to 1000 tokens with optional expiry/note (owner/org ADMIN/creator)
+
+### OpenAPI and Swagger UI
+
+- `GET /api/schema` — OpenAPI schema (JSON)
+- `GET /api/docs` — Embedded Swagger UI (CSP-exempt). Paste a JWT into localStorage key `jwt` to authorize requests automatically.
 
 ## Permissions matrix (summary)
 
@@ -31,7 +44,11 @@ Base path: `/api/`
   - Retrieve/Update/Delete: allowed for surveys in their organization(s)
 - Org CREATOR/VIEWER
   - List: sees only own surveys
-  - Retrieve/Update/Delete: not allowed for others' surveys
+  - Retrieve: allowed for surveys they’re a member of
+  - Update/Delete: only creators can update; viewers are read-only
+  - Publish GET: allowed for creators and viewers (view permission)
+  - Publish PUT: allowed for creators (and owner/org ADMIN)
+  - Metrics GET: allowed for creators and viewers (view permission)
 - Anonymous
   - List: empty array
   - Retrieve/Update/Delete: not allowed
