@@ -33,6 +33,44 @@ Secret scanners (e.g. GitGuardian, GitHub Secret Scanning, ggshield) run on this
 - Python: ruff/black-compatible; follow existing patterns.
 - Frontend: Tailwind + DaisyUI; keep components consistent with the current design.
 
+### Linting & formatting
+
+We use three tools for Python code quality:
+
+- Ruff: fast linter (the primary style/lint engine)
+- Black: code formatter (opinionated, no config)
+- isort: import sorting (configured to match Black)
+
+Local usage (poetry-managed):
+
+```sh
+# Lint
+poetry run ruff check .
+
+# Format (apply changes)
+poetry run black .
+poetry run isort --profile black .
+
+# Verify (no changes should be needed)
+poetry run black --check .
+poetry run isort --profile black --check-only .
+```
+
+Pre-commit (optional but recommended): install hooks once, then they run automatically on commits.
+
+```sh
+pip install pre-commit
+pre-commit install
+# To run on entire repo
+pre-commit run --all-files
+```
+
+CI runs the following in the lint phase (see `.github/workflows/ci.yml`):
+
+- `ruff check .`
+- `black --check .`
+- `isort --profile black --check-only .`
+
 ## Docs
 
 - Update `docs/` when behavior or APIs change.
