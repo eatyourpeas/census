@@ -385,6 +385,29 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
     last7 = now - timezone.timedelta(days=7)
     today_count = survey.responses.filter(submitted_at__gte=start_today).count()
     last7_count = survey.responses.filter(submitted_at__gte=last7).count()
+    # Sparkline data: last 14 full days (oldest -> newest)
+    from collections import OrderedDict
+    start_14 = (start_today - timezone.timedelta(days=13))
+    day_counts = OrderedDict()
+    for i in range(14):
+        day = start_14 + timezone.timedelta(days=i)
+        next_day = day + timezone.timedelta(days=1)
+        day_counts[day.date().isoformat()] = survey.responses.filter(submitted_at__gte=day, submitted_at__lt=next_day).count()
+    # Build sparkline polyline points (0..100 width, 0..24 height)
+    values = list(day_counts.values())
+    spark_points = ""
+    if values:
+        max_v = max(values) or 1
+        n = len(values)
+        width = 100.0
+        height = 24.0
+        dx = width / (n - 1) if n > 1 else width
+        pts = []
+        for i, v in enumerate(values):
+            x = dx * i
+            y = height - (float(v) / float(max_v)) * height
+            pts.append(f"{x:.1f},{y:.1f}")
+        spark_points = " ".join(pts)
     # Derived status
     is_live = survey.is_live()
     visible = survey.get_visibility_display() if hasattr(survey, "get_visibility_display") else "Authenticated"
@@ -405,7 +428,7 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
         "primary_hex": style.get("primary_color"),
         "font_css_url": style.get("font_css_url"),
     }
-    ctx = {"survey": survey, "total": total, "groups": groups, "is_live": is_live, "visible": visible, "today_count": today_count, "last7_count": last7_count}
+    ctx = {"survey": survey, "total": total, "groups": groups, "is_live": is_live, "visible": visible, "today_count": today_count, "last7_count": last7_count, "day_counts": list(day_counts.values()), "spark_points": spark_points}
     if any(v for k, v in brand_overrides.items() if k != "primary_hex") or brand_overrides.get("primary_hex"):
         ctx["brand"] = {
             "title": brand_overrides.get("title") or getattr(settings, "BRAND_TITLE", "Census"),

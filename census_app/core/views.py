@@ -6,7 +6,15 @@ from pathlib import Path
 import markdown as mdlib
 from django.contrib import messages
 from django.db import transaction
-from census_app.surveys.models import Organization, OrganizationMembership
+from census_app.surveys.models import (
+    Organization,
+    OrganizationMembership,
+    Survey,
+    SurveyMembership,
+    QuestionGroup,
+    SurveyResponse,
+    SurveyAccessToken,
+)
 from .forms import SignupForm
 try:
     from .models import SiteBranding
@@ -64,7 +72,22 @@ def profile(request):
             sb = SiteBranding.objects.first()
         except Exception:
             sb = None
-    return render(request, "core/profile.html", {"sb": sb})
+    # Lightweight stats for badges
+    user = request.user
+    stats = {
+        "is_superuser": getattr(user, "is_superuser", False),
+        "is_staff": getattr(user, "is_staff", False),
+        "orgs_owned": Organization.objects.filter(owner=user).count(),
+        "org_admin_count": OrganizationMembership.objects.filter(user=user, role=OrganizationMembership.Role.ADMIN).count(),
+        "org_memberships": OrganizationMembership.objects.filter(user=user).count(),
+        "surveys_owned": Survey.objects.filter(owner=user).count(),
+        "survey_creator_count": SurveyMembership.objects.filter(user=user, role=SurveyMembership.Role.CREATOR).count(),
+        "survey_viewer_count": SurveyMembership.objects.filter(user=user, role=SurveyMembership.Role.VIEWER).count(),
+        "groups_owned": QuestionGroup.objects.filter(owner=user).count(),
+        "responses_submitted": SurveyResponse.objects.filter(submitted_by=user).count(),
+        "tokens_created": SurveyAccessToken.objects.filter(created_by=user).count(),
+    }
+    return render(request, "core/profile.html", {"sb": sb, "stats": stats})
 
 
 def signup(request):
@@ -99,6 +122,7 @@ DOC_PAGES = {
     "branding-and-theme-settings": "branding-and-theme-settings.md",
     "themes": "themes.md",
     "surveys": "surveys.md",
+    "publish-and-collection": "publish-and-collection.md",
     "user-management": "user-management.md",
     "collections": "collections.md",
     "groups-view": "groups-view.md",

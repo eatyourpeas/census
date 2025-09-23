@@ -1,5 +1,15 @@
 {% extends 'base.html' %}
 {% block title %}Profile - Census{% endblock %}
+{% block head_theme_overrides %}
+  <style>
+    /* Improve badge text visibility within typography (.prose) on this page */
+    .prose .badge { color: var(--bc); }
+    .prose .badge.badge-primary { color: var(--pc); }
+    .prose .badge.badge-secondary { color: var(--sc); }
+    .prose .badge.badge-accent { color: var(--ac); }
+    .prose .badge.badge-outline { color: var(--bc); }
+  </style>
+{% endblock %}
 {% block content %}
 <div class="prose">
   <h1>Your Profile</h1>
@@ -7,6 +17,46 @@
 </div>
 
 <div class="mt-6 max-w-2xl">
+  <div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+      <h2 class="card-title">Your badges</h2>
+      <div class="flex flex-wrap gap-2 items-center">
+        {% if stats.is_superuser %}
+          <span class="badge badge-primary">Superuser</span>
+        {% endif %}
+        {% if stats.is_staff and not stats.is_superuser %}
+          <span class="badge badge-secondary">Staff</span>
+        {% endif %}
+        {% if stats.orgs_owned %}
+          <span class="badge badge-outline">Owns {{ stats.orgs_owned }} org{{ stats.orgs_owned|pluralize }}</span>
+        {% endif %}
+        {% if stats.org_admin_count %}
+          <span class="badge badge-accent">Org admin × {{ stats.org_admin_count }}</span>
+        {% endif %}
+        {% if stats.org_memberships %}
+          <span class="badge badge-ghost">Member of {{ stats.org_memberships }} org{{ stats.org_memberships|pluralize }}</span>
+        {% endif %}
+        {% if stats.surveys_owned %}
+          <span class="badge badge-neutral">Owns {{ stats.surveys_owned }} survey{{ stats.surveys_owned|pluralize }}</span>
+        {% endif %}
+        {% if stats.survey_creator_count %}
+          <span class="badge badge-info">Creator on {{ stats.survey_creator_count }} survey{{ stats.survey_creator_count|pluralize }}</span>
+        {% endif %}
+        {% if stats.survey_viewer_count %}
+          <span class="badge">Viewer on {{ stats.survey_viewer_count }} survey{{ stats.survey_viewer_count|pluralize }}</span>
+        {% endif %}
+        {% if stats.groups_owned %}
+          <span class="badge badge-success">{{ stats.groups_owned }} group{{ stats.groups_owned|pluralize }} authored</span>
+        {% endif %}
+        {% if stats.responses_submitted %}
+          <span class="badge badge-warning">{{ stats.responses_submitted }} response{{ stats.responses_submitted|pluralize }} submitted</span>
+        {% endif %}
+        {% if stats.tokens_created %}
+          <span class="badge badge-error">{{ stats.tokens_created }} invite token{{ stats.tokens_created|pluralize }} created</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
   <div class="card bg-base-100 shadow mb-6">
     <div class="card-body">
       <h2 class="card-title">Appearance</h2>

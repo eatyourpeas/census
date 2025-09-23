@@ -3,7 +3,10 @@
 {% block title %}{% trans "Invite Tokens" %} - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose max-w-3xl">
-  <h2>{% trans "Invite tokens" %}</h2>
+  <h2 class="flex items-center gap-3">
+    <span>{% trans "Invite tokens" %}</span>
+    <a class="link link-primary text-sm" href="{% url 'core:docs_page' slug='publish-and-collection' %}">{% trans "Learn more" %}</a>
+  </h2>
   <form method="post" class="grid md:grid-cols-3 gap-3">
     {% csrf_token %}
     <div>

@@ -26,7 +26,7 @@
   {% trans "Survey Dashboard" as bc_survey_dashboard %}
   {% include 'components/breadcrumbs.html' with crumb1_label=bc_surveys crumb1_href="/surveys/" crumb2_label=bc_survey_dashboard crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" %}
   <h2>{{ survey.name }}</h2>
-  <div class="flex flex-wrap gap-2 items-center">
+  <div class="flex flex-wrap gap-2 items-center mb-2">
     <span class="badge badge-primary badge-outline">{% trans "Status" %}: {{ survey.status }}</span>
     <span class="badge badge-primary badge-outline">{% trans "Visibility" %}: {{ visible }}</span>
     <span class="badge badge-primary badge-outline">{% trans "Window" %}: {{ survey.start_at|default:'—' }} → {{ survey.end_at|default:'—' }}</span>
@@ -46,6 +46,18 @@
       <div class="stat-title">{% trans "Last 7 days" %}</div>
       <div class="stat-value text-primary">{{ last7_count }}</div>
       <div class="stat-desc">{% trans "Submissions" %}</div>
+    </div>
+    <div class="stat bg-base-100 rounded-box shadow-sm col-span-2">
+      <div class="stat-title">{% trans "Last 14 days" %}</div>
+      <div class="stat-desc">
+        {% if spark_points %}
+          <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none" aria-label="Sparkline of last 14 days">
+            <polyline points="{{ spark_points }}" fill="none" stroke="currentColor" stroke-width="2" class="text-primary/80" />
+          </svg>
+        {% else %}
+          <div class="opacity-60">{% trans "No submissions yet" %}</div>
+        {% endif %}
+      </div>
     </div>
   </div>
   <div class="mt-3 text-sm opacity-80 max-w-3xl">
@@ -94,11 +106,17 @@
   </details>
 
   <details class="mb-6">
-  <summary class="cursor-pointer select-none text-lg font-semibold">{% trans "Publish settings" %}</summary>
+  <summary class="cursor-pointer select-none text-lg font-semibold">{% trans "Publish settings" %}
+    <a class="link link-primary text-sm ml-2 align-middle" href="{% url 'core:docs_page' slug='publish-and-collection' %}">{% trans "Learn more" %}</a>
+  </summary>
     <form class="mt-3 grid md:grid-cols-3 gap-3" method="post" action="/surveys/{{ survey.slug }}/dashboard/publish">
       {% csrf_token %}
       <div>
-        <label class="label">{% trans "Status" %}</label>
+        <label class="label flex items-center gap-2">{% trans "Status" %}
+          <a class="tooltip tooltip-right" data-tip="{% trans 'Draft: build only · Published: accept submissions · Closed: stop submissions' %}" href="{% url 'core:docs_page' slug='publish-and-collection' %}">
+            <span class="link link-hover text-sm">{% trans "What’s this?" %}</span>
+          </a>
+        </label>
         <select class="select select-bordered w-full" name="status">
           <option value="draft" {% if survey.status == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
           <option value="published" {% if survey.status == 'published' %}selected{% endif %}>{% trans "Published" %}</option>
@@ -106,7 +124,11 @@
         </select>
       </div>
       <div>
-        <label class="label">{% trans "Visibility" %}</label>
+        <label class="label flex items-center gap-2">{% trans "Visibility" %}
+          <a class="tooltip tooltip-right" data-tip="{% trans 'Authenticated: login required · Public: open link · Unlisted: secret link · Invite token: one-time codes' %}" href="{% url 'core:docs_page' slug='publish-and-collection' %}">
+            <span class="link link-hover text-sm">{% trans "What’s this?" %}</span>
+          </a>
+        </label>
         <select class="select select-bordered w-full" name="visibility">
           <option value="authenticated" {% if survey.visibility == 'authenticated' %}selected{% endif %}>{% trans "Authenticated" %}</option>
           <option value="public" {% if survey.visibility == 'public' %}selected{% endif %}>{% trans "Public" %}</option>

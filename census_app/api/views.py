@@ -3,10 +3,14 @@ from rest_framework import viewsets, permissions, serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from census_app.surveys.models import Survey
+from census_app.surveys.models import Survey, SurveyAccessToken
 from census_app.surveys.models import SurveyQuestion, QuestionGroup, OrganizationMembership, SurveyMembership, Organization, AuditLog
 from rest_framework.decorators import action
 from census_app.surveys.permissions import can_view_survey, can_edit_survey
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+import secrets
+from typing import Any
 
 
 User = get_user_model()
@@ -16,6 +20,34 @@ class SurveySerializer(serializers.ModelSerializer):
     class Meta:
         model = Survey
         fields = ["id", "name", "slug", "description", "start_at", "end_at"]
+
+
+class SurveyPublishSettingsSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=Survey.Status.choices)
+    visibility = serializers.ChoiceField(choices=Survey.Visibility.choices)
+    start_at = serializers.DateTimeField(allow_null=True, required=False)
+    end_at = serializers.DateTimeField(allow_null=True, required=False)
+    max_responses = serializers.IntegerField(allow_null=True, required=False, min_value=1)
+    captcha_required = serializers.BooleanField(required=False)
+    no_patient_data_ack = serializers.BooleanField(required=False)
+
+    def to_representation(self, instance: Survey) -> dict[str, Any]:
+        data = {
+            "status": instance.status,
+            "visibility": instance.visibility,
+            "start_at": instance.start_at,
+            "end_at": instance.end_at,
+            "max_responses": instance.max_responses,
+            "captcha_required": instance.captcha_required,
+            "no_patient_data_ack": instance.no_patient_data_ack,
+            "published_at": instance.published_at,
+        }
+        # Helpful links
+        if instance.visibility == Survey.Visibility.PUBLIC:
+            data["public_link"] = f"/surveys/{instance.slug}/take/"
+        if instance.visibility == Survey.Visibility.UNLISTED and instance.unlisted_key:
+            data["unlisted_link"] = f"/surveys/{instance.slug}/take/unlisted/{instance.unlisted_key}/"
+        return data
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -116,6 +148,98 @@ class SurveyViewSet(viewsets.ModelViewSet):
             import base64
             resp.data["one_time_key_b64"] = base64.b64encode(key).decode("ascii")
         return resp
+
+    @action(detail=True, methods=["get", "put"], permission_classes=[permissions.IsAuthenticated, OrgOwnerOrAdminPermission], url_path="publish")
+    def publish_settings(self, request, pk=None):
+        """GET/PUT publish settings with SSR-equivalent validation and safeguards."""
+        survey = self.get_object()
+        ser = SurveyPublishSettingsSerializer(instance=survey)
+        if request.method.lower() == "get":
+            return Response(ser.data)
+        # PUT
+        ser = SurveyPublishSettingsSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        # Extract values or keep existing
+        status = data.get("status", survey.status)
+        visibility = data.get("visibility", survey.visibility)
+        start_at = data.get("start_at", survey.start_at)
+        end_at = data.get("end_at", survey.end_at)
+        max_responses = data.get("max_responses", survey.max_responses)
+        captcha_required = data.get("captcha_required", survey.captcha_required)
+        no_patient_data_ack = data.get("no_patient_data_ack", survey.no_patient_data_ack)
+
+        # Enforce patient-data + non-auth visibility disclaimer
+        from census_app.surveys.views import _survey_collects_patient_data
+        collects_patient = _survey_collects_patient_data(survey)
+        non_auth_vis = {Survey.Visibility.PUBLIC, Survey.Visibility.UNLISTED, Survey.Visibility.TOKEN}
+        if visibility in non_auth_vis and collects_patient and not no_patient_data_ack and visibility != Survey.Visibility.AUTHENTICATED:
+            raise serializers.ValidationError({
+                "no_patient_data_ack": "To use public, unlisted, or tokenized visibility, confirm that no patient data is collected.",
+            })
+
+        prev_status = survey.status
+        survey.status = status
+        survey.visibility = visibility
+        survey.start_at = start_at
+        survey.end_at = end_at
+        survey.max_responses = max_responses
+        survey.captcha_required = captcha_required
+        survey.no_patient_data_ack = no_patient_data_ack
+        if prev_status != Survey.Status.PUBLISHED and status == Survey.Status.PUBLISHED and not survey.published_at:
+            survey.published_at = timezone.now()
+        if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
+            survey.unlisted_key = secrets.token_urlsafe(24)
+        survey.save()
+        return Response(SurveyPublishSettingsSerializer(instance=survey).data)
+
+    @action(detail=True, methods=["get", "post"], permission_classes=[permissions.IsAuthenticated, OrgOwnerOrAdminPermission])
+    def tokens(self, request, pk=None):
+        """List or create invite tokens for a survey."""
+        survey = self.get_object()
+        if request.method.lower() == "get":
+            tokens = survey.access_tokens.order_by("-created_at")[:500]
+            data = [
+                {
+                    "token": t.token,
+                    "created_at": t.created_at,
+                    "expires_at": t.expires_at,
+                    "used_at": t.used_at,
+                    "used_by": t.used_by_id,
+                    "note": t.note,
+                }
+                for t in tokens
+            ]
+            return Response({"items": data, "count": len(data)})
+        # POST create
+        count_raw = request.data.get("count", 0)
+        try:
+            count = int(count_raw)
+        except Exception:
+            count = 0
+        count = max(0, min(count, 1000))
+        note = (request.data.get("note") or "").strip()
+        expires_raw = request.data.get("expires_at")
+        expires_at = None
+        if expires_raw:
+            expires_at = parse_datetime(expires_raw) if isinstance(expires_raw, str) else expires_raw
+        created = []
+        for _ in range(count):
+            t = SurveyAccessToken(
+                survey=survey,
+                token=secrets.token_urlsafe(24),
+                created_by=request.user,
+                expires_at=expires_at,
+                note=note,
+            )
+            t.save()
+            created.append({
+                "token": t.token,
+                "created_at": t.created_at,
+                "expires_at": t.expires_at,
+                "note": t.note,
+            })
+        return Response({"created": len(created), "items": created})
 
 
 class OrganizationMembershipSerializer(serializers.ModelSerializer):
