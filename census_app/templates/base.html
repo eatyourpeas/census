@@ -120,6 +120,8 @@
               {% include "components/icons/github.html" with classes="w-4 h-4" %}
               <span class="underline">GitHub</span>
            </a>
+       <span>•</span>
+       <a href="{% url 'core:docs_page' slug='releases' %}" class="underline">Releases</a>
            <span>•</span>
            <span>Version: {{ build.version }}</span>
           {% if build.commit %}
