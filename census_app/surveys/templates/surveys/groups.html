@@ -21,21 +21,21 @@
 {% endblock %}
 {% block title %}{% trans "Groups" %} - {{ survey.name }}{% endblock %}
 {% block content %}
-<div class="prose">
+<div class="prose max-w-none">
   {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Groups" %}
-  <h1 class="inline-flex items-center gap-2">
-    {% include "components/icons/documents.html" with classes="w-6 h-6 " %}
-  <span class="text-primary">{% blocktrans %}Groups for {{ survey }}{% endblocktrans %}</span>
+  <h1 class="inline-flex items-center gap-2 w-full">
+    {% include "components/icons/documents.html" with classes="w-7 h-7 text-primary" %}
+    <span class="text-primary">{% blocktrans %}Question Groups for {{ survey }}{% endblocktrans %}</span>
   </h1>
-  <p class="mt-2 text-sm opacity-80">{% blocktrans %}Groups are reusable sets of questions. Arrange them here to control the order in which participants see question sets. You can also mark a set of groups as a repeating entity (e.g. People or Visits) directly here—no separate collections screen required.{% endblocktrans %}</p>
+  <p class="mt-2 text-sm opacity-80 w-full">{% blocktrans %}Question Groups are reusable sets of questions. Arrange them here to control the order in which participants see question sets. You can also mark a set of groups as a repeating entity (e.g. People or Visits) directly here—no separate collections screen required.{% endblocktrans %}</p>
 </div>
 
 <div class="mt-4">
 
   <div class="space-y-3">
-    <div class="alert alert-info shadow-sm">
+    <div class="alert shadow-sm bg-primary text-primary-content">
       <div>
-        {% include "components/icons/repeat.html" with classes="w-5 h-5" %}
+        {% include "components/icons/repeat.html" with classes="w-5 h-5 text-primary-content" %}
       </div>
       <div class="text-sm">
         {% trans "Tip: Select groups by clicking their row or checkbox, then click ‘Create repeat’ to set a name. Selected rows are highlighted and show a small repeat icon." %}
@@ -95,7 +95,7 @@
         <li class="opacity-70">No groups yet. Create one to get started.</li>
       {% endfor %}
     </ul>
-    <div class="flex flex-wrap gap-2 items-center">
+  <div class="flex flex-wrap gap-2 items-center sticky top-0 z-40 bg-base-200/95 backdrop-blur supports-[backdrop-filter]:bg-base-200/70 py-2">
   {% if can_edit %}
   <button id="save-order-btn" class="btn btn-primary btn-sm" type="button" disabled>{% trans "Save order" %}</button>
   <button id="create-repeat-btn" class="btn btn-secondary btn-sm inline-flex items-center gap-2" type="button" disabled>
@@ -107,7 +107,8 @@
     <button type="button" id="clear-selection" class="btn btn-ghost btn-xs ml-2">{% trans "Clear" %}</button>
   </span>
       {% endif %}
-      <a class="btn btn-ghost btn-sm " href="/surveys/{{ survey.slug }}/dashboard/">{% trans "Back to dashboard" %}</a>
+      <a class="btn btn-ghost btn-sm" href="/surveys/{{ survey.slug }}/dashboard/">{% trans "Back to dashboard" %}</a>
+      <a class="btn btn-ghost btn-sm" href="/docs/groups-view/" target="_blank" rel="noopener noreferrer">{% trans "Help" %}</a>
     </div>
   </div>
 </div>
@@ -184,7 +185,7 @@
           </div>
           {% endif %}
           <div class="modal-action">
-            <button class="btn" type="button" onclick="document.getElementById('repeat-modal').close()">{% trans "Cancel" %}</button>
+            <button class="btn" type="button" id="repeat-cancel-btn">{% trans "Cancel" %}</button>
             <button class="btn btn-primary" type="submit">{% trans "Create" %}</button>
           </div>
         </form>
@@ -196,96 +197,5 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script src="{% static 'js/groups.js' %}"></script>
-  <script>
-    (function(){
-      var root = document.getElementById('groups-draggable');
-      if (!root) return;
-      var saveBtn = document.getElementById('save-order-btn');
-      var createBtn = document.getElementById('create-repeat-btn');
-      var modal = document.getElementById('repeat-modal');
-      var inputIds = document.getElementById('repeat-group-ids');
-      var selected = new Set();
-      function refresh() {
-        if (createBtn) createBtn.disabled = selected.size === 0;
-        var bar = document.getElementById('selection-toolbar');
-        var count = document.getElementById('selection-count');
-        if (bar && count) {
-          count.textContent = String(selected.size);
-          bar.classList.toggle('hidden', selected.size === 0);
-        }
-      }
-      // Clicks on list items toggle selection. Anchor clicks without modifier also toggle.
-      root.addEventListener('click', function(e){
-        var li = e.target.closest('li[data-gid]');
-        if (!li) return;
-        // don't toggle on drag/delete, on forms, checkboxes
-        if (e.target.closest('.drag-handle') || e.target.closest('form') || e.target.closest('.select-checkbox')) return;
-        // If clicking the title link without ctrl/cmd/shift, toggle selection instead of navigation
-  var a = e.target.closest('a[href*="/builder/"]');
-        if (a && !(e.metaKey || e.ctrlKey || e.shiftKey)) {
-          e.preventDefault();
-        }
-        var cb = li.querySelector('.select-checkbox');
-        if (!cb) return;
-        cb.checked = !cb.checked;
-        updateSelection(li, cb.checked);
-        refresh();
-      });
-      // Changes on the checkbox (mouse/keyboard) update selection
-      root.addEventListener('change', function(e){
-        if (!e.target.classList.contains('select-checkbox')) return;
-        var li = e.target.closest('li[data-gid]');
-        if (!li) return;
-        updateSelection(li, e.target.checked);
-        refresh();
-      });
-      function updateSelection(li, isChecked){
-        var icon = li.querySelector('.sel-repeat-icon');
-        var tile = li.querySelector('.selectable-group');
-        if (isChecked) {
-          selected.add(li.dataset.gid);
-          if (tile) {
-            tile.dataset.selected = '1';
-            // Inline styles avoid tailwind purge issues and ensure visible highlight
-            tile.style.outline = '2px solid color-mix(in oklch, var(--s) 40%, transparent)';
-            tile.style.backgroundColor = 'color-mix(in oklch, var(--s) 10%, transparent)';
-          }
-          if (icon) icon.classList.remove('hidden');
-        } else {
-          selected.delete(li.dataset.gid);
-          if (tile) {
-            delete tile.dataset.selected;
-            tile.style.outline = '';
-            tile.style.backgroundColor = '';
-          }
-          if (icon) icon.classList.add('hidden');
-        }
-      }
-      if (createBtn) createBtn.addEventListener('click', function(){
-        if (!selected.size) return;
-        if (inputIds) inputIds.value = Array.from(selected).join(',');
-        if (modal && modal.showModal) modal.showModal();
-      });
-      var clearBtn = document.getElementById('clear-selection');
-      if (clearBtn) clearBtn.addEventListener('click', function(){
-        root.querySelectorAll('li[data-gid]').forEach(function(li){
-          var cb = li.querySelector('.select-checkbox');
-          if (!cb) return;
-          cb.checked = false;
-          updateSelection(li, false);
-        });
-        selected.clear();
-        refresh();
-      });
-      // Initialize state in case some boxes are pre-checked by browser auto-fill
-      root.querySelectorAll('li[data-gid]').forEach(function(li){
-        var cb = li.querySelector('.select-checkbox');
-        if (cb && cb.checked) {
-          selected.add(li.dataset.gid);
-          updateSelection(li, true);
-        }
-      });
-      refresh();
-    })();
-  </script>
+  <script src="{% static 'js/groups-page.js' %}"></script>
 {% endblock %}

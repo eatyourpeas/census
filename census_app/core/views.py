@@ -101,6 +101,7 @@ DOC_PAGES = {
     "surveys": "surveys.md",
     "user-management": "user-management.md",
     "collections": "collections.md",
+    "groups-view": "groups-view.md",
 }
 
 def _doc_title(slug: str) -> str:
