@@ -151,7 +151,9 @@ def signup(request):
 
 
 # --- Documentation views ---
-DOCS_DIR = Path(__file__).resolve().parent.parent.parent / "docs"
+# Project root (repository root)
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+DOCS_DIR = REPO_ROOT / "docs"
 
 DOC_PAGES = {
     "index": "README.md",
@@ -167,6 +169,8 @@ DOC_PAGES = {
     "collections": "collections.md",
     "groups-view": "groups-view.md",
     "releases": "releases.md",
+    # Wire up repository root CONTRIBUTING.md into the in-app docs
+    "contributing": REPO_ROOT / "CONTRIBUTING.md",
 }
 
 
@@ -201,7 +205,9 @@ def docs_page(request, slug: str):
     """Render a specific documentation page by slug mapped to a whitelisted file."""
     if slug not in DOC_PAGES:
         raise Http404("Page not found")
-    file_path = DOCS_DIR / DOC_PAGES[slug]
+    # Allow values in DOC_PAGES to be either relative paths under docs/ or absolute paths
+    mapped = DOC_PAGES[slug]
+    file_path = (DOCS_DIR / mapped) if isinstance(mapped, (str,)) else Path(mapped)
     if not file_path.exists():
         raise Http404("Page not found")
     html = mdlib.markdown(
