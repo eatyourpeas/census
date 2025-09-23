@@ -13,19 +13,23 @@
   {% if surveys %}
   <ul class="not-prose list bg-base-100 rounded-box shadow-md">
       {% for s in surveys %}
-        <li class="list-row flex items-center gap-4">
-          <div class="flex-shrink-0 inline-flex items-center justify-center px-2">
+  <li class="list-row w-full p-4 sm:p-5 flex flex-col gap-3">
+          <div class="flex items-center gap-4">
+            <div class="flex-shrink-0 inline-flex items-center justify-center">
             {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-8 h-8' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
+            </div>
+            <div class="min-w-0">
+              <div class="font-medium leading-tight">{{ s.name }}</div>
+              <div class="text-xs uppercase font-semibold opacity-60 truncate">{{ s.description }}</div>
+            </div>
           </div>
-          <div class="min-w-0">
-            <div class="font-medium leading-tight">{{ s.name }}</div>
-            <div class="text-xs uppercase font-semibold opacity-60 truncate">{{ s.description }}</div>
-          </div>
-          <div class="ml-auto flex flex-wrap gap-2 px-2">
-            <a class="btn btn-xs" href="/surveys/{{ s.slug }}/dashboard/">Dashboard</a>
-            <a class="btn btn-xs" href="/surveys/{{ s.slug }}/builder/">Edit</a>
-            <a class="btn btn-xs" href="/surveys/{{ s.slug }}/preview/">Preview</a>
-            <a class="btn btn-xs" href="/surveys/{{ s.slug }}/bulk-upload/">Import Questions</a>
+          <div class="-mx-1 overflow-x-auto">
+            <div class="px-1 min-w-max flex items-center gap-2">
+              <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/dashboard/">Dashboard</a>
+              <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/groups/">Groups</a>
+              <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/preview/">Preview</a>
+              <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/bulk-upload/">Import</a>
+            </div>
           </div>
         </li>
       {% endfor %}

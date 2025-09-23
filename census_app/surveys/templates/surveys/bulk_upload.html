@@ -18,14 +18,48 @@
     <form method="post">
       {% csrf_token %}
       <label class="label">Markdown</label>
-      <textarea class="textarea textarea-bordered w-full min-h-[360px]" name="markdown" placeholder="# Group Title
-Group description
+  <textarea class="textarea textarea-bordered w-full min-h-[360px]" name="markdown" placeholder="REPEAT-5
+# Patient
+Basic info about respondents
 
-## Question Title
-Question description
+## Age
+Age in years
+(text number)
+
+## Gender
+Self-described gender
 (mc_single)
-- Option A
-- Option B
+- Female
+- Male
+- Non-binary
+- Prefer not to say
+
+> REPEAT
+> # Visit
+> Details about each visit
+> 
+> ## Date of visit
+> (text)
+
+# Satisfaction
+About the service
+
+## Overall satisfaction
+Rate from 1 to 5
+(likert number)
+min: 1
+max: 5
+left: Very poor
+right: Excellent
+
+## Recommend to a friend
+Likelihood to recommend
+(likert categories)
+- Very unlikely
+- Unlikely
+- Neutral
+- Likely
+- Very likely
 " required>{{ markdown|default:example }}</textarea>
       <div class="mt-3">
         <button class="btn btn-primary" type="submit">Import</button>
@@ -54,6 +88,23 @@ Question description
       <li>image — image choice</li>
       <li>likert categories — categories listed with <code>-</code></li>
       <li>likert number — provide <code>min</code>/<code>max</code> and optional labels</li>
+    </ul>
+    <h3 class="mt-4 font-semibold">Optional: Collections with REPEAT</h3>
+    <p>To mark a group as repeatable, add a line with <strong>REPEAT</strong> (or <strong>REPEAT-5</strong> to cap it) immediately above the group heading.</p>
+    <p>To define a child collection nested under a repeatable parent, indent with <code>&gt; </code> and add <strong>REPEAT</strong> above the child group:</p>
+    <pre><code>REPEAT-5
+# Patient
+... group content ...
+
+> REPEAT
+> # Visit
+> ... child group content ...
+    </code></pre>
+    <ul class="list-disc pl-5">
+      <li><strong>REPEAT</strong> = unlimited repeats. <strong>REPEAT-1</strong> means one allowed.</li>
+      <li>Use <code>&gt; </code> before REPEAT and the group heading to indicate one level of nesting.</li>
+      <li>Nesting is limited to one level (Parent → Child) by design.</li>
+      <li>Groups without REPEAT are normal, non-collection groups.</li>
     </ul>
   </div>
  </div>

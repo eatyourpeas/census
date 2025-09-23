@@ -84,6 +84,7 @@ See docs:
 - docs/getting-started-api.md
 - docs/user-management.md
 - docs/themes.md
+- docs/groups-view.md
 - CONTRIBUTING.md
 
 

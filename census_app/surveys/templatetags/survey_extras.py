@@ -20,6 +20,38 @@ def dict_get(d, key):
         return ""
 
 
+@register.filter(name="get_item")
+def get_item(d, key):
+    """Alias of dict_get but preserves objects when present.
+
+    Useful in templates: {% with info=repeat_info|get_item:g.id %}
+    """
+    try:
+        if d is None:
+            return None
+        return d.get(key) if hasattr(d, "get") else d[key]
+    except Exception:
+        return None
+
+
+@register.simple_tag
+def int_range(start: int, end: int):
+    """Return a Python range inclusive of both start and end for template loops.
+
+    Example:
+      {% int_range 1 10 as nums %}
+      {% for n in nums %} ... {% endfor %}
+    """
+    try:
+        s = int(start)
+        e = int(end)
+        if e < s:
+            s, e = e, s
+        return range(s, e + 1)
+    except Exception:
+        return range(0)
+
+
 @register.filter(name="as_list")
 def as_list(value):
     """Normalize a value to a list for template iteration.

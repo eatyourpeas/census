@@ -5,8 +5,7 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpRequest, HttpResponse
-from django.http import StreamingHttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
@@ -14,10 +13,10 @@ from django.db import models
 from django import forms
 from django.utils.text import slugify
 from django.contrib.auth import get_user_model
-from .models import Survey, SurveyResponse, SurveyQuestion, QuestionGroup, Organization, OrganizationMembership, SurveyMembership, AuditLog
+from .models import Survey, SurveyResponse, SurveyQuestion, QuestionGroup, Organization, OrganizationMembership, SurveyMembership, AuditLog, CollectionDefinition, CollectionItem
 from .permissions import require_can_view, require_can_edit, can_view_survey, can_manage_org_users, can_manage_survey_users, can_edit_survey
 from .utils import verify_key
-from .markdown_import import parse_bulk_markdown, BulkParseError
+from .markdown_import import parse_bulk_markdown_with_collections, BulkParseError
 from .color import hex_to_oklch
 
 # Demographics field definitions: key -> display label
@@ -133,7 +132,7 @@ def survey_create(request: HttpRequest) -> HttpResponse:
             survey: Survey = form.save(commit=False)
             survey.owner = request.user
             survey.save()
-            return redirect("surveys:builder", slug=survey.slug)
+            return redirect("surveys:groups", slug=survey.slug)
     else:
         form = SurveyCreateForm()
     return render(request, "surveys/create.html", {"form": form})
@@ -149,8 +148,8 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
     # Prevent the survey owner from submitting responses directly in the live view
     if request.user.is_authenticated and survey.owner_id == request.user.id:
-        messages.info(request, "You are the owner. Use the Builder to edit or Preview to see the participant view.")
-        return redirect("surveys:builder", slug=slug)
+        messages.info(request, "You are the owner. Use Groups to manage questions or Preview to see the participant view.")
+        return redirect("surveys:groups", slug=slug)
 
     # Determine demographics and professional configuration upfront
     patient_group, demographics_fields = _get_patient_group_and_fields(survey)
@@ -395,6 +394,12 @@ def survey_style_update(request: HttpRequest, slug: str) -> HttpResponse:
     return redirect("surveys:dashboard", slug=slug)
 
 
+"""
+Deprecated Collections SSR views were removed. Repeats are created and managed
+from the Groups UI and bulk upload. Collections remain as backend entities only.
+"""
+
+
 @login_required
 def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
@@ -424,7 +429,27 @@ def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
         "primary_hex": style.get("primary_color"),
         "font_css_url": style.get("font_css_url"),
     }
-    ctx = {"survey": survey, "groups": groups, "can_edit": can_edit}
+    # Map groups to any repeats (collections) they participate in
+    group_repeat_map: dict[int, list[CollectionDefinition]] = {}
+    for item in CollectionItem.objects.select_related("collection", "group").filter(collection__survey=survey, group__isnull=False):
+        group_repeat_map.setdefault(item.group_id, []).append(item.collection)
+
+    # Prepare display info for repeats
+    repeat_info: dict[int, dict] = {}
+    for g in groups:
+        cols = group_repeat_map.get(g.id, [])
+        if cols:
+            info_list = []
+            for c in cols:
+                cap = "Unlimited" if (c.max_count is None or int(c.max_count) <= 0) else str(c.max_count)
+                parent_note = f" (child of {c.parent.name})" if c.parent_id else ""
+                info_list.append(f"{c.name} — max {cap}{parent_note}")
+            repeat_info[g.id] = {"is_repeated": True, "tooltip": "; ".join(info_list)}
+        else:
+            repeat_info[g.id] = {"is_repeated": False, "tooltip": ""}
+
+    existing_repeats = list(CollectionDefinition.objects.filter(survey=survey).order_by("name"))
+    ctx = {"survey": survey, "groups": groups, "can_edit": can_edit, "repeat_info": repeat_info, "existing_repeats": existing_repeats}
     if any(v for k, v in brand_overrides.items() if k != "primary_hex") or brand_overrides.get("primary_hex"):
         ctx["brand"] = {
             "title": brand_overrides.get("title") or getattr(settings, "BRAND_TITLE", "Census"),
@@ -436,6 +461,156 @@ def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
             "primary": hex_to_oklch(brand_overrides.get("primary_hex") or ""),
         }
     return render(request, "surveys/groups.html", ctx)
+
+
+@login_required
+@require_http_methods(["POST"])
+def survey_groups_repeat_create(request: HttpRequest, slug: str) -> HttpResponse:
+    """
+    Create a repeat (CollectionDefinition) from selected groups.
+    Optional parent_id nests this repeat one level under an existing repeat.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+
+    name = (request.POST.get("name") or "").strip()
+    if not name:
+        messages.error(request, "Please provide a name for the repeat.")
+        return redirect("surveys:groups", slug=slug)
+    min_count = request.POST.get("min_count") or "0"
+    max_count_raw = (request.POST.get("max_count") or "").strip().lower()
+    max_count: int | None
+    if max_count_raw in ("", "unlimited", "-1"):
+        max_count = None
+    else:
+        try:
+            max_count = int(max_count_raw)
+            if max_count < 1:
+                max_count = None
+        except Exception:
+            max_count = None
+    # Cardinality: one iff max_count == 1
+    cardinality = CollectionDefinition.Cardinality.ONE if (max_count == 1) else CollectionDefinition.Cardinality.MANY
+
+    # Parse group ids
+    gids_csv = request.POST.get("group_ids", "")
+    gid_list = [int(x) for x in gids_csv.split(",") if x.isdigit()]
+    # Keep only those attached to this survey
+    valid_ids = set(survey.question_groups.filter(id__in=gid_list).values_list("id", flat=True))
+    gid_list = [g for g in gid_list if g in valid_ids]
+    if not gid_list:
+        messages.error(request, "Select at least one group to include in the repeat.")
+        return redirect("surveys:groups", slug=slug)
+
+    # Ensure unique key per survey
+    def _unique_key(base: str) -> str:
+        k = slugify(base)
+        if not k:
+            k = "repeat"
+        cand = k
+        i = 2
+        while CollectionDefinition.objects.filter(survey=survey, key=cand).exists():
+            cand = f"{k}-{i}"
+            i += 1
+        return cand
+
+    cd = CollectionDefinition(
+        survey=survey,
+        key=_unique_key(name),
+        name=name,
+        cardinality=cardinality,
+        min_count=int(min_count) if str(min_count).isdigit() else 0,
+        max_count=max_count,
+    )
+    # Optional parent
+    parent_id = request.POST.get("parent_id")
+    if parent_id and str(parent_id).isdigit():
+        parent = CollectionDefinition.objects.filter(id=int(parent_id), survey=survey).first()
+        if parent:
+            cd.parent = parent
+    try:
+        cd.full_clean()
+    except Exception as e:
+        messages.error(request, f"Invalid repeat configuration: {e}")
+        return redirect("surveys:groups", slug=slug)
+    cd.save()
+
+    # Create items in the order provided
+    # Keep current ordering of groups in the survey where possible
+    order_index = 0
+    for gid in gid_list:
+        grp = survey.question_groups.filter(id=gid).first()
+        if not grp:
+            continue
+        CollectionItem.objects.create(
+            collection=cd,
+            item_type=CollectionItem.ItemType.GROUP,
+            group=grp,
+            order=order_index,
+        )
+        order_index += 1
+
+    # If we set a parent, add this as a child item under the parent
+    if cd.parent_id:
+        max_item_order = (
+            CollectionItem.objects.filter(collection=cd.parent).order_by("-order").values_list("order", flat=True).first()
+        )
+        next_idx = (max_item_order + 1) if max_item_order is not None else 0
+        CollectionItem.objects.create(
+            collection=cd.parent,
+            item_type=CollectionItem.ItemType.COLLECTION,
+            child_collection=cd,
+            order=next_idx,
+        )
+
+    messages.success(request, "Repeat created and groups added.")
+    return redirect("surveys:groups", slug=slug)
+
+
+@login_required
+@require_http_methods(["POST"])
+def survey_group_repeat_remove(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
+    """Remove the given group from any repeats (collections) in this survey.
+
+    If a collection becomes empty after removal, delete it as well. This provides
+    a simple toggle-like UX from the Groups page to undo a repeat association.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid)
+    # Only allow removing if the group is attached to this survey
+    if not survey.question_groups.filter(id=group.id).exists():
+        return HttpResponse(status=404)
+
+    # Remove items linking this group within this survey's collections
+    items_qs = CollectionItem.objects.filter(
+        collection__survey=survey, item_type=CollectionItem.ItemType.GROUP, group=group
+    )
+    affected_collections = set(items_qs.values_list("collection_id", flat=True))
+    deleted, _ = items_qs.delete()
+
+    # Re-number remaining items per affected collection and delete empties
+    for cid in affected_collections:
+        col = CollectionDefinition.objects.filter(id=cid, survey=survey).first()
+        if not col:
+            continue
+        remaining = list(col.items.order_by("order", "id"))
+        if not remaining:
+            # If this collection is a child of a parent collection, remove its link too
+            CollectionItem.objects.filter(child_collection=col).delete()
+            col.delete()
+            continue
+        # Compact orders
+        for idx, it in enumerate(remaining):
+            if it.order != idx:
+                it.order = idx
+                it.save(update_fields=["order"])
+
+    if deleted:
+        messages.success(request, "Group removed from repeat.")
+    else:
+        messages.info(request, "This group was not part of a repeat.")
+    return redirect("surveys:groups", slug=slug)
 
 
 @login_required
@@ -1185,7 +1360,7 @@ def bulk_upload(request: HttpRequest, slug: str) -> HttpResponse:
     if request.method == "POST":
         md = request.POST.get("markdown", "")
         try:
-            groups_parsed = parse_bulk_markdown(md)
+            parsed = parse_bulk_markdown_with_collections(md)
         except BulkParseError as e:
             context["error"] = str(e)
             context["markdown"] = md
@@ -1194,9 +1369,11 @@ def bulk_upload(request: HttpRequest, slug: str) -> HttpResponse:
         # Create groups and questions
         max_order = survey.questions.aggregate(models.Max("order")).get("order__max") or 0
         next_order = max_order + 1
-        for g in groups_parsed:
+        created_groups_in_order: list[QuestionGroup] = []
+        for g in parsed["groups"]:
             grp = QuestionGroup.objects.create(name=g["name"], description=g.get("description", ""), owner=request.user)
             survey.question_groups.add(grp)
+            created_groups_in_order.append(grp)
             for q in g["questions"]:
                 SurveyQuestion.objects.create(
                     survey=survey,
@@ -1208,14 +1385,98 @@ def bulk_upload(request: HttpRequest, slug: str) -> HttpResponse:
                     order=next_order,
                 )
                 next_order += 1
-        messages.success(request, f"Bulk upload successful: added {len(groups_parsed)} group(s) and questions.")
+
+        # Build collections from simple REPEAT markers
+        repeats = parsed.get("repeats") or []
+        created_collections = 0
+        created_items = 0
+
+        # Helper to ensure unique key per survey
+        def _unique_key(base: str) -> str:
+            k = slugify(base)
+            if not k:
+                k = "collection"
+            candidate = k
+            i = 2
+            while CollectionDefinition.objects.filter(survey=survey, key=candidate).exists():
+                candidate = f"{k}-{i}"
+                i += 1
+            return candidate
+
+        defs_by_group_index: dict[int, CollectionDefinition] = {}
+        for rep in repeats:
+            gi = int(rep.get("group_index"))
+            max_count = rep.get("max_count")
+            name = created_groups_in_order[gi].name if gi < len(created_groups_in_order) else parsed["groups"][gi]["name"]
+            key = _unique_key(name)
+            cardinality = CollectionDefinition.Cardinality.ONE if (isinstance(max_count, int) and max_count == 1) else CollectionDefinition.Cardinality.MANY
+            cd = CollectionDefinition.objects.create(
+                survey=survey,
+                key=key,
+                name=name,
+                cardinality=cardinality,
+                max_count=max_count,
+            )
+            defs_by_group_index[gi] = cd
+            created_collections += 1
+
+        # Link parents now that all defs exist
+        for rep in repeats:
+            gi = int(rep.get("group_index"))
+            parent_index = rep.get("parent_index")
+            if parent_index is not None:
+                child_cd = defs_by_group_index.get(gi)
+                parent_cd = defs_by_group_index.get(int(parent_index))
+                if child_cd and parent_cd and child_cd.parent_id != parent_cd.id:
+                    child_cd.parent = parent_cd
+                    child_cd.full_clean()
+                    child_cd.save(update_fields=["parent"])
+
+        # Create items for each collection: its own group first, then any direct child collections
+        # Preserve child order according to appearance in repeats
+        for gi, cd in defs_by_group_index.items():
+            order = 0
+            if gi < len(created_groups_in_order):
+                grp = created_groups_in_order[gi]
+                CollectionItem.objects.create(
+                    collection=cd,
+                    item_type=CollectionItem.ItemType.GROUP,
+                    group=grp,
+                    order=order,
+                )
+                created_items += 1
+                order += 1
+            # children
+            for rep in repeats:
+                if rep.get("parent_index") == gi:
+                    child_cd = defs_by_group_index.get(int(rep["group_index"]))
+                    if child_cd:
+                        # Ensure the parent/child relation is set
+                        if child_cd.parent_id != cd.id:
+                            child_cd.parent = cd
+                            child_cd.full_clean()
+                            child_cd.save(update_fields=["parent"])
+                        CollectionItem.objects.create(
+                            collection=cd,
+                            item_type=CollectionItem.ItemType.COLLECTION,
+                            child_collection=child_cd,
+                            order=order,
+                        )
+                        created_items += 1
+                        order += 1
+
+        messages.success(request, (
+            f"Bulk upload successful: added {len(parsed['groups'])} group(s) and questions."
+            + (f" Also created {created_collections} collection(s) and {created_items} item(s)." if repeats else "")
+        ))
         return redirect("surveys:dashboard", slug=survey.slug)
     return render(request, "surveys/bulk_upload.html", context)
 
 
 def _bulk_upload_example_md() -> str:
     return (
-        "# Demographics\n"
+        "REPEAT-5\n"
+        "# Patient\n"
         "Basic info about respondents\n\n"
         "## Age\n"
         "Age in years\n"
@@ -1227,6 +1488,11 @@ def _bulk_upload_example_md() -> str:
         "- Male\n"
         "- Non-binary\n"
         "- Prefer not to say\n\n"
+        "> REPEAT\n"
+        "> # Visit\n"
+        "> Details about each visit\n\n"
+        "> ## Date of visit\n"
+        "> (text)\n\n"
         "# Satisfaction\n"
         "About the service\n\n"
         "## Overall satisfaction\n"

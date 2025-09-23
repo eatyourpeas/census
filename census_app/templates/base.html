@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}{{ brand.title }}{% endblock %}</title>
-    <link rel="icon" href="{% static 'icons/census_brand.svg' %}" type="image/svg+xml" />
+  <link rel="icon" href="{% static 'icons/census_brand_favicon.svg' %}" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   {% if brand.font_css_url %}<link href="{{ brand.font_css_url }}" rel="stylesheet">{% endif %}
@@ -50,13 +50,13 @@
   <body class="min-h-screen bg-base-200">
     <div class="navbar bg-base-100 shadow">
       <div class="flex-1 px-2">
-        <a href="{% url 'core:home' %}" class="inline-flex items-center gap-2 text-xl font-semibold">
+        <a href="{% url 'core:home' %}" class="inline-flex items-center gap-2 text-xl font-semibold text-primary">
           {# Light / default icon #}
           <span class="theme-light-icon">
             {% if brand.icon_url %}
               <img src="{{ brand.icon_url }}" alt="{{ brand.icon_alt|default:brand.title }} icon" title="{{ brand.icon_title|default:brand.title }}" class="{{ brand.icon_size_class|default:'w-6 h-6' }}" />
             {% else %}
-              {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-6 h-6' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
+              {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-6 h-6 text-primary' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
             {% endif %}
           </span>
           {# Dark icon (optional) #}
@@ -67,7 +67,7 @@
               {% if brand.icon_url %}
                 <img src="{{ brand.icon_url }}" alt="{{ brand.icon_alt|default:brand.title }} icon" title="{{ brand.icon_title|default:brand.title }}" class="{{ brand.icon_size_class|default:'w-6 h-6' }}" />
               {% else %}
-                {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-6 h-6' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
+                {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-6 h-6 text-primary' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
               {% endif %}
             {% endif %}
           </span>
@@ -86,7 +86,7 @@
             <li>
               <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-ghost btn-sm normal-case">Logout</button>
+                <button type="submit" class="btn btn-sm normal-case">Logout</button>
               </form>
             </li>
           {% else %}

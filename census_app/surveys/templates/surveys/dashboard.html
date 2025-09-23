@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% block head_theme_overrides %}
   {% if survey.style.theme_css_light or survey.style.theme_css_dark %}
   <style>
@@ -18,22 +19,27 @@
     <link href="{{ survey.style.font_css_url }}" rel="stylesheet" />
   {% endif %}
 {% endblock %}
-{% block title %}Dashboard - {{ survey.name }}{% endblock %}
+{% block title %}{% trans "Dashboard" %} - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose">
-  {% include 'components/breadcrumbs.html' with crumb1_label="Surveys" crumb1_href="/surveys/" crumb2_label="Survey Dashboard" crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" %}
+  {% trans "Surveys" as bc_surveys %}
+  {% trans "Survey Dashboard" as bc_survey_dashboard %}
+  {% include 'components/breadcrumbs.html' with crumb1_label=bc_surveys crumb1_href="/surveys/" crumb2_label=bc_survey_dashboard crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" %}
   <h2>{{ survey.name }}</h2>
-  <p>Status: {% if survey.is_live %}Live{% else %}Not live{% endif %}</p>
-  <p>Total responses: <strong>{{ total }}</strong></p>
+  <p>{% trans "Status" %}: {% if survey.is_live %}{% trans "Live" %}{% else %}{% trans "Not live" %}{% endif %}</p>
+  <p>{% trans "Total responses" %}: <strong>{{ total }}</strong></p>
   <div class="flex gap-2">
-    <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/preview/">Preview (read-only)</a>
-    <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/groups/">Manage Survey Questions</a>
+    <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/preview/">{% trans "Preview (read-only)" %}</a>
+    <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/groups/">{% trans "Manage groups" %}</a>
+  </div>
+  <div class="mt-3 text-sm opacity-80 max-w-3xl">
+    <p>{% blocktrans %}<strong>Groups</strong> are reusable sets of questions. You can mark one or more groups as a repeating entity (for example, <em>People</em> or <em>Visits</em>) directly on the Groups page, with optional one-level nesting.{% endblocktrans %}</p>
   </div>
 </div>
 
 <div class="mt-6">
   <details class="mb-6">
-    <summary class="cursor-pointer select-none text-lg font-semibold">Survey style</summary>
+  <summary class="cursor-pointer select-none text-lg font-semibold">{% trans "Survey style" %}</summary>
     <form class="mt-3 grid md:grid-cols-2 gap-3" method="post" action="/surveys/{{ survey.slug }}/style/update">
       {% csrf_token %}
       <div>

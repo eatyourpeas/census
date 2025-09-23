@@ -8,7 +8,6 @@ from census_app.surveys.models import Organization, OrganizationMembership, Surv
 
 
 @pytest.fixture
-@pytest.mark.django_db
 def users(db):
     owner = User.objects.create_user(username="owner", password="x")
     org_admin = User.objects.create_user(username="orgadmin", password="x")
@@ -18,7 +17,6 @@ def users(db):
 
 
 @pytest.fixture
-@pytest.mark.django_db
 def org(db, users):
     owner, org_admin, viewer, outsider = users
     org = Organization.objects.create(name="Org", owner=owner)
@@ -27,7 +25,6 @@ def org(db, users):
 
 
 @pytest.fixture
-@pytest.mark.django_db
 def survey_with_groups(db, users, org):
     owner, org_admin, viewer, outsider = users
     survey = Survey.objects.create(owner=owner, organization=org, name="My Survey", slug="mysurvey")
