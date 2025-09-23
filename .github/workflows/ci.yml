@@ -68,3 +68,18 @@ jobs:
         with:
           name: pytest-report
           path: pytest-report.xml
+      - name: Collect service logs (on failure)
+        if: failure()
+        run: |
+          echo "Collecting Docker logs..."
+          docker ps -a
+          docker logs $(docker ps -aq --filter name=postgres) > postgres.log 2>&1 || true
+          docker logs $(docker ps -aq --filter name=web) > web.log 2>&1 || true
+      - name: Upload logs artifact (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-logs
+          path: |
+            postgres.log
+            web.log
