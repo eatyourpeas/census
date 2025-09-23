@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import secrets
+import csv
+import io
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -12,8 +15,9 @@ from django_ratelimit.decorators import ratelimit
 from django.db import models
 from django import forms
 from django.utils.text import slugify
+from django.utils import timezone
 from django.contrib.auth import get_user_model
-from .models import Survey, SurveyResponse, SurveyQuestion, QuestionGroup, Organization, OrganizationMembership, SurveyMembership, AuditLog, CollectionDefinition, CollectionItem
+from .models import Survey, SurveyResponse, SurveyQuestion, QuestionGroup, Organization, OrganizationMembership, SurveyMembership, AuditLog, CollectionDefinition, CollectionItem, SurveyAccessToken
 from .permissions import require_can_view, require_can_edit, can_view_survey, can_manage_org_users, can_manage_survey_users, can_edit_survey
 from .utils import verify_key
 from .markdown_import import parse_bulk_markdown_with_collections, BulkParseError
@@ -88,6 +92,25 @@ def _get_professional_group_and_fields(
     # sanitize ods map to only allowed fields
     ods_clean = {k: bool(ods_map.get(k)) for k in PROFESSIONAL_ODS_FIELDS}
     return group, fields, ods_clean
+
+
+def _survey_collects_patient_data(survey: Survey) -> bool:
+    grp, fields = _get_patient_group_and_fields(survey)
+    return bool(grp and fields)
+
+
+def _verify_captcha(request: HttpRequest) -> bool:
+    """Pluggable CAPTCHA verification.
+
+    Placeholder: returns True if CAPTCHA not configured. Wire to reCAPTCHA/hCaptcha later.
+    Expect a POST field like 'captcha_token' and verify server-side.
+    """
+    # TODO: integrate a real CAPTCHA provider; for now, allow when not explicitly blocked.
+    token = request.POST.get("captcha_token")
+    if token is None:
+        # Treat as pass in dev unless survey requires and we enforce presence below
+        return False
+    return True
 
 
 @login_required
@@ -343,6 +366,9 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     require_can_view(request.user, survey)
     total = survey.responses.count()
+    # Derived status
+    is_live = survey.is_live()
+    visible = survey.get_visibility_display() if hasattr(survey, "get_visibility_display") else "Authenticated"
     groups = (
         survey.question_groups
         .filter(owner=request.user)
@@ -360,7 +386,7 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
         "primary_hex": style.get("primary_color"),
         "font_css_url": style.get("font_css_url"),
     }
-    ctx = {"survey": survey, "total": total, "groups": groups}
+    ctx = {"survey": survey, "total": total, "groups": groups, "is_live": is_live, "visible": visible}
     if any(v for k, v in brand_overrides.items() if k != "primary_hex") or brand_overrides.get("primary_hex"):
         ctx["brand"] = {
             "title": brand_overrides.get("title") or getattr(settings, "BRAND_TITLE", "Census"),
@@ -372,6 +398,268 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
             "primary": hex_to_oklch(brand_overrides.get("primary_hex") or ""),
         }
     return render(request, "surveys/dashboard.html", ctx)
+
+
+@login_required
+@require_http_methods(["POST"])
+def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    # Parse fields
+    status = request.POST.get("status") or survey.status
+    visibility = request.POST.get("visibility") or survey.visibility
+    start_at = request.POST.get("start_at") or None
+    end_at = request.POST.get("end_at") or None
+    max_responses = request.POST.get("max_responses") or None
+    captcha_required = bool(request.POST.get("captcha_required"))
+    no_patient_data_ack = bool(request.POST.get("no_patient_data_ack"))
+
+    # Coerce types
+    from django.utils.dateparse import parse_datetime
+    if start_at:
+        start_at = parse_datetime(start_at)
+    if end_at:
+        end_at = parse_datetime(end_at)
+    if max_responses:
+        try:
+            max_responses = int(max_responses)
+            if max_responses <= 0:
+                max_responses = None
+        except Exception:
+            max_responses = None
+
+    # Enforce patient-data + non-auth visibility disclaimer
+    collects_patient = _survey_collects_patient_data(survey)
+    if visibility in {Survey.Visibility.PUBLIC, Survey.Visibility.UNLISTED, Survey.Visibility.TOKEN} and collects_patient:
+        if not no_patient_data_ack and visibility != Survey.Visibility.AUTHENTICATED:
+            messages.error(
+                request,
+                "To use public, unlisted, or tokenized visibility, confirm that no patient data is collected.",
+            )
+            return redirect("surveys:dashboard", slug=slug)
+
+    # Apply changes
+    prev_status = survey.status
+    survey.status = status
+    survey.visibility = visibility
+    survey.start_at = start_at
+    survey.end_at = end_at
+    survey.max_responses = max_responses
+    survey.captcha_required = captcha_required
+    survey.no_patient_data_ack = no_patient_data_ack
+    # On first publish, set published_at
+    if prev_status != Survey.Status.PUBLISHED and status == Survey.Status.PUBLISHED and not survey.published_at:
+        survey.published_at = timezone.now()
+    # Generate unlisted key if needed
+    if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
+        survey.unlisted_key = secrets.token_urlsafe(24)
+    survey.save()
+    messages.success(request, "Publish settings updated.")
+    return redirect("surveys:dashboard", slug=slug)
+
+
+@require_http_methods(["GET", "POST"])
+@ratelimit(key="ip", rate="10/m", block=True)
+def survey_take(request: HttpRequest, slug: str) -> HttpResponse:
+    """Participant-facing endpoint. Supports AUTHENTICATED and PUBLIC visibility here.
+    UNLISTED and TOKEN have dedicated routes.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    if not survey.is_live():
+        raise Http404()
+    if survey.visibility == Survey.Visibility.UNLISTED:
+        raise Http404()
+    if survey.visibility == Survey.Visibility.TOKEN:
+        # Redirect to generic info page or 404
+        raise Http404()
+    if survey.visibility == Survey.Visibility.AUTHENTICATED and not request.user.is_authenticated:
+        # Enforce login
+        messages.info(request, "Please sign in to take this survey.")
+        return redirect("/accounts/login/?next=" + request.path)
+
+    # If survey requires CAPTCHA for anonymous users
+    if request.method == "POST" and not request.user.is_authenticated and survey.captcha_required:
+        if not _verify_captcha(request):
+            messages.error(request, "CAPTCHA verification failed.")
+            return redirect("surveys:take", slug=slug)
+
+    return _handle_participant_submission(request, survey, token_obj=None)
+
+
+@require_http_methods(["GET", "POST"])
+@ratelimit(key="ip", rate="10/m", block=True)
+def survey_take_unlisted(request: HttpRequest, slug: str, key: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    if not survey.is_live() or survey.visibility != Survey.Visibility.UNLISTED or survey.unlisted_key != key:
+        raise Http404()
+    if request.method == "POST" and not request.user.is_authenticated and survey.captcha_required:
+        if not _verify_captcha(request):
+            messages.error(request, "CAPTCHA verification failed.")
+            return redirect("surveys:take_unlisted", slug=slug, key=key)
+    return _handle_participant_submission(request, survey, token_obj=None)
+
+
+@require_http_methods(["GET", "POST"])
+@ratelimit(key="ip", rate="10/m", block=True)
+def survey_take_token(request: HttpRequest, slug: str, token: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    if not survey.is_live() or survey.visibility != Survey.Visibility.TOKEN:
+        raise Http404()
+    tok = get_object_or_404(SurveyAccessToken, survey=survey, token=token)
+    if not tok.is_valid():
+        messages.error(request, "This invite link has expired or already been used.")
+        raise Http404()
+    if request.method == "POST" and not request.user.is_authenticated and survey.captcha_required:
+        if not _verify_captcha(request):
+            messages.error(request, "CAPTCHA verification failed.")
+            return redirect("surveys:take_token", slug=slug, token=token)
+    return _handle_participant_submission(request, survey, token_obj=tok)
+
+
+def _handle_participant_submission(request: HttpRequest, survey: Survey, token_obj: SurveyAccessToken | None) -> HttpResponse:
+    # Disallow collecting patient data on non-authenticated visibilities unless explicitly acknowledged at publish.
+    collects_patient = _survey_collects_patient_data(survey)
+    if collects_patient and survey.visibility != Survey.Visibility.AUTHENTICATED and not survey.no_patient_data_ack:
+        messages.error(request, "This survey cannot be taken without authentication due to patient data.")
+        raise Http404()
+
+    if request.method == "POST":
+        # Prevent duplicate submission for tokenized link
+        if token_obj and SurveyResponse.objects.filter(access_token=token_obj).exists():
+            messages.error(request, "This invite link was already used.")
+            raise Http404()
+
+        answers = {}
+        for q in survey.questions.all():
+            key = f"q_{q.id}"
+            value = request.POST.getlist(key) if q.type in {"mc_multi", "orderable"} else request.POST.get(key)
+            answers[str(q.id)] = value
+
+        # Professional details (non-encrypted)
+        _, professional_fields, professional_ods = _get_professional_group_and_fields(survey)
+        professional_payload = {}
+        for field in professional_fields:
+            val = request.POST.get(f"prof_{field}")
+            if val:
+                professional_payload[field] = val
+            if professional_ods.get(field):
+                ods_val = request.POST.get(f"prof_{field}_ods")
+                if ods_val:
+                    professional_payload[f"{field}_ods"] = ods_val
+
+        resp = SurveyResponse(
+            survey=survey,
+            answers={**answers, **({"professional": professional_payload} if professional_payload else {})},
+            submitted_by=request.user if request.user.is_authenticated else None,
+            access_token=token_obj if token_obj else None,
+        )
+        # Demographics: only store if authenticated and key in session
+        patient_group, demographics_fields = _get_patient_group_and_fields(survey)
+        demo = {}
+        for field in demographics_fields:
+            val = request.POST.get(field)
+            if val:
+                demo[field] = val
+        if demo and request.session.get("survey_key"):
+            resp.store_demographics(request.session["survey_key"], demo)
+
+        try:
+            resp.save()
+        except Exception:
+            messages.error(request, "You have already submitted this survey.")
+            return redirect("surveys:take", slug=survey.slug)
+
+        # Mark token as used
+        if token_obj:
+            token_obj.used_at = timezone.now()
+            if request.user.is_authenticated:
+                token_obj.used_by = request.user
+            token_obj.save(update_fields=["used_at", "used_by"])
+
+        # Also mirror to filesystem as per authenticated detail view
+        out_dir = Path(settings.DATA_ROOT) / f"survey_{survey.id}"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_file = out_dir / f"response_{resp.id}.json"
+        out_file.write_text(
+            json.dumps({"answers": answers, "submitted_at": resp.submitted_at.isoformat()}, indent=2)
+        )
+
+        messages.success(request, "Thank you for your response.")
+        # Redirect to a simple thank-you page or back to survey with GET
+        return redirect("surveys:take", slug=survey.slug)
+
+    # GET: render using existing detail template
+    _prepare_question_rendering(survey)
+    qs = list(survey.questions.select_related("group").all())
+    for i, q in enumerate(qs, start=1):
+        setattr(q, "idx", i)
+        prev_gid = qs[i-2].group_id if i-2 >= 0 else None
+        next_gid = qs[i].group_id if i < len(qs) else None
+        curr_gid = q.group_id
+        setattr(q, "group_start", bool(curr_gid and curr_gid != prev_gid))
+        setattr(q, "group_end", bool(curr_gid and curr_gid != next_gid))
+    patient_group, demographics_fields = _get_patient_group_and_fields(survey)
+    prof_group, professional_fields, professional_ods = _get_professional_group_and_fields(survey)
+    show_patient_details = patient_group is not None
+    show_professional_details = prof_group is not None
+    ctx = {
+        "survey": survey,
+        "questions": qs,
+        "show_patient_details": show_patient_details,
+        "demographics_fields": demographics_fields,
+        "demographic_defs": DEMOGRAPHIC_FIELD_DEFS,
+        "demographics_fields_with_labels": [(k, DEMOGRAPHIC_FIELD_DEFS[k]) for k in demographics_fields],
+        "show_professional_details": show_professional_details,
+        "professional_fields": professional_fields,
+        "professional_defs": PROFESSIONAL_FIELD_DEFS,
+        "professional_ods": professional_ods,
+    }
+    return render(request, "surveys/detail.html", ctx)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def survey_tokens(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    if request.method == "POST":
+        try:
+            count = int(request.POST.get("count", "0"))
+        except ValueError:
+            count = 0
+        note = (request.POST.get("note") or "").strip()
+        from django.utils.dateparse import parse_datetime
+        expires_raw = request.POST.get("expires_at")
+        expires_at = parse_datetime(expires_raw) if expires_raw else None
+        created = []
+        for _ in range(max(0, min(count, 1000))):
+            t = SurveyAccessToken(
+                survey=survey,
+                token=secrets.token_urlsafe(24),
+                created_by=request.user,
+                expires_at=expires_at,
+                note=note,
+            )
+            t.save()
+            created.append(t)
+        messages.success(request, f"Created {len(created)} tokens.")
+        return redirect("surveys:tokens", slug=slug)
+    tokens = survey.access_tokens.order_by("-created_at")[:500]
+    return render(request, "surveys/tokens.html", {"survey": survey, "tokens": tokens})
+
+
+@login_required
+def survey_tokens_export_csv(request: HttpRequest, slug: str) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["token", "created_at", "expires_at", "used_at", "used_by", "note"])
+    for t in survey.access_tokens.all():
+        writer.writerow([t.token, t.created_at.isoformat(), t.expires_at.isoformat() if t.expires_at else "", t.used_at.isoformat() if t.used_at else "", (t.used_by_id or ""), t.note])
+    resp = HttpResponse(output.getvalue(), content_type="text/csv")
+    resp["Content-Disposition"] = f"attachment; filename=survey_{survey.id}_tokens.csv"
+    return resp
 
 
 @login_required

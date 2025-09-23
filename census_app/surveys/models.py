@@ -55,6 +55,27 @@ class Survey(models.Model):
     style = models.JSONField(default=dict, blank=True)
     start_at = models.DateTimeField(null=True, blank=True)
     end_at = models.DateTimeField(null=True, blank=True)
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PUBLISHED = "published", "Published"
+        CLOSED = "closed", "Closed"
+
+    class Visibility(models.TextChoices):
+        AUTHENTICATED = "authenticated", "Authenticated users only"
+        PUBLIC = "public", "Public"
+        UNLISTED = "unlisted", "Unlisted (secret link)"
+        TOKEN = "token", "By invite token"
+
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    visibility = models.CharField(max_length=20, choices=Visibility.choices, default=Visibility.AUTHENTICATED)
+    published_at = models.DateTimeField(null=True, blank=True)
+    unlisted_key = models.CharField(max_length=64, null=True, blank=True, unique=True)
+    max_responses = models.PositiveIntegerField(null=True, blank=True)
+    captcha_required = models.BooleanField(default=False)
+    no_patient_data_ack = models.BooleanField(
+        default=False,
+        help_text="Publisher confirms no patient data is collected when using non-authenticated visibility",
+    )
     # One-time survey key: store only hash + salt for verification
     key_salt = models.BinaryField(blank=True, null=True, editable=False)
     key_hash = models.BinaryField(blank=True, null=True, editable=False)
@@ -62,7 +83,17 @@ class Survey(models.Model):
 
     def is_live(self) -> bool:
         now = timezone.now()
-        return (self.start_at is None or self.start_at <= now) and (self.end_at is None or now <= self.end_at)
+        time_ok = (self.start_at is None or self.start_at <= now) and (self.end_at is None or now <= self.end_at)
+        status_ok = self.status == self.Status.PUBLISHED
+        # Respect max responses if set
+        if self.max_responses is not None and hasattr(self, "responses"):
+            try:
+                count = self.responses.count()
+            except Exception:
+                count = 0
+            if count >= self.max_responses:
+                return False
+        return status_ok and time_ok
 
     def __str__(self) -> str:  # pragma: no cover
         return self.name
@@ -119,6 +150,15 @@ class SurveyResponse(models.Model):
     answers = models.JSONField(default=dict)
     submitted_at = models.DateTimeField(auto_now_add=True)
     submitted_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="survey_responses")
+    # Optional link to an invite token to enforce one-response-per-token
+    # Using OneToOne ensures the token can be consumed exactly once.
+    access_token = models.OneToOneField(
+        "SurveyAccessToken",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="response",
+    )
 
     def store_demographics(self, survey_key: bytes, demographics: dict):
         self.enc_demographics = encrypt_sensitive(survey_key, demographics)
@@ -132,6 +172,29 @@ class SurveyResponse(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["survey", "submitted_by"], name="one_response_per_user_per_survey")
         ]
+
+
+class SurveyAccessToken(models.Model):
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="access_tokens")
+    token = models.CharField(max_length=64, unique=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_access_tokens")
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    used_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="used_access_tokens")
+    note = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["survey", "expires_at"]),
+        ]
+
+    def is_valid(self) -> bool:  # pragma: no cover
+        if self.used_at:
+            return False
+        if self.expires_at and timezone.now() > self.expires_at:
+            return False
+        return True
 
 
 def validate_markdown_survey(md_text: str) -> list[dict]:
