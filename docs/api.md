@@ -29,10 +29,15 @@ Base path: `/api/`
 - `GET /surveys/{id}/tokens/` — list up to 500 most recent invite tokens (owner/org ADMIN/creator)
 - `POST /surveys/{id}/tokens/` — create up to 1000 tokens with optional expiry/note (owner/org ADMIN/creator)
 
-### OpenAPI and Swagger UI
+### OpenAPI and interactive docs
 
 - `GET /api/schema` — OpenAPI schema (JSON)
 - `GET /api/docs` — Embedded Swagger UI (CSP-exempt). Paste a JWT into localStorage key `jwt` to authorize requests automatically.
+- `GET /api/redoc` — Embedded ReDoc documentation (CSP-exempt), rendering `/api/schema`.
+
+Notes:
+
+- We link out to interactive docs instead of embedding them directly into this Markdown to keep our strict Content Security Policy intact and avoid inline scripts in docs pages.
 
 ## Permissions matrix (summary)
 
