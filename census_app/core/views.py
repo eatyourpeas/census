@@ -1,21 +1,25 @@
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login
-from django.shortcuts import redirect, render
-from django.http import Http404
 from pathlib import Path
+
 import markdown as mdlib
 from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.http import Http404
+from django.shortcuts import redirect, render
+
 from census_app.surveys.models import (
     Organization,
     OrganizationMembership,
-    Survey,
-    SurveyMembership,
     QuestionGroup,
-    SurveyResponse,
+    Survey,
     SurveyAccessToken,
+    SurveyMembership,
+    SurveyResponse,
 )
+
 from .forms import SignupForm
+
 try:
     from .models import SiteBranding
 except ImportError:
@@ -24,6 +28,7 @@ except ImportError:
 try:
     from .theme_utils import normalize_daisyui_builder_css
 except ImportError:
+
     def normalize_daisyui_builder_css(s: str) -> str:
         """No-op fallback if theme utils or migrations are unavailable."""
         return s
@@ -39,10 +44,20 @@ def profile(request):
     if request.method == "POST" and request.POST.get("action") == "upgrade_to_org":
         # Create a new organisation owned by this user, and make them ADMIN
         with transaction.atomic():
-            org_name = request.POST.get("org_name") or f"{request.user.username}'s Organisation"
+            org_name = (
+                request.POST.get("org_name")
+                or f"{request.user.username}'s Organisation"
+            )
             org = Organization.objects.create(name=org_name, owner=request.user)
-            OrganizationMembership.objects.get_or_create(organization=org, user=request.user, defaults={"role": OrganizationMembership.Role.ADMIN})
-        messages.success(request, "Organisation created. You are now an organisation admin and can host surveys and build a team.")
+            OrganizationMembership.objects.get_or_create(
+                organization=org,
+                user=request.user,
+                defaults={"role": OrganizationMembership.Role.ADMIN},
+            )
+        messages.success(
+            request,
+            "Organisation created. You are now an organisation admin and can host surveys and build a team.",
+        )
         return redirect("surveys:org_users", org_id=org.id)
     if request.method == "POST" and request.POST.get("action") == "update_branding":
         if not request.user.is_superuser:
@@ -77,18 +92,28 @@ def profile(request):
     # Pick a primary organisation if present: prefer one the user owns; else first membership
     primary_owned_org = Organization.objects.filter(owner=user).first()
     first_membership = (
-        OrganizationMembership.objects.filter(user=user).select_related("organization").first()
+        OrganizationMembership.objects.filter(user=user)
+        .select_related("organization")
+        .first()
     )
-    org = primary_owned_org or (first_membership.organization if first_membership else None)
+    org = primary_owned_org or (
+        first_membership.organization if first_membership else None
+    )
     stats = {
         "is_superuser": getattr(user, "is_superuser", False),
         "is_staff": getattr(user, "is_staff", False),
         "orgs_owned": Organization.objects.filter(owner=user).count(),
-        "org_admin_count": OrganizationMembership.objects.filter(user=user, role=OrganizationMembership.Role.ADMIN).count(),
+        "org_admin_count": OrganizationMembership.objects.filter(
+            user=user, role=OrganizationMembership.Role.ADMIN
+        ).count(),
         "org_memberships": OrganizationMembership.objects.filter(user=user).count(),
         "surveys_owned": Survey.objects.filter(owner=user).count(),
-        "survey_creator_count": SurveyMembership.objects.filter(user=user, role=SurveyMembership.Role.CREATOR).count(),
-        "survey_viewer_count": SurveyMembership.objects.filter(user=user, role=SurveyMembership.Role.VIEWER).count(),
+        "survey_creator_count": SurveyMembership.objects.filter(
+            user=user, role=SurveyMembership.Role.CREATOR
+        ).count(),
+        "survey_viewer_count": SurveyMembership.objects.filter(
+            user=user, role=SurveyMembership.Role.VIEWER
+        ).count(),
         "groups_owned": QuestionGroup.objects.filter(owner=user).count(),
         "responses_submitted": SurveyResponse.objects.filter(submitted_by=user).count(),
         "tokens_created": SurveyAccessToken.objects.filter(created_by=user).count(),
@@ -105,10 +130,19 @@ def signup(request):
             account_type = request.POST.get("account_type")
             if account_type == "org":
                 with transaction.atomic():
-                    org_name = request.POST.get("org_name") or f"{user.username}'s Organisation"
+                    org_name = (
+                        request.POST.get("org_name")
+                        or f"{user.username}'s Organisation"
+                    )
                     org = Organization.objects.create(name=org_name, owner=user)
-                    OrganizationMembership.objects.create(organization=org, user=user, role=OrganizationMembership.Role.ADMIN)
-                messages.success(request, "Organisation created. You are an organisation admin.")
+                    OrganizationMembership.objects.create(
+                        organization=org,
+                        user=user,
+                        role=OrganizationMembership.Role.ADMIN,
+                    )
+                messages.success(
+                    request, "Organisation created. You are an organisation admin."
+                )
                 return redirect("surveys:org_users", org_id=org.id)
             return redirect("core:home")
     else:
@@ -117,7 +151,9 @@ def signup(request):
 
 
 # --- Documentation views ---
-DOCS_DIR = Path(__file__).resolve().parent.parent.parent / "docs"
+# Project root (repository root)
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+DOCS_DIR = REPO_ROOT / "docs"
 
 DOC_PAGES = {
     "index": "README.md",
@@ -133,17 +169,19 @@ DOC_PAGES = {
     "collections": "collections.md",
     "groups-view": "groups-view.md",
     "releases": "releases.md",
+    # Wire up repository root CONTRIBUTING.md into the in-app docs
+    "contributing": REPO_ROOT / "CONTRIBUTING.md",
 }
+
 
 def _doc_title(slug: str) -> str:
     # Convert slug to Title Case words (e.g., "getting-started" -> "Getting Started")
     return " ".join(part.capitalize() for part in slug.replace("_", "-").split("-"))
 
+
 def _nav_pages():
     return [
-        {"slug": s, "title": _doc_title(s)}
-        for s in DOC_PAGES.keys()
-        if s != "index"
+        {"slug": s, "title": _doc_title(s)} for s in DOC_PAGES.keys() if s != "index"
     ]
 
 
@@ -152,16 +190,32 @@ def docs_index(request):
     index_file = DOCS_DIR / DOC_PAGES["index"]
     if not index_file.exists():
         raise Http404("Documentation not found")
-    html = mdlib.markdown(index_file.read_text(encoding="utf-8"), extensions=["fenced_code", "tables", "toc"])
-    return render(request, "core/docs.html", {"html": html, "active_slug": "index", "pages": _nav_pages()})
+    html = mdlib.markdown(
+        index_file.read_text(encoding="utf-8"),
+        extensions=["fenced_code", "tables", "toc"],
+    )
+    return render(
+        request,
+        "core/docs.html",
+        {"html": html, "active_slug": "index", "pages": _nav_pages()},
+    )
 
 
 def docs_page(request, slug: str):
     """Render a specific documentation page by slug mapped to a whitelisted file."""
     if slug not in DOC_PAGES:
         raise Http404("Page not found")
-    file_path = DOCS_DIR / DOC_PAGES[slug]
+    # Allow values in DOC_PAGES to be either relative paths under docs/ or absolute paths
+    mapped = DOC_PAGES[slug]
+    file_path = (DOCS_DIR / mapped) if isinstance(mapped, (str,)) else Path(mapped)
     if not file_path.exists():
         raise Http404("Page not found")
-    html = mdlib.markdown(file_path.read_text(encoding="utf-8"), extensions=["fenced_code", "tables", "toc"])
-    return render(request, "core/docs.html", {"html": html, "active_slug": slug, "pages": _nav_pages()})
+    html = mdlib.markdown(
+        file_path.read_text(encoding="utf-8"),
+        extensions=["fenced_code", "tables", "toc"],
+    )
+    return render(
+        request,
+        "core/docs.html",
+        {"html": html, "active_slug": slug, "pages": _nav_pages()},
+    )

@@ -4,7 +4,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
 
-from census_app.surveys.models import Organization, Survey, QuestionGroup
+from census_app.surveys.models import Organization, QuestionGroup, Survey
 
 
 @pytest.mark.django_db
@@ -20,9 +20,15 @@ def test_groups_page_renders_with_counts(client):
     # Create minimal questions linked to survey and groups
     from census_app.surveys.models import SurveyQuestion
 
-    SurveyQuestion.objects.create(survey=survey, group=g1, text="Q1", type=SurveyQuestion.Types.TEXT)
-    SurveyQuestion.objects.create(survey=survey, group=g1, text="Q2", type=SurveyQuestion.Types.TEXT)
-    SurveyQuestion.objects.create(survey=survey, group=g2, text="Q3", type=SurveyQuestion.Types.TEXT)
+    SurveyQuestion.objects.create(
+        survey=survey, group=g1, text="Q1", type=SurveyQuestion.Types.TEXT
+    )
+    SurveyQuestion.objects.create(
+        survey=survey, group=g1, text="Q2", type=SurveyQuestion.Types.TEXT
+    )
+    SurveyQuestion.objects.create(
+        survey=survey, group=g2, text="Q3", type=SurveyQuestion.Types.TEXT
+    )
 
     # Owner should see the groups page with counts 2 and 1
     client.force_login(owner)

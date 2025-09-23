@@ -1,17 +1,20 @@
 from __future__ import annotations
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from .utils import encrypt_sensitive, decrypt_sensitive, make_key_hash
 
+from .utils import decrypt_sensitive, encrypt_sensitive, make_key_hash
 
 User = get_user_model()
 
 
 class Organization(models.Model):
     name = models.CharField(max_length=255)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="organizations")
+    owner = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="organizations"
+    )
 
     def __str__(self) -> str:  # pragma: no cover
         return self.name
@@ -23,8 +26,12 @@ class OrganizationMembership(models.Model):
         CREATOR = "creator", "Creator"
         VIEWER = "viewer", "Viewer"
 
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="memberships")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="org_memberships")
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="memberships"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="org_memberships"
+    )
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.CREATOR)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -35,9 +42,13 @@ class OrganizationMembership(models.Model):
 class QuestionGroup(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="question_groups")
+    owner = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="question_groups"
+    )
     shared = models.BooleanField(default=False)
-    schema = models.JSONField(default=dict, help_text="Definition of questions in this group")
+    schema = models.JSONField(
+        default=dict, help_text="Definition of questions in this group"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:  # pragma: no cover
@@ -46,15 +57,20 @@ class QuestionGroup(models.Model):
 
 class Survey(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="surveys")
-    organization = models.ForeignKey(Organization, on_delete=models.SET_NULL, null=True, blank=True)
+    organization = models.ForeignKey(
+        Organization, on_delete=models.SET_NULL, null=True, blank=True
+    )
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True)
     description = models.TextField(blank=True)
-    question_groups = models.ManyToManyField(QuestionGroup, blank=True, related_name="surveys")
+    question_groups = models.ManyToManyField(
+        QuestionGroup, blank=True, related_name="surveys"
+    )
     # Per-survey style overrides (title, theme_name, icon_url, font_heading, font_body, primary_color)
     style = models.JSONField(default=dict, blank=True)
     start_at = models.DateTimeField(null=True, blank=True)
     end_at = models.DateTimeField(null=True, blank=True)
+
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
         PUBLISHED = "published", "Published"
@@ -66,8 +82,12 @@ class Survey(models.Model):
         UNLISTED = "unlisted", "Unlisted (secret link)"
         TOKEN = "token", "By invite token"
 
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
-    visibility = models.CharField(max_length=20, choices=Visibility.choices, default=Visibility.AUTHENTICATED)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.DRAFT
+    )
+    visibility = models.CharField(
+        max_length=20, choices=Visibility.choices, default=Visibility.AUTHENTICATED
+    )
     published_at = models.DateTimeField(null=True, blank=True)
     unlisted_key = models.CharField(max_length=64, null=True, blank=True, unique=True)
     max_responses = models.PositiveIntegerField(null=True, blank=True)
@@ -83,7 +103,9 @@ class Survey(models.Model):
 
     def is_live(self) -> bool:
         now = timezone.now()
-        time_ok = (self.start_at is None or self.start_at <= now) and (self.end_at is None or now <= self.end_at)
+        time_ok = (self.start_at is None or self.start_at <= now) and (
+            self.end_at is None or now <= self.end_at
+        )
         status_ok = self.status == self.Status.PUBLISHED
         # Respect max responses if set
         if self.max_responses is not None and hasattr(self, "responses"):
@@ -116,8 +138,12 @@ class SurveyQuestion(models.Model):
         DROPDOWN = "dropdown", "Dropdown"
         IMAGE_CHOICE = "image", "Image choice"
 
-    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="questions")
-    group = models.ForeignKey(QuestionGroup, on_delete=models.SET_NULL, null=True, blank=True)
+    survey = models.ForeignKey(
+        Survey, on_delete=models.CASCADE, related_name="questions"
+    )
+    group = models.ForeignKey(
+        QuestionGroup, on_delete=models.SET_NULL, null=True, blank=True
+    )
     text = models.TextField()
     type = models.CharField(max_length=20, choices=Types.choices)
     options = models.JSONField(default=list, blank=True)
@@ -133,8 +159,12 @@ class SurveyMembership(models.Model):
         CREATOR = "creator", "Creator"
         VIEWER = "viewer", "Viewer"
 
-    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="memberships")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="survey_memberships")
+    survey = models.ForeignKey(
+        Survey, on_delete=models.CASCADE, related_name="memberships"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="survey_memberships"
+    )
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.VIEWER)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -143,13 +173,21 @@ class SurveyMembership(models.Model):
 
 
 class SurveyResponse(models.Model):
-    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="responses")
+    survey = models.ForeignKey(
+        Survey, on_delete=models.CASCADE, related_name="responses"
+    )
     # Sensitive demographics encrypted per-survey
     enc_demographics = models.BinaryField(null=True, blank=True)
     # Non-sensitive answers stored normally
     answers = models.JSONField(default=dict)
     submitted_at = models.DateTimeField(auto_now_add=True)
-    submitted_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="survey_responses")
+    submitted_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="survey_responses",
+    )
     # Optional link to an invite token to enforce one-response-per-token
     # Using OneToOne ensures the token can be consumed exactly once.
     access_token = models.OneToOneField(
@@ -170,18 +208,31 @@ class SurveyResponse(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["survey", "submitted_by"], name="one_response_per_user_per_survey")
+            models.UniqueConstraint(
+                fields=["survey", "submitted_by"],
+                name="one_response_per_user_per_survey",
+            )
         ]
 
 
 class SurveyAccessToken(models.Model):
-    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="access_tokens")
+    survey = models.ForeignKey(
+        Survey, on_delete=models.CASCADE, related_name="access_tokens"
+    )
     token = models.CharField(max_length=64, unique=True)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_access_tokens")
+    created_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="created_access_tokens"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     used_at = models.DateTimeField(null=True, blank=True)
-    used_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="used_access_tokens")
+    used_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="used_access_tokens",
+    )
     note = models.CharField(max_length=255, blank=True)
 
     class Meta:
@@ -216,10 +267,14 @@ class AuditLog(models.Model):
 
     actor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="audit_logs")
     scope = models.CharField(max_length=20, choices=Scope.choices)
-    organization = models.ForeignKey(Organization, null=True, blank=True, on_delete=models.CASCADE)
+    organization = models.ForeignKey(
+        Organization, null=True, blank=True, on_delete=models.CASCADE
+    )
     survey = models.ForeignKey(Survey, null=True, blank=True, on_delete=models.CASCADE)
     action = models.CharField(max_length=20, choices=Action.choices)
-    target_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="audit_targets")
+    target_user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="audit_targets"
+    )
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -232,18 +287,27 @@ class AuditLog(models.Model):
 
 # -------------------- Collections (definitions) --------------------
 
+
 class CollectionDefinition(models.Model):
     class Cardinality(models.TextChoices):
         ONE = "one", "One"
         MANY = "many", "Many"
 
-    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="collections")
-    key = models.SlugField(help_text="Stable key used in response JSON; unique per survey")
+    survey = models.ForeignKey(
+        Survey, on_delete=models.CASCADE, related_name="collections"
+    )
+    key = models.SlugField(
+        help_text="Stable key used in response JSON; unique per survey"
+    )
     name = models.CharField(max_length=255)
-    cardinality = models.CharField(max_length=10, choices=Cardinality.choices, default=Cardinality.MANY)
+    cardinality = models.CharField(
+        max_length=10, choices=Cardinality.choices, default=Cardinality.MANY
+    )
     min_count = models.PositiveIntegerField(default=0)
     max_count = models.PositiveIntegerField(null=True, blank=True)
-    parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="children")
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.CASCADE, related_name="children"
+    )
 
     class Meta:
         unique_together = ("survey", "key")
@@ -263,18 +327,25 @@ class CollectionDefinition(models.Model):
 
     def clean(self):  # pragma: no cover - covered via tests
         from django.core.exceptions import ValidationError
+
         # Parent must be in the same survey
         if self.parent and self.parent.survey_id != self.survey_id:
-            raise ValidationError({"parent": "Parent collection must belong to the same survey."})
+            raise ValidationError(
+                {"parent": "Parent collection must belong to the same survey."}
+            )
         # Depth cap (2 levels: parent -> child). If parent has a parent, this would be level 3.
         if self.parent and self.parent.parent_id:
             raise ValidationError({"parent": "Maximum nesting depth is 2."})
         # Cardinality constraints
         if self.cardinality == self.Cardinality.ONE:
             if self.max_count is not None and self.max_count != 1:
-                raise ValidationError({"max_count": "For cardinality 'one', max_count must be 1."})
+                raise ValidationError(
+                    {"max_count": "For cardinality 'one', max_count must be 1."}
+                )
             if self.min_count not in (0, 1):
-                raise ValidationError({"min_count": "For cardinality 'one', min_count must be 0 or 1."})
+                raise ValidationError(
+                    {"min_count": "For cardinality 'one', min_count must be 0 or 1."}
+                )
         # min/max relationship
         if self.max_count is not None and self.min_count > self.max_count:
             raise ValidationError({"min_count": "min_count cannot exceed max_count."})
@@ -282,7 +353,9 @@ class CollectionDefinition(models.Model):
         for anc in self.ancestors():
             # If this instance already has a PK, ensure no ancestor is itself
             if self.pk and anc.pk == self.pk:
-                raise ValidationError({"parent": "Collections cannot reference themselves (cycle)."})
+                raise ValidationError(
+                    {"parent": "Collections cannot reference themselves (cycle)."}
+                )
 
 
 class CollectionItem(models.Model):
@@ -290,16 +363,29 @@ class CollectionItem(models.Model):
         GROUP = "group", "Group"
         COLLECTION = "collection", "Collection"
 
-    collection = models.ForeignKey(CollectionDefinition, on_delete=models.CASCADE, related_name="items")
+    collection = models.ForeignKey(
+        CollectionDefinition, on_delete=models.CASCADE, related_name="items"
+    )
     item_type = models.CharField(max_length=20, choices=ItemType.choices)
-    group = models.ForeignKey(QuestionGroup, null=True, blank=True, on_delete=models.CASCADE)
-    child_collection = models.ForeignKey(CollectionDefinition, null=True, blank=True, on_delete=models.CASCADE, related_name="parent_links")
+    group = models.ForeignKey(
+        QuestionGroup, null=True, blank=True, on_delete=models.CASCADE
+    )
+    child_collection = models.ForeignKey(
+        CollectionDefinition,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="parent_links",
+    )
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ["order", "id"]
         constraints = [
-            models.UniqueConstraint(fields=["collection", "order"], name="uq_collectionitem_order_per_collection"),
+            models.UniqueConstraint(
+                fields=["collection", "order"],
+                name="uq_collectionitem_order_per_collection",
+            ),
         ]
 
     def __str__(self) -> str:  # pragma: no cover
@@ -308,22 +394,39 @@ class CollectionItem(models.Model):
 
     def clean(self):  # pragma: no cover - covered via tests
         from django.core.exceptions import ValidationError
+
         # Exactly one of group or child_collection must be set
         if bool(self.group) == bool(self.child_collection):
-            raise ValidationError("Provide either a group or a child_collection, not both.")
+            raise ValidationError(
+                "Provide either a group or a child_collection, not both."
+            )
         # item_type must match the provided field
         if self.item_type == self.ItemType.GROUP and not self.group:
             raise ValidationError({"group": "group must be set for item_type 'group'."})
         if self.item_type == self.ItemType.COLLECTION and not self.child_collection:
-            raise ValidationError({"child_collection": "child_collection must be set for item_type 'collection'."})
+            raise ValidationError(
+                {
+                    "child_collection": "child_collection must be set for item_type 'collection'."
+                }
+            )
         # Group must belong to the same survey
         if self.group:
             survey_id = self.collection.survey_id
             if not self.group.surveys.filter(id=survey_id).exists():
-                raise ValidationError({"group": "Selected group is not attached to this survey."})
+                raise ValidationError(
+                    {"group": "Selected group is not attached to this survey."}
+                )
         # Child collection must be in same survey and be a direct child of this collection
         if self.child_collection:
             if self.child_collection.survey_id != self.collection.survey_id:
-                raise ValidationError({"child_collection": "Child collection must belong to the same survey."})
+                raise ValidationError(
+                    {
+                        "child_collection": "Child collection must belong to the same survey."
+                    }
+                )
             if self.child_collection.parent_id != self.collection_id:
-                raise ValidationError({"child_collection": "Child collection's parent must be this collection."})
+                raise ValidationError(
+                    {
+                        "child_collection": "Child collection's parent must be this collection."
+                    }
+                )

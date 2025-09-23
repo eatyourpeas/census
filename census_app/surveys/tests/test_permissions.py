@@ -21,9 +21,15 @@ def users(db):
 def org(db, users):
     admin, creator, viewer, outsider, participant = users
     org = Organization.objects.create(name="Org", owner=admin)
-    OrganizationMembership.objects.create(organization=org, user=admin, role=OrganizationMembership.Role.ADMIN)
-    OrganizationMembership.objects.create(organization=org, user=creator, role=OrganizationMembership.Role.CREATOR)
-    OrganizationMembership.objects.create(organization=org, user=viewer, role=OrganizationMembership.Role.VIEWER)
+    OrganizationMembership.objects.create(
+        organization=org, user=admin, role=OrganizationMembership.Role.ADMIN
+    )
+    OrganizationMembership.objects.create(
+        organization=org, user=creator, role=OrganizationMembership.Role.CREATOR
+    )
+    OrganizationMembership.objects.create(
+        organization=org, user=viewer, role=OrganizationMembership.Role.VIEWER
+    )
     return org
 
 
@@ -120,7 +126,9 @@ def test_authenticated_without_rights_gets_403_on_detail(client, users, org, sur
 
 
 @pytest.mark.django_db
-def test_authenticated_without_rights_gets_403_on_other_views(client, users, org, surveys):
+def test_authenticated_without_rights_gets_403_on_other_views(
+    client, users, org, surveys
+):
     admin, creator, viewer, outsider, participant = users
     s1, s2 = surveys
     client.force_login(outsider)
@@ -129,7 +137,7 @@ def test_authenticated_without_rights_gets_403_on_other_views(client, users, org
         reverse("surveys:preview", kwargs={"slug": s1.slug}),
         reverse("surveys:dashboard", kwargs={"slug": s1.slug}),
         reverse("surveys:groups", kwargs={"slug": s1.slug}),
-    reverse("surveys:groups", kwargs={"slug": s1.slug}),
+        reverse("surveys:groups", kwargs={"slug": s1.slug}),
     ]
     for url in urls:
         resp = client.get(url)
@@ -142,6 +150,12 @@ def test_preview_requires_permission(client, users, org, surveys):
     s1, s2 = surveys
     # Creator can preview their own
     login(client, creator)
-    assert client.get(reverse("surveys:preview", kwargs={"slug": s1.slug})).status_code == 200
+    assert (
+        client.get(reverse("surveys:preview", kwargs={"slug": s1.slug})).status_code
+        == 200
+    )
     # But not others
-    assert client.get(reverse("surveys:preview", kwargs={"slug": s2.slug})).status_code == 403
+    assert (
+        client.get(reverse("surveys:preview", kwargs={"slug": s2.slug})).status_code
+        == 403
+    )

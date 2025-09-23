@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import Organization, QuestionGroup, Survey, SurveyQuestion, SurveyResponse, CollectionDefinition, CollectionItem
+
+from .models import (
+    CollectionDefinition,
+    CollectionItem,
+    Organization,
+    QuestionGroup,
+    Survey,
+    SurveyQuestion,
+    SurveyResponse,
+)
 
 
 @admin.register(Organization)

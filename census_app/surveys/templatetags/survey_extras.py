@@ -1,5 +1,6 @@
-from django import template
 import json
+
+from django import template
 
 register = template.Library()
 
@@ -101,7 +102,9 @@ def as_list(value):
                             return first["values"]
                         if "options" in first and isinstance(first["options"], list):
                             return first["options"]
-                        if "categories" in first and isinstance(first["categories"], list):
+                        if "categories" in first and isinstance(
+                            first["categories"], list
+                        ):
                             return first["categories"]
                     return parsed
                 if isinstance(parsed, dict):
@@ -111,7 +114,9 @@ def as_list(value):
                         return parsed["values"]
                     if "options" in parsed and isinstance(parsed["options"], list):
                         return parsed["options"]
-                    if "categories" in parsed and isinstance(parsed["categories"], list):
+                    if "categories" in parsed and isinstance(
+                        parsed["categories"], list
+                    ):
                         return parsed["categories"]
                 return []
             except Exception:
@@ -164,7 +169,7 @@ def options_meta(value):
     - If value is a JSON string, parse then apply the above
     - Else return empty dict
     """
-    
+
     try:
         if isinstance(value, list):
             if value and isinstance(value[0], dict):

@@ -1,8 +1,14 @@
 import json
+
 import pytest
 from django.contrib.auth import get_user_model
-from census_app.surveys.models import Organization, OrganizationMembership, Survey, SurveyMembership
 
+from census_app.surveys.models import (
+    Organization,
+    OrganizationMembership,
+    Survey,
+    SurveyMembership,
+)
 
 User = get_user_model()
 TEST_PASSWORD = "test-pass"
@@ -27,11 +33,13 @@ def test_org_memberships_anonymous_blocked(client):
 @pytest.mark.django_db
 def test_org_memberships_non_admin_forbidden_on_mutations(client):
     admin = User.objects.create_user(username="adminx", password=TEST_PASSWORD)
-    User.objects.create_user(username="userx", password=TEST_PASSWORD) # nonadmin
+    User.objects.create_user(username="userx", password=TEST_PASSWORD)  # nonadmin
     target = User.objects.create_user(username="targetx", password=TEST_PASSWORD)
     org = Organization.objects.create(name="OrgX", owner=admin)
     # Only admin membership
-    OrganizationMembership.objects.create(organization=org, user=admin, role=OrganizationMembership.Role.ADMIN)
+    OrganizationMembership.objects.create(
+        organization=org, user=admin, role=OrganizationMembership.Role.ADMIN
+    )
 
     # Non-admin cannot create/update/delete memberships
     hdrs = auth_hdr(client, "userx", TEST_PASSWORD)
@@ -45,7 +53,9 @@ def test_org_memberships_non_admin_forbidden_on_mutations(client):
     assert resp.status_code == 403
 
     # Prepare an existing membership (viewer) to try update/delete
-    mem = OrganizationMembership.objects.create(organization=org, user=target, role=OrganizationMembership.Role.VIEWER)
+    mem = OrganizationMembership.objects.create(
+        organization=org, user=target, role=OrganizationMembership.Role.VIEWER
+    )
     # Update
     resp = client.patch(
         f"/api/org-memberships/{mem.id}/",
@@ -68,7 +78,7 @@ def test_survey_memberships_anonymous_blocked(client):
 @pytest.mark.django_db
 def test_survey_memberships_non_manager_forbidden_on_mutations(client):
     owner = User.objects.create_user(username="ownerx", password=TEST_PASSWORD)
-    User.objects.create_user(username="otherx", password=TEST_PASSWORD) # other
+    User.objects.create_user(username="otherx", password=TEST_PASSWORD)  # other
     target = User.objects.create_user(username="targy", password=TEST_PASSWORD)
     org = Organization.objects.create(name="OrgY", owner=owner)
     survey = Survey.objects.create(owner=owner, organization=org, name="Sx", slug="sx")
@@ -84,7 +94,9 @@ def test_survey_memberships_non_manager_forbidden_on_mutations(client):
     assert resp.status_code == 403
 
     # Prepare an existing membership to attempt update/delete
-    mem = SurveyMembership.objects.create(survey=survey, user=target, role=SurveyMembership.Role.VIEWER)
+    mem = SurveyMembership.objects.create(
+        survey=survey, user=target, role=SurveyMembership.Role.VIEWER
+    )
     # Update
     resp = client.patch(
         f"/api/survey-memberships/{mem.id}/",
@@ -101,9 +113,11 @@ def test_survey_memberships_non_manager_forbidden_on_mutations(client):
 @pytest.mark.django_db
 def test_scoped_user_create_org_permissions(client):
     admin = User.objects.create_user(username="adminz", password=TEST_PASSWORD)
-    User.objects.create_user(username="plainz", password=TEST_PASSWORD) # nonadmin
+    User.objects.create_user(username="plainz", password=TEST_PASSWORD)  # nonadmin
     org = Organization.objects.create(name="OrgZ", owner=admin)
-    OrganizationMembership.objects.create(organization=org, user=admin, role=OrganizationMembership.Role.ADMIN)
+    OrganizationMembership.objects.create(
+        organization=org, user=admin, role=OrganizationMembership.Role.ADMIN
+    )
 
     # anonymous 401
     resp = client.post(
@@ -137,7 +151,7 @@ def test_scoped_user_create_org_permissions(client):
 @pytest.mark.django_db
 def test_scoped_user_create_survey_permissions(client):
     owner = User.objects.create_user(username="ownera", password=TEST_PASSWORD)
-    User.objects.create_user(username="othra", password=TEST_PASSWORD) # other
+    User.objects.create_user(username="othra", password=TEST_PASSWORD)  # other
     org = Organization.objects.create(name="OrgA1", owner=owner)
     survey = Survey.objects.create(owner=owner, organization=org, name="S1", slug="s1a")
 

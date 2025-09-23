@@ -1,6 +1,8 @@
 # Contributing
 
-Thanks for contributing to this project! Please follow these guidelines to keep the codebase healthy and secure.
+We welcome contributions of all kinds—bug reports, feature requests, docs, and code. Before opening a new issue, please search the existing [Issues](https://github.com/eatyourpeas/census/issues) to avoid duplicates. If you plan to work on something, feel free to open an issue to discuss it first. Pull Requests are very welcome—small, focused PRs are easiest to review.
+
+Please follow these guidelines to keep the codebase healthy and secure.
 
 ## Tests and dummy credentials
 
@@ -32,6 +34,44 @@ Secret scanners (e.g. GitGuardian, GitHub Secret Scanning, ggshield) run on this
 
 - Python: ruff/black-compatible; follow existing patterns.
 - Frontend: Tailwind + DaisyUI; keep components consistent with the current design.
+
+### Linting & formatting
+
+We use three tools for Python code quality:
+
+- Ruff: fast linter (the primary style/lint engine)
+- Black: code formatter (opinionated, no config)
+- isort: import sorting (configured to match Black)
+
+Local usage (poetry-managed):
+
+```sh
+# Lint
+poetry run ruff check .
+
+# Format (apply changes)
+poetry run black .
+poetry run isort --profile black .
+
+# Verify (no changes should be needed)
+poetry run black --check .
+poetry run isort --profile black --check-only .
+```
+
+Pre-commit (optional but recommended): install hooks once, then they run automatically on commits.
+
+```sh
+pip install pre-commit
+pre-commit install
+# To run on entire repo
+pre-commit run --all-files
+```
+
+CI runs the following in the lint phase (see `.github/workflows/ci.yml`):
+
+- `ruff check .`
+- `black --check .`
+- `isort --profile black --check-only .`
 
 ## Docs
 

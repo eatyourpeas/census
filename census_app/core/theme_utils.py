@@ -1,13 +1,33 @@
 import re
 from typing import Dict
 
-
 _VAR_LINE_RE = re.compile(r"--(?P<key>[a-zA-Z0-9_-]+)\s*:\s*(?P<val>[^;]+);?")
 
 
 def _map_key(k: str) -> str:
     # Accept already-correct DaisyUI vars as-is
-    if k in {"p","pc","s","sc","a","ac","n","nc","b1","b2","b3","bc","in","inc","su","suc","wa","wac","er","erc"}:
+    if k in {
+        "p",
+        "pc",
+        "s",
+        "sc",
+        "a",
+        "ac",
+        "n",
+        "nc",
+        "b1",
+        "b2",
+        "b3",
+        "bc",
+        "in",
+        "inc",
+        "su",
+        "suc",
+        "wa",
+        "wac",
+        "er",
+        "erc",
+    }:
         return f"--{k}"
     # Map builder --color-* and base/neutral names to DaisyUI runtime vars
     m: Dict[str, str] = {
@@ -35,7 +55,13 @@ def _map_key(k: str) -> str:
     if k in m:
         return m[k]
     # Pass through radius/depth/size vars in builder format
-    if k.startswith("radius-") or k in {"border","depth","noise","size-selector","size-field"}:
+    if k.startswith("radius-") or k in {
+        "border",
+        "depth",
+        "noise",
+        "size-selector",
+        "size-field",
+    }:
         return f"--{k}"
     # Unknown var: ignore by returning empty key
     return ""
@@ -55,7 +81,14 @@ def normalize_daisyui_builder_css(raw: str) -> str:
     for line in raw.splitlines():
         line = line.strip()
         # Skip wrapper lines like @plugin/name, name:, default:, braces
-        if not line or line.startswith("@") or line.endswith("{") or line == "}" or ":" in line and not line.strip().startswith("--"):
+        if (
+            not line
+            or line.startswith("@")
+            or line.endswith("{")
+            or line == "}"
+            or ":" in line
+            and not line.strip().startswith("--")
+        ):
             # allow-only var lines (starting with --)
             pass
         m = _VAR_LINE_RE.search(line)

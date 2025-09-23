@@ -54,8 +54,12 @@ jobs:
         run: pip install poetry==1.8.3
       - name: Install dependencies
         run: poetry install
-      - name: Lint
+      - name: Lint (Ruff)
         run: poetry run ruff check .
+      - name: Check formatting (Black)
+        run: poetry run black --check .
+      - name: Check imports (isort)
+        run: poetry run isort --profile black --check-only .
       - name: Django checks
         run: poetry run python manage.py check
       - name: Run migrations

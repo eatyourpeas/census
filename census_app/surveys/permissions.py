@@ -34,7 +34,9 @@ def can_edit_survey(user, survey: Survey) -> bool:
         return True
     if survey.organization_id and is_org_admin(user, survey.organization):
         return True
-    return SurveyMembership.objects.filter(user=user, survey=survey, role=SurveyMembership.Role.CREATOR).exists()
+    return SurveyMembership.objects.filter(
+        user=user, survey=survey, role=SurveyMembership.Role.CREATOR
+    ).exists()
 
 
 def can_manage_org_users(user, org: Organization) -> bool:
@@ -47,7 +49,9 @@ def can_manage_survey_users(user, survey: Survey) -> bool:
         return True
     if survey.owner_id == getattr(user, "id", None):
         return True
-    return SurveyMembership.objects.filter(user=user, survey=survey, role=SurveyMembership.Role.CREATOR).exists()
+    return SurveyMembership.objects.filter(
+        user=user, survey=survey, role=SurveyMembership.Role.CREATOR
+    ).exists()
 
 
 def require_can_view(user, survey: Survey) -> None:

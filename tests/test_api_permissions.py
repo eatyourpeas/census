@@ -1,8 +1,9 @@
 import json
+
 import pytest
 from django.contrib.auth import get_user_model
-from census_app.surveys.models import Organization, OrganizationMembership, Survey
 
+from census_app.surveys.models import Organization, OrganizationMembership, Survey
 
 User = get_user_model()
 TEST_PASSWORD = "test-pass"
@@ -31,11 +32,19 @@ class TestAPIPermissions:
     def setup_data(self):
         owner, admin, creator, viewer, _ = self.setup_users()
         org = Organization.objects.create(name="Org1", owner=owner)
-        OrganizationMembership.objects.create(organization=org, user=admin, role=OrganizationMembership.Role.ADMIN)
-        OrganizationMembership.objects.create(organization=org, user=creator, role=OrganizationMembership.Role.CREATOR)
-        OrganizationMembership.objects.create(organization=org, user=viewer, role=OrganizationMembership.Role.VIEWER)
+        OrganizationMembership.objects.create(
+            organization=org, user=admin, role=OrganizationMembership.Role.ADMIN
+        )
+        OrganizationMembership.objects.create(
+            organization=org, user=creator, role=OrganizationMembership.Role.CREATOR
+        )
+        OrganizationMembership.objects.create(
+            organization=org, user=viewer, role=OrganizationMembership.Role.VIEWER
+        )
         s1 = Survey.objects.create(owner=owner, organization=org, name="S1", slug="s1")
-        s2 = Survey.objects.create(owner=creator, organization=org, name="S2", slug="s2")
+        s2 = Survey.objects.create(
+            owner=creator, organization=org, name="S2", slug="s2"
+        )
         s3 = Survey.objects.create(owner=viewer, organization=org, name="S3", slug="s3")
         return owner, admin, creator, viewer, org, [s1, s2, s3]
 
@@ -76,7 +85,7 @@ class TestAPIPermissions:
         assert resp.status_code in (401, 403)
 
     def test_retrieve_permissions(self, client):
-        _, _, _, _, _, surveys = self.setup_data() # owner, admin, creator, viewer, org
+        _, _, _, _, _, surveys = self.setup_data()  # owner, admin, creator, viewer, org
         s1, s2, s3 = surveys
         url_s2 = f"/api/surveys/{s2.id}/"
 
@@ -105,43 +114,66 @@ class TestAPIPermissions:
         assert resp.status_code == 403
 
     def test_update_forbidden_without_rights(self, client):
-        _, _, _, _, _, surveys = self.setup_data() # owner, admin, creator, viewer, org
+        _, _, _, _, _, surveys = self.setup_data()  # owner, admin, creator, viewer, org
         s2 = surveys[1]
         url_s2 = f"/api/surveys/{s2.id}/"
 
         # creator can update own
         hdrs = self.get_auth_header(client, "creator", TEST_PASSWORD)
-        resp = client.patch(url_s2, data=json.dumps({"description": "x"}), content_type="application/json", **hdrs)
+        resp = client.patch(
+            url_s2,
+            data=json.dumps({"description": "x"}),
+            content_type="application/json",
+            **hdrs,
+        )
         assert resp.status_code in (200, 202)
 
         # viewer cannot update creator's
         hdrs = self.get_auth_header(client, "viewer", TEST_PASSWORD)
-        resp = client.patch(url_s2, data=json.dumps({"description": "x2"}), content_type="application/json", **hdrs)
+        resp = client.patch(
+            url_s2,
+            data=json.dumps({"description": "x2"}),
+            content_type="application/json",
+            **hdrs,
+        )
         assert resp.status_code == 403
 
         # admin can update creator's
         hdrs = self.get_auth_header(client, "admin", TEST_PASSWORD)
-        resp = client.patch(url_s2, data=json.dumps({"description": "x3"}), content_type="application/json", **hdrs)
+        resp = client.patch(
+            url_s2,
+            data=json.dumps({"description": "x3"}),
+            content_type="application/json",
+            **hdrs,
+        )
         assert resp.status_code in (200, 202)
 
         # anonymous cannot update (401)
-        resp = client.patch(url_s2, data=json.dumps({"description": "x4"}), content_type="application/json")
+        resp = client.patch(
+            url_s2,
+            data=json.dumps({"description": "x4"}),
+            content_type="application/json",
+        )
         assert resp.status_code in (401, 403)
 
     def test_seed_action_permissions(self, client):
-        _, _, _, _, _, surveys = self.setup_data() # owner, admin, creator, viewer, org
+        _, _, _, _, _, surveys = self.setup_data()  # owner, admin, creator, viewer, org
         s2 = surveys[1]  # owned by creator
         url_seed = f"/api/surveys/{s2.id}/seed/"
         payload = [{"text": "Q1", "type": "text", "order": 1}]
 
         # admin can seed creator's survey
         hdrs = self.get_auth_header(client, "admin", TEST_PASSWORD)
-        resp = client.post(url_seed, data=json.dumps(payload), content_type="application/json", **hdrs)
+        resp = client.post(
+            url_seed, data=json.dumps(payload), content_type="application/json", **hdrs
+        )
         assert resp.status_code == 200
 
         # viewer cannot seed creator's survey
         hdrs = self.get_auth_header(client, "viewer", TEST_PASSWORD)
-        resp = client.post(url_seed, data=json.dumps(payload), content_type="application/json", **hdrs)
+        resp = client.post(
+            url_seed, data=json.dumps(payload), content_type="application/json", **hdrs
+        )
         assert resp.status_code == 403
 
     def test_create_returns_one_time_key(self, client):
@@ -155,4 +187,8 @@ class TestAPIPermissions:
         )
         assert resp.status_code in (201, 200)
         body = resp.json()
-        assert "one_time_key_b64" in body and isinstance(body["one_time_key_b64"], str) and len(body["one_time_key_b64"]) > 0
+        assert (
+            "one_time_key_b64" in body
+            and isinstance(body["one_time_key_b64"], str)
+            and len(body["one_time_key_b64"]) > 0
+        )

@@ -1,8 +1,9 @@
 import json
+
 import pytest
 from django.contrib.auth import get_user_model
-from census_app.surveys.models import Organization, Survey
 
+from census_app.surveys.models import Organization, Survey
 
 User = get_user_model()
 TEST_PASSWORD = "test-pass"
@@ -13,7 +14,9 @@ class TestJWTEnforcement:
     def setup_data(self):
         owner = User.objects.create_user(username="owner2", password=TEST_PASSWORD)
         org = Organization.objects.create(name="Org-JWT", owner=owner)
-        survey = Survey.objects.create(owner=owner, organization=org, name="Jwt S", slug="jwt-s")
+        survey = Survey.objects.create(
+            owner=owner, organization=org, name="Jwt S", slug="jwt-s"
+        )
         return owner, org, survey
 
     def get_auth_header(self, client, username: str, password: str) -> dict:
@@ -27,7 +30,7 @@ class TestJWTEnforcement:
         return {"HTTP_AUTHORIZATION": f"Bearer {access}"}
 
     def test_missing_token_behaviour(self, client):
-        _, _, survey = self.setup_data() # ower, org, survey
+        _, _, survey = self.setup_data()  # ower, org, survey
 
         # List: requires authentication (anonymous should be denied)
         resp = client.get("/api/surveys/")

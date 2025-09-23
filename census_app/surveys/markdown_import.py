@@ -36,18 +36,18 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
 
     def is_heading(s: str) -> bool:
         s_strip = s.lstrip()
-        return s_strip.startswith('# ' ) or s_strip.startswith('## ')
+        return s_strip.startswith("# ") or s_strip.startswith("## ")
 
     while i < len(lines):
         raw = lines[i]
         line = raw.strip()
         # Group heading
-        if line.startswith('# ') and not line.startswith('## '):
+        if line.startswith("# ") and not line.startswith("## "):
             title = line[2:].strip()
             # find next non-empty as group description (if not a heading)
-            desc = ''
+            desc = ""
             j = i + 1
-            while j < len(lines) and lines[j].strip() == '':
+            while j < len(lines) and lines[j].strip() == "":
                 j += 1
             if j < len(lines) and not is_heading(lines[j]):
                 desc = lines[j].strip()
@@ -56,35 +56,51 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
             groups.append(current_group)
             current_question = None
         # Question heading
-        elif line.startswith('## '):
+        elif line.startswith("## "):
             if not current_group:
-                raise BulkParseError(f"Question declared before any group at line {i+1}")
+                raise BulkParseError(
+                    f"Question declared before any group at line {i+1}"
+                )
             qtitle = line[3:].strip()
             # next non-empty: question description
-            qdesc = ''
+            qdesc = ""
             j = i + 1
-            while j < len(lines) and lines[j].strip() == '':
+            while j < len(lines) and lines[j].strip() == "":
                 j += 1
-            if j < len(lines) and not is_heading(lines[j]) and not re.match(r"^\(.*\)$", lines[j].strip()):
+            if (
+                j < len(lines)
+                and not is_heading(lines[j])
+                and not re.match(r"^\(.*\)$", lines[j].strip())
+            ):
                 qdesc = lines[j].strip()
                 i = j
             # next non-empty: (type)
             k = i + 1
-            while k < len(lines) and lines[k].strip() == '':
+            while k < len(lines) and lines[k].strip() == "":
                 k += 1
             if k >= len(lines) or not re.match(r"^\(.*\)$", lines[k].strip()):
-                raise BulkParseError(f"Missing (type) for question '{qtitle}' around line {i+1}")
+                raise BulkParseError(
+                    f"Missing (type) for question '{qtitle}' around line {i+1}"
+                )
             type_line = lines[k].strip()[1:-1].strip().lower()
             i = k
-            current_question = {"title": qtitle, "description": qdesc, "type": type_line, "options": [], "kv": {}}
+            current_question = {
+                "title": qtitle,
+                "description": qdesc,
+                "type": type_line,
+                "options": [],
+                "kv": {},
+            }
             current_group["questions"].append(current_question)
         else:
             # Within a question: parse options or likert kv pairs
             if current_question:
-                if line.startswith('- '):
+                if line.startswith("- "):
                     current_question["options"].append(line[2:].strip())
                 else:
-                    m = re.match(r"^(min|max|left|right)\s*:\s*(.*)$", line, re.IGNORECASE)
+                    m = re.match(
+                        r"^(min|max|left|right)\s*:\s*(.*)$", line, re.IGNORECASE
+                    )
                     if m:
                         key = m.group(1).lower()
                         val = m.group(2).strip()
@@ -126,28 +142,40 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
             elif t.startswith("likert"):
                 if "categories" in t:
                     if not q["options"]:
-                        raise BulkParseError(f"Likert categories requires category lines for question '{q['title']}'")
+                        raise BulkParseError(
+                            f"Likert categories requires category lines for question '{q['title']}'"
+                        )
                     q["final_type"] = "likert"
-                    q["final_options"] = [{"type": "categories", "labels": q["options"][:]}]
+                    q["final_options"] = [
+                        {"type": "categories", "labels": q["options"][:]}
+                    ]
                 else:
                     # number scale
                     try:
                         min_v = int(q["kv"].get("min", "1"))
                         max_v = int(q["kv"].get("max", "5"))
                     except ValueError:
-                        raise BulkParseError(f"Likert number requires integer min/max for question '{q['title']}'")
+                        raise BulkParseError(
+                            f"Likert number requires integer min/max for question '{q['title']}'"
+                        )
                     if min_v >= max_v:
-                        raise BulkParseError(f"Likert number min must be < max for question '{q['title']}'")
+                        raise BulkParseError(
+                            f"Likert number min must be < max for question '{q['title']}'"
+                        )
                     q["final_type"] = "likert"
-                    q["final_options"] = [{
-                        "type": "number-scale",
-                        "min": min_v,
-                        "max": max_v,
-                        "left_label": q["kv"].get("left", ""),
-                        "right_label": q["kv"].get("right", ""),
-                    }]
+                    q["final_options"] = [
+                        {
+                            "type": "number-scale",
+                            "min": min_v,
+                            "max": max_v,
+                            "left_label": q["kv"].get("left", ""),
+                            "right_label": q["kv"].get("right", ""),
+                        }
+                    ]
             else:
-                raise BulkParseError(f"Unsupported question type '{q['type']}' for '{q['title']}'")
+                raise BulkParseError(
+                    f"Unsupported question type '{q['type']}' for '{q['title']}'"
+                )
 
     return groups
 
@@ -183,14 +211,14 @@ def parse_bulk_markdown_with_collections(md_text: str) -> Dict[str, Any]:
         depth = 0
         i = 0
         while i < len(s):
-            if s[i] == '>':
+            if s[i] == ">":
                 depth += 1
                 i += 1
                 # optional space after '>'
-                if i < len(s) and s[i] == ' ':
+                if i < len(s) and s[i] == " ":
                     i += 1
                 continue
-            elif s[i] == ' ':
+            elif s[i] == " ":
                 # allow leading spaces between blockquotes
                 i += 1
                 continue
@@ -206,7 +234,7 @@ def parse_bulk_markdown_with_collections(md_text: str) -> Dict[str, Any]:
             continue
 
         # Group heading detection (top-level groups only: '# ')
-        if content.strip().startswith('# ') and not content.strip().startswith('## '):
+        if content.strip().startswith("# ") and not content.strip().startswith("## "):
             # Trim or expand repeat_stack to current depth
             while len(repeat_stack) > depth:
                 repeat_stack.pop()
@@ -215,12 +243,14 @@ def parse_bulk_markdown_with_collections(md_text: str) -> Dict[str, Any]:
             # If a repeat is pending at this depth, register it for this group index
             if depth in pending_repeat:
                 parent_index = repeat_stack[-1] if repeat_stack else None
-                repeats.append({
-                    "group_index": group_count_seen,
-                    "depth": depth,
-                    "max_count": pending_repeat[depth],
-                    "parent_index": parent_index,
-                })
+                repeats.append(
+                    {
+                        "group_index": group_count_seen,
+                        "depth": depth,
+                        "max_count": pending_repeat[depth],
+                        "parent_index": parent_index,
+                    }
+                )
                 # Update stack: this group becomes the latest repeated group at this depth
                 repeat_stack.append(group_count_seen)
                 del pending_repeat[depth]

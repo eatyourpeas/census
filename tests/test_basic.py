@@ -1,4 +1,4 @@
-from census_app.surveys.utils import encrypt_sensitive, decrypt_sensitive
+from census_app.surveys.utils import decrypt_sensitive, encrypt_sensitive
 
 
 def test_encrypt_roundtrip():
