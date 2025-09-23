@@ -8,11 +8,48 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/census
+      DJANGO_SETTINGS_MODULE: census_app.settings
+      PYTHONWARNINGS: default
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: census
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 20s
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - id: setup-python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          for i in {1..60}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              echo "Postgres is ready"; break;
+            fi
+            echo "Waiting for Postgres... ($i)"; sleep 2;
+          done
+      - name: Cache Poetry virtualenvs
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-
       - name: Install Poetry
         run: pip install poetry==1.8.3
       - name: Install dependencies
@@ -21,3 +58,30 @@ jobs:
         run: poetry run ruff check .
       - name: Django checks
         run: poetry run python manage.py check
+      - name: Run migrations
+        run: |
+          poetry run python manage.py migrate --noinput
+      - name: Run tests
+        run: |
+          poetry run pytest -q --junitxml=pytest-report.xml
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-report
+          path: pytest-report.xml
+      - name: Collect service logs (on failure)
+        if: failure()
+        run: |
+          echo "Collecting Docker logs..."
+          docker ps -a
+          docker logs $(docker ps -aq --filter name=postgres) > postgres.log 2>&1 || true
+          docker logs $(docker ps -aq --filter name=web) > web.log 2>&1 || true
+      - name: Upload logs artifact (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-logs
+          path: |
+            postgres.log
+            web.log

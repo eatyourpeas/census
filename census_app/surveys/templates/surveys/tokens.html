@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Invite Tokens" %} - {{ survey.name }}{% endblock %}
+{% block content %}
+<div class="prose max-w-3xl">
+  <h2 class="flex items-center gap-3">
+    <span>{% trans "Invite tokens" %}</span>
+    <a class="link link-primary text-sm" href="{% url 'core:docs_page' slug='publish-and-collection' %}">{% trans "Learn more" %}</a>
+  </h2>
+  <form method="post" class="grid md:grid-cols-3 gap-3">
+    {% csrf_token %}
+    <div>
+      <label class="label">{% trans "How many" %}</label>
+      <input name="count" type="number" min="1" max="1000" class="input input-bordered w-full" placeholder="100" />
+    </div>
+    <div>
+      <label class="label">{% trans "Expires at (ISO)" %}</label>
+      <input name="expires_at" type="datetime-local" class="input input-bordered w-full" />
+    </div>
+    <div>
+      <label class="label">{% trans "Note" %}</label>
+      <input name="note" class="input input-bordered w-full" placeholder="Batch note" />
+    </div>
+    <div class="md:col-span-3">
+      <button class="btn btn-primary" type="submit">{% trans "Generate" %}</button>
+      <a class="btn btn-ghost" href="/surveys/{{ survey.slug }}/tokens/export.csv">{% trans "Export CSV" %}</a>
+    </div>
+  </form>
+  <table class="table w-full mt-6">
+    <thead>
+      <tr>
+        <th>{% trans "Token" %}</th>
+        <th>{% trans "Created" %}</th>
+        <th>{% trans "Expires" %}</th>
+        <th>{% trans "Used" %}</th>
+        <th>{% trans "Used by" %}</th>
+        <th>{% trans "Note" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tokens %}
+      <tr>
+        <td class="font-mono text-xs">{{ t.token }}</td>
+        <td>{{ t.created_at }}</td>
+        <td>{{ t.expires_at }}</td>
+        <td>{{ t.used_at }}</td>
+        <td>{{ t.used_by_id }}</td>
+        <td>{{ t.note }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="opacity-70">{% trans "No tokens yet." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,25 +1,18 @@
 # API reference and protections
 
-This document summarizes the REST API endpoints and their permission model.
+Use the interactive documentation for the full, always-up-to-date list of endpoints and schemas:
+
+[![Swagger UI](/static/docs/swagger-badge.svg)](/api/docs)
+[![ReDoc](/static/docs/redoc-badge.svg)](/api/redoc)
+[![OpenAPI JSON](/static/docs/openapi-badge.svg)](/api/schema)
+
+Notes:
+
+- We link out to interactive docs instead of embedding them directly into this Markdown to respect our strict Content Security Policy (no inline scripts in docs pages).
 
 ## Authentication
 
 - JWT (Bearer) authentication via SimpleJWT. Obtain tokens at `/api/token` and `/api/token/refresh` and pass the access token in `Authorization: Bearer <token>`.
-
-## Endpoints
-
-Base path: `/api/`
-
-- `GET /health` — health check (AllowAny)
-- `POST /token` — obtain JWT access/refresh pair
-- `POST /token/refresh` — refresh access token
-- `GET /surveys/` — list surveys visible to the current user
-- `POST /surveys/` — create a survey (authenticated); returns `one_time_key_b64` once
-- `GET /surveys/{id}/` — retrieve a survey (owner or org ADMIN)
-- `PATCH /surveys/{id}/` — update a survey (owner or org ADMIN)
-- `DELETE /surveys/{id}/` — delete a survey (owner or org ADMIN)
-- `POST /surveys/{id}/seed/` — bulk create questions (owner or org ADMIN)
-- `GET /users/` — admin-only read-only list
 
 ## Permissions matrix (summary)
 
@@ -31,7 +24,11 @@ Base path: `/api/`
   - Retrieve/Update/Delete: allowed for surveys in their organization(s)
 - Org CREATOR/VIEWER
   - List: sees only own surveys
-  - Retrieve/Update/Delete: not allowed for others' surveys
+  - Retrieve: allowed for surveys they’re a member of
+  - Update/Delete: only creators can update; viewers are read-only
+  - Publish GET: allowed for creators and viewers (view permission)
+  - Publish PUT: allowed for creators (and owner/org ADMIN)
+  - Metrics GET: allowed for creators and viewers (view permission)
 - Anonymous
   - List: empty array
   - Retrieve/Update/Delete: not allowed

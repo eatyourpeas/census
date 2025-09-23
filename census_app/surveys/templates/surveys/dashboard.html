@@ -26,11 +26,39 @@
   {% trans "Survey Dashboard" as bc_survey_dashboard %}
   {% include 'components/breadcrumbs.html' with crumb1_label=bc_surveys crumb1_href="/surveys/" crumb2_label=bc_survey_dashboard crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" %}
   <h2>{{ survey.name }}</h2>
-  <p>{% trans "Status" %}: {% if survey.is_live %}{% trans "Live" %}{% else %}{% trans "Not live" %}{% endif %}</p>
-  <p>{% trans "Total responses" %}: <strong>{{ total }}</strong></p>
+  <div class="flex flex-wrap gap-2 items-center mb-2">
+    <span class="badge badge-primary badge-outline">{% trans "Status" %}: {{ survey.status }}</span>
+    <span class="badge badge-primary badge-outline">{% trans "Visibility" %}: {{ visible }}</span>
+    <span class="badge badge-primary badge-outline">{% trans "Window" %}: {{ survey.start_at|default:'—' }} → {{ survey.end_at|default:'—' }}</span>
+    <span class="badge badge-primary badge-outline">{% trans "Total responses" %}: {{ total }}{% if survey.max_responses %} / {{ survey.max_responses }}{% endif %}</span>
+  </div>
   <div class="flex gap-2">
     <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/preview/">{% trans "Preview (read-only)" %}</a>
     <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/groups/">{% trans "Manage groups" %}</a>
+  </div>
+  <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="stat bg-base-100 rounded-box shadow-sm">
+      <div class="stat-title">{% trans "Today" %}</div>
+      <div class="stat-value text-primary">{{ today_count }}</div>
+      <div class="stat-desc">{% trans "Submissions" %}</div>
+    </div>
+    <div class="stat bg-base-100 rounded-box shadow-sm">
+      <div class="stat-title">{% trans "Last 7 days" %}</div>
+      <div class="stat-value text-primary">{{ last7_count }}</div>
+      <div class="stat-desc">{% trans "Submissions" %}</div>
+    </div>
+    <div class="stat bg-base-100 rounded-box shadow-sm col-span-2">
+      <div class="stat-title">{% trans "Last 14 days" %}</div>
+      <div class="stat-desc">
+        {% if spark_points %}
+          <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none" aria-label="Sparkline of last 14 days">
+            <polyline points="{{ spark_points }}" fill="none" stroke="currentColor" stroke-width="2" class="text-primary/80" />
+          </svg>
+        {% else %}
+          <div class="opacity-60">{% trans "No submissions yet" %}</div>
+        {% endif %}
+      </div>
+    </div>
   </div>
   <div class="mt-3 text-sm opacity-80 max-w-3xl">
     <p>{% blocktrans %}<strong>Groups</strong> are reusable sets of questions. You can mark one or more groups as a repeating entity (for example, <em>People</em> or <em>Visits</em>) directly on the Groups page, with optional one-level nesting.{% endblocktrans %}</p>
@@ -77,6 +105,78 @@
     </form>
   </details>
 
-  {# Intentionally removed group management from dashboard; use Groups page instead #}
+  <details class="mb-6">
+  <summary class="cursor-pointer select-none text-lg font-semibold">{% trans "Publish settings" %}
+    <a class="link link-primary text-sm ml-2 align-middle" href="{% url 'core:docs_page' slug='publish-and-collection' %}">{% trans "Learn more" %}</a>
+  </summary>
+    <form class="mt-3 grid md:grid-cols-3 gap-3" method="post" action="/surveys/{{ survey.slug }}/dashboard/publish">
+      {% csrf_token %}
+      <div>
+        <label class="label flex items-center gap-2">{% trans "Status" %}
+          <a class="tooltip tooltip-right" data-tip="{% trans 'Draft: build only · Published: accept submissions · Closed: stop submissions' %}" href="{% url 'core:docs_page' slug='publish-and-collection' %}">
+            <span class="link link-hover text-sm">{% trans "What’s this?" %}</span>
+          </a>
+        </label>
+        <select class="select select-bordered w-full" name="status">
+          <option value="draft" {% if survey.status == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
+          <option value="published" {% if survey.status == 'published' %}selected{% endif %}>{% trans "Published" %}</option>
+          <option value="closed" {% if survey.status == 'closed' %}selected{% endif %}>{% trans "Closed" %}</option>
+        </select>
+      </div>
+      <div>
+        <label class="label flex items-center gap-2">{% trans "Visibility" %}
+          <a class="tooltip tooltip-right" data-tip="{% trans 'Authenticated: login required · Public: open link · Unlisted: secret link · Invite token: one-time codes' %}" href="{% url 'core:docs_page' slug='publish-and-collection' %}">
+            <span class="link link-hover text-sm">{% trans "What’s this?" %}</span>
+          </a>
+        </label>
+        <select class="select select-bordered w-full" name="visibility">
+          <option value="authenticated" {% if survey.visibility == 'authenticated' %}selected{% endif %}>{% trans "Authenticated" %}</option>
+          <option value="public" {% if survey.visibility == 'public' %}selected{% endif %}>{% trans "Public" %}</option>
+          <option value="unlisted" {% if survey.visibility == 'unlisted' %}selected{% endif %}>{% trans "Unlisted" %}</option>
+          <option value="token" {% if survey.visibility == 'token' %}selected{% endif %}>{% trans "Invite token" %}</option>
+        </select>
+      </div>
+      <div>
+        <label class="label">{% trans "Max responses" %}</label>
+        <input class="input input-bordered w-full" name="max_responses" type="number" min="1" value="{{ survey.max_responses }}" />
+      </div>
+      <div>
+        <label class="label">{% trans "Start at" %}</label>
+        <input class="input input-bordered w-full" name="start_at" type="datetime-local" value="{{ survey.start_at|date:'Y-m-d\\TH:i' }}" />
+      </div>
+      <div>
+        <label class="label">{% trans "End at" %}</label>
+        <input class="input input-bordered w-full" name="end_at" type="datetime-local" value="{{ survey.end_at|date:'Y-m-d\\TH:i' }}" />
+      </div>
+      <div class="md:col-span-3">
+        <label class="cursor-pointer flex items-center gap-2">
+          <input type="checkbox" class="checkbox" name="captcha_required" {% if survey.captcha_required %}checked{% endif %} />
+          <span>{% trans "Require CAPTCHA for anonymous submissions" %}</span>
+        </label>
+      </div>
+      <div class="md:col-span-3 p-3 rounded bg-warning/10 border border-warning/30">
+        <label class="cursor-pointer flex items-start gap-2">
+          <input type="checkbox" class="checkbox mt-1" name="no_patient_data_ack" {% if survey.no_patient_data_ack %}checked{% endif %} />
+          <span class="text-sm">{% blocktrans %}I confirm no <strong>patient-identifiable data</strong> is collected in this survey. This is required when using Public, Unlisted, or Token visibility to prevent unauthorised access.{% endblocktrans %}</span>
+        </label>
+      </div>
+      <div class="md:col-span-3">
+        <button class="btn btn-primary" type="submit">{% trans "Save publish settings" %}</button>
+        {% if survey.visibility == 'unlisted' and survey.unlisted_key %}
+        <span class="ml-3 text-sm opacity-80">{% trans "Unlisted link" %}: <code class="font-mono">/surveys/{{ survey.slug }}/take/unlisted/{{ survey.unlisted_key }}/</code></span>
+        {% endif %}
+        {% if survey.visibility == 'public' %}
+        <span class="ml-3 text-sm opacity-80">{% trans "Public link" %}: <code class="font-mono">/surveys/{{ survey.slug }}/take/</code></span>
+        {% endif %}
+      </div>
+    </form>
+    {% if survey.visibility == 'token' %}
+      <div class="mt-3">
+        <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/tokens/">{% trans "Manage invite tokens" %}</a>
+      </div>
+    {% endif %}
+  </details>
+
+  {# Group management is available on the Groups page #}
 </div>
 {% endblock %}

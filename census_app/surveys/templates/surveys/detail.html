@@ -291,6 +291,13 @@
     </div>
   {% endif %}
 
+  {% if survey.captcha_required and settings.HCAPTCHA_SITEKEY %}
+    <div class="mt-4">
+      <div class="h-captcha" data-sitekey="{{ settings.HCAPTCHA_SITEKEY }}"></div>
+    </div>
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+  {% endif %}
+
   <button class="btn btn-primary" type="submit">Submit</button>
 </form>
 

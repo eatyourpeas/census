@@ -18,6 +18,8 @@ env = environ.Env(
     BRAND_FONT_HEADING=(str, "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'"),
     BRAND_FONT_BODY=(str, "Merriweather, ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"),
     BRAND_FONT_CSS_URL=(str, "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap"),
+    HCAPTCHA_SITEKEY=(str, ""),
+    HCAPTCHA_SECRET=(str, ""),
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -95,6 +97,15 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# Authentication backends: include AxesStandaloneBackend (renamed in django-axes >= 5.0)
+AUTHENTICATION_BACKENDS = [
+    # Prefer the default ModelBackend first so authenticate() can work without a request
+    # in test helpers like client.login; Axes middleware and backend will still enforce
+    # lockouts for request-aware flows.
+    "django.contrib.auth.backends.ModelBackend",
+    "axes.backends.AxesStandaloneBackend",
+]
+
 LANGUAGE_CODE = "en-gb"
 TIME_ZONE = "UTC"
 USE_I18N = True
@@ -147,9 +158,13 @@ CSP_SCRIPT_SRC = (
     "'self'",
     "https://unpkg.com",
     "https://cdn.jsdelivr.net",
+    # hCaptcha widget script
+    "https://js.hcaptcha.com",
 )
 CSP_IMG_SRC = ("'self'", "data:")
-CSP_CONNECT_SRC = ("'self'",)
+CSP_CONNECT_SRC = ("'self'", "https://hcaptcha.com", "https://*.hcaptcha.com")
+CSPO_FRAME_SRC = ("'self'", "https://hcaptcha.com", "https://*.hcaptcha.com")
+CSP_FRAME_SRC = ("'self'", "https://hcaptcha.com", "https://*.hcaptcha.com")
 
 # CORS minimal
 CORS_ALLOWED_ORIGINS = []
@@ -157,7 +172,6 @@ CORS_ALLOWED_ORIGINS = []
 # Axes configuration for brute-force protection
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = 1  # hour
-AXES_ONLY_USER_FAILURES = True
 AXES_LOCKOUT_PARAMETERS = ["username"]
 
 # Ratelimit example (used in views)
