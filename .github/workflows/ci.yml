@@ -8,11 +8,32 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: census
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" \
+          --health-interval 10s \
+          --health-timeout 5s \
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Cache Poetry virtualenvs
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-
       - name: Install Poetry
         run: pip install poetry==1.8.3
       - name: Install dependencies
@@ -20,4 +41,13 @@ jobs:
       - name: Lint
         run: poetry run ruff check .
       - name: Django checks
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/census
         run: poetry run python manage.py check
+      - name: Run tests
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/census
+          DJANGO_SETTINGS_MODULE: census_app.settings
+          PYTHONWARNINGS: default
+        run: |
+          poetry run pytest -q
