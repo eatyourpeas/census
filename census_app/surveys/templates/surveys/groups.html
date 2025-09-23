@@ -196,6 +196,6 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-  <script src="{% static 'js/groups.js' %}"></script>
-  <script src="{% static 'js/groups-page.js' %}"></script>
+  <script src="{% static 'js/groups.js' %}?v={{ build.commit|default:build.timestamp }}"></script>
+  <script src="{% static 'js/groups-page.js' %}?v={{ build.commit|default:build.timestamp }}"></script>
 {% endblock %}

@@ -142,5 +142,6 @@ Strongly agree"></textarea>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-<script src="{% static 'js/builder.js' %}"></script>
+<script src="{% static 'js/builder.js' %}?v={{ build.commit|default:build.timestamp }}">
+</script>
 {% endblock %}
