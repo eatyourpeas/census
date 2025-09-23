@@ -221,7 +221,7 @@
         // don't toggle on drag/delete, on forms, checkboxes
         if (e.target.closest('.drag-handle') || e.target.closest('form') || e.target.closest('.select-checkbox')) return;
         // If clicking the title link without ctrl/cmd/shift, toggle selection instead of navigation
-        var a = e.target.closest('a');
+  var a = e.target.closest('a[href*="/builder/"]');
         if (a && !(e.metaKey || e.ctrlKey || e.shiftKey)) {
           e.preventDefault();
         }
@@ -241,13 +241,23 @@
       });
       function updateSelection(li, isChecked){
         var icon = li.querySelector('.sel-repeat-icon');
+        var tile = li.querySelector('.selectable-group');
         if (isChecked) {
           selected.add(li.dataset.gid);
-          li.classList.add('ring-2','ring-secondary','border-secondary','bg-secondary/10');
+          if (tile) {
+            tile.dataset.selected = '1';
+            // Inline styles avoid tailwind purge issues and ensure visible highlight
+            tile.style.outline = '2px solid color-mix(in oklch, var(--s) 40%, transparent)';
+            tile.style.backgroundColor = 'color-mix(in oklch, var(--s) 10%, transparent)';
+          }
           if (icon) icon.classList.remove('hidden');
         } else {
           selected.delete(li.dataset.gid);
-          li.classList.remove('ring-2','ring-secondary','border-secondary','bg-secondary/10');
+          if (tile) {
+            delete tile.dataset.selected;
+            tile.style.outline = '';
+            tile.style.backgroundColor = '';
+          }
           if (icon) icon.classList.add('hidden');
         }
       }
