@@ -47,7 +47,8 @@ def test_collection_item_requires_correct_target_and_same_survey(baseline):
     with pytest.raises(ValidationError):
         ci.clean()
     # Group must be attached to survey
-    other_survey = Survey.objects.create(owner=owner, organization=org, name="S2", slug="s2")
+    # Create another survey; not used directly here but ensures cross-survey constraints elsewhere
+    Survey.objects.create(owner=owner, organization=org, name="S2", slug="s2")
     g_other = QuestionGroup.objects.create(name="Other", owner=owner, schema={})
     # Not attached to this survey -> invalid
     ci2 = CollectionItem(collection=parent, item_type=CollectionItem.ItemType.GROUP, group=g_other, order=0)

@@ -16,7 +16,7 @@ from django.contrib.auth import get_user_model
 from .models import Survey, SurveyResponse, SurveyQuestion, QuestionGroup, Organization, OrganizationMembership, SurveyMembership, AuditLog, CollectionDefinition, CollectionItem
 from .permissions import require_can_view, require_can_edit, can_view_survey, can_manage_org_users, can_manage_survey_users, can_edit_survey
 from .utils import verify_key
-from .markdown_import import parse_bulk_markdown, parse_bulk_markdown_with_collections, BulkParseError
+from .markdown_import import parse_bulk_markdown_with_collections, BulkParseError
 from .color import hex_to_oklch
 
 # Demographics field definitions: key -> display label
