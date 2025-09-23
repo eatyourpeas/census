@@ -8,6 +8,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/census
+      DJANGO_SETTINGS_MODULE: census_app.settings
+      PYTHONWARNINGS: default
     services:
       postgres:
         image: postgres:16
@@ -15,13 +19,12 @@ jobs:
           POSTGRES_DB: census
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres" \
           --health-interval 10s \
           --health-timeout 5s \
-          --health-retries 5
+          --health-retries 5 \
+          --health-start-period 20s
     steps:
       - uses: actions/checkout@v4
       - id: setup-python
@@ -33,7 +36,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
           for i in {1..30}; do
-            if pg_isready -h localhost -p 5432; then
+            if pg_isready -h postgres -p 5432 -U postgres; then
               echo "Postgres is ready"; break;
             fi
             echo "Waiting for Postgres... ($i)"; sleep 2;
@@ -52,13 +55,7 @@ jobs:
       - name: Lint
         run: poetry run ruff check .
       - name: Django checks
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/census
         run: poetry run python manage.py check
       - name: Run tests
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/census
-          DJANGO_SETTINGS_MODULE: census_app.settings
-          PYTHONWARNINGS: default
         run: |
           poetry run pytest -q
