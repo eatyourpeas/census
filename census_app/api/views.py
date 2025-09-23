@@ -512,3 +512,12 @@ def swagger_ui(request):
     CSP is exempted on this route to allow loading Swagger UI assets.
     """
     return render(request, "api/swagger.html", {})
+
+
+@csp_exempt
+def redoc_ui(request):
+    """Render an embedded ReDoc UI pointing at the API schema endpoint.
+
+    CSP is exempted on this route to allow loading ReDoc assets.
+    """
+    return render(request, "api/redoc.html", {})
