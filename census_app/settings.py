@@ -97,6 +97,12 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# Authentication backends: include AxesStandaloneBackend (renamed in django-axes >= 5.0)
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
 LANGUAGE_CODE = "en-gb"
 TIME_ZONE = "UTC"
 USE_I18N = True
@@ -163,7 +169,6 @@ CORS_ALLOWED_ORIGINS = []
 # Axes configuration for brute-force protection
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = 1  # hour
-AXES_ONLY_USER_FAILURES = True
 AXES_LOCKOUT_PARAMETERS = ["username"]
 
 # Ratelimit example (used in views)
