@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
@@ -7,7 +8,6 @@ from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 import markdown as mdlib
-from django.conf import settings
 
 from census_app.surveys.models import (
     Organization,
@@ -18,7 +18,6 @@ from census_app.surveys.models import (
     SurveyMembership,
     SurveyResponse,
 )
-
 from .forms import SignupForm
 
 try:
