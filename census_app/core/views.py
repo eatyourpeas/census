@@ -7,6 +7,7 @@ from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 import markdown as mdlib
+from django.conf import settings
 
 from census_app.surveys.models import (
     Organization,
@@ -161,8 +162,26 @@ def signup(request):
 
 
 # --- Documentation views ---
-# Project root (repository root)
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+# Resolve project root (repository root). In some production builds the module path
+# can point into site-packages; prefer settings.BASE_DIR (project/census_app) and
+# then step up one directory to reach the repo root containing manage.py and docs/.
+def _resolve_repo_root() -> Path:
+    candidates = [
+        Path(getattr(settings, "BASE_DIR", Path(__file__).resolve().parent.parent))
+    ]
+    # Prefer the parent of BASE_DIR as the repository root (where manage.py lives)
+    candidates.append(candidates[0].parent)
+    # Also consider the path derived from this file (source tree execution)
+    candidates.append(Path(__file__).resolve().parent.parent.parent)
+    # Pick the first candidate that contains a docs directory or a manage.py file
+    for c in candidates:
+        if (c / "docs").is_dir() or (c / "manage.py").exists():
+            return c
+    # Fallback to the first candidate
+    return candidates[0]
+
+
+REPO_ROOT = _resolve_repo_root()
 DOCS_DIR = REPO_ROOT / "docs"
 
 DOC_PAGES = {
