@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.12-slim AS base
+FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -13,28 +13,22 @@ WORKDIR /app
 
 COPY pyproject.toml README.md ./
 RUN poetry config virtualenvs.create false \
-    && poetry install --only main --no-interaction --no-ansi --no-root
+    && poetry install --no-interaction --no-ansi --no-root
 
-# Build CSS
 COPY package.json tailwind.config.js postcss.config.js ./
 RUN npm install --no-audit --no-fund
 
 COPY census_app ./census_app
 COPY manage.py ./
 # Install the current project now that sources are present
-RUN poetry install --only main --no-interaction --no-ansi
-RUN npm run build:css
+RUN poetry install --no-interaction --no-ansi
 
-# Collect static files for production (admin and app assets)
-ENV DJANGO_SETTINGS_MODULE=census_app.settings
-RUN python manage.py collectstatic --noinput
-
-RUN adduser --disabled-login --gecos "" appuser
-USER appuser
+# Build CSS in the container on startup to pick up live changes
+# For dev we’ll run npm install/build at runtime so host volume overrides work
 
 ENV DJANGO_SETTINGS_MODULE=census_app.settings
 ENV PORT=8000
 
-EXPOSE 8000
+# Do not EXPOSE or run collectstatic; dev serves via runserver
 
-CMD ["sh", "-lc", "python manage.py migrate --noinput && gunicorn census_app.wsgi:application --bind 0.0.0.0:${PORT} --workers 3"]
+CMD ["sh", "-lc", "npm install && npm run build:css && python manage.py migrate && python manage.py runserver 0.0.0.0:${PORT}"]
