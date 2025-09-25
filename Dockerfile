@@ -21,6 +21,9 @@ RUN npm install --no-audit --no-fund
 
 COPY census_app ./census_app
 COPY manage.py ./
+# Include documentation and contributing guide so docs pages work in production
+COPY docs ./docs
+COPY CONTRIBUTING.md ./
 # Install the current project now that sources are present
 RUN poetry install --only main --no-interaction --no-ansi
 RUN npm run build:css
