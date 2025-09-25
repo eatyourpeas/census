@@ -133,7 +133,10 @@ def signup(request):
         form = SignupForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)
+            # With multiple AUTHENTICATION_BACKENDS configured (e.g., ModelBackend + Axes),
+            # login() requires an explicit backend unless the user was authenticated via authenticate().
+            # Since we just created the user, log them in using the default ModelBackend.
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             account_type = request.POST.get("account_type")
             if account_type == "org":
                 with transaction.atomic():

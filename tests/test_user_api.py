@@ -4,10 +4,10 @@ import pytest
 from django.contrib.auth import get_user_model
 
 from census_app.surveys.models import (
-    Organization,
-    OrganizationMembership,
     Survey,
     SurveyMembership,
+    Organization,
+    OrganizationMembership,
 )
 
 User = get_user_model()
