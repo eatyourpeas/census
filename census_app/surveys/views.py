@@ -3,8 +3,8 @@ from __future__ import annotations
 import csv
 import io
 import json
-import secrets
 from pathlib import Path
+import secrets
 
 from django import forms
 from django.conf import settings
