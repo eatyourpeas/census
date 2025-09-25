@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 
 from census_app.surveys.models import (
@@ -36,6 +36,13 @@ except ImportError:
 
 def home(request):
     return render(request, "core/home.html")
+
+
+def healthz(request):
+    """Lightweight health endpoint for load balancers and readiness probes.
+    Returns 200 OK without auth or redirects.
+    """
+    return HttpResponse("ok", content_type="text/plain")
 
 
 @login_required
