@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import pytest
 from django.urls import reverse
 from django.utils import timezone
+import pytest
 
 from census_app.surveys.models import Organization, OrganizationMembership, Survey
 

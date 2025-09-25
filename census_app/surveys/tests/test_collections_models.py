@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import pytest
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+import pytest
 
 from census_app.surveys.models import (
     CollectionDefinition,

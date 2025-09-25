@@ -1,5 +1,5 @@
-import pytest
 from django.urls import reverse
+import pytest
 
 from census_app.surveys.models import Survey
 

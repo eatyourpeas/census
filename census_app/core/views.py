@@ -1,12 +1,12 @@
 from pathlib import Path
 
-import markdown as mdlib
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
+import markdown as mdlib
 
 from census_app.surveys.models import (
     Organization,
@@ -133,7 +133,10 @@ def signup(request):
         form = SignupForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)
+            # With multiple AUTHENTICATION_BACKENDS configured (e.g., ModelBackend + Axes),
+            # login() requires an explicit backend unless the user was authenticated via authenticate().
+            # Since we just created the user, log them in using the default ModelBackend.
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             account_type = request.POST.get("account_type")
             if account_type == "org":
                 with transaction.atomic():
