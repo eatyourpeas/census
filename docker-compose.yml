@@ -14,7 +14,9 @@ services:
       retries: 5
 
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     environment:
       DATABASE_URL: postgres://census:census@db:5432/census
       SECRET_KEY: change-me-in-env
