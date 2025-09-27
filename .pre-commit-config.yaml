@@ -1,14 +1,17 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/GitGuardian/ggshield
-    rev: v1.26.0
+    rev: v1.43.0
     hooks:
-      - id: ggshield-init
-        stages: [commit-msg]
-      - id: ggshield-secret-scan
-        args: ["--verbose"]
-        stages: [commit]
+      - id: ggshield
+        name: ggshield secret scan (pre-commit)
+        args: ["secret", "scan", "pre-commit", "--verbose"]
+        stages: [pre-commit]
+      - id: ggshield
+        name: ggshield secret scan (pre-push)
+        args: ["secret", "scan", "pre-push", "--verbose"]
+        stages: [pre-push]

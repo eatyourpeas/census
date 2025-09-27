@@ -77,3 +77,72 @@ CI runs the following in the lint phase (see `.github/workflows/ci.yml`):
 
 - Update `docs/` when behavior or APIs change.
 - Keep examples accurate and minimal.
+
+## Pre-commit hooks (recommended with Poetry)
+
+We run quick fixers and secret scans before code lands.
+
+With Poetry-managed tools:
+
+```sh
+# Install dependencies
+poetry install
+
+# Install git hooks
+poetry run pre-commit install
+poetry run pre-commit install --hook-type pre-push
+
+# Run across the repo once
+poetry run pre-commit run --all-files
+```
+
+If you don’t use Poetry, install system-wide: `pipx install pre-commit` (or `pip install pre-commit`).
+
+## Local environment quick start
+
+```sh
+# Python deps
+poetry install
+
+# Start services
+docker compose up -d
+
+# Tests
+docker compose exec web python -m pytest -q
+
+# Lint/format
+poetry run ruff check .
+poetry run black --check .
+poetry run isort --check-only .
+```
+
+## Secret scanning with GitGuardian (ggshield)
+
+Authenticate once locally so scans run without prompts:
+
+```sh
+poetry run ggshield auth login
+```
+
+Typical local scans:
+
+```sh
+# Scan the staged diff (what you'd commit)
+poetry run ggshield secret scan pre-commit --verbose
+
+# Scan before pushing
+poetry run ggshield secret scan pre-push --verbose
+
+# Scan the full repository
+poetry run ggshield secret scan repo --verbose
+```
+
+If ggshield flags a false positive in tests, prefer to refactor the test value to a low-entropy dummy. If that’s not possible, add a precise ignore via CLI which updates `.gitguardian.yaml`:
+
+```sh
+poetry run ggshield secret ignore add --occurrence <OCCURRENCE_ID>
+# or
+poetry run ggshield secret ignore add --sha <SECRET_SHA>
+```
+
+Avoid broad path ignores. All ignores should be reviewed in PRs.

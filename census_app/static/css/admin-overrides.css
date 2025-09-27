@@ -177,7 +177,7 @@ input:focus, select:focus, textarea:focus {
   color: hsl(var(--pc));
 }
 /* Destructive action */
-.deletelink, .button.delete, .submit-row .deletelink { 
+.deletelink, .button.delete, .submit-row .deletelink {
   background: hsl(var(--er));
   color: hsl(var(--erc));
 }
