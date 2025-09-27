@@ -60,7 +60,7 @@ Develop with a local Python environment for the best IDE experience:
    ```bash
    # Set up local virtual environment with all dependencies
    ./s/setup-local
-   
+
    # Configure VS Code to use the local environment
    ./s/configure-vscode-local
    ```
@@ -71,7 +71,7 @@ Develop with a local Python environment for the best IDE experience:
 
 - **Full IntelliSense support** - Complete import resolution, type hints, and autocomplete
 - All Python packages directly accessible to VS Code language server
-- Keep your host Git setup and credentials  
+- Keep your host Git setup and credentials
 - Native VS Code performance
 - Best debugging experience
 
@@ -95,7 +95,7 @@ Use the provided Dev Container configuration to develop entirely within the cont
    ```bash
    # Start containers
    ./s/dev
-   
+
    # In VS Code: Cmd+Shift+P → "Dev Containers: Reopen in Container"
    ```
 
@@ -129,7 +129,7 @@ Develop on your host machine while using the Docker container's Python environme
    ```bash
    # Install these extensions if not already installed:
    # - Python (ms-python.python)
-   # - Pylance (ms-python.vscode-pylance) 
+   # - Pylance (ms-python.vscode-pylance)
    # - Black Formatter (ms-python.black-formatter)
    # - Ruff (charliermarsh.ruff)
    ```
@@ -250,7 +250,7 @@ After switching approaches:
 **Choose Docker Python Integration if you:**
 
 - Want a good balance between IDE features and environment consistency
-- Prefer to keep your existing host Git setup and credentials  
+- Prefer to keep your existing host Git setup and credentials
 - Want to use all your existing VS Code extensions without reconfiguration
 - Are okay with slightly limited IntelliSense compared to local virtual environment
 

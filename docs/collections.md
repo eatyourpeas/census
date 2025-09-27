@@ -118,4 +118,3 @@ REPEAT-5
 - Should a group be allowed in more than one branch? (default: no, for simplicity.)
 - Max depth default (2) — configurable per survey or global?
 - Conflict resolution when collection structure changes after responses exist.
-

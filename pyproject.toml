@@ -30,6 +30,7 @@ markdown = "^3.6"
 pygments = "^2.18.0"
 inflection = "^0.5.1"
 uritemplate = "^4.1.1"
+ggshield = "^1.43.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
@@ -38,6 +39,8 @@ ruff = "^0.6.9"
 black = "^24.8.0"
 isort = "^5.13.2"
 django-stubs = {extras = ["compatible-mypy"], version = "^5.0.4"}
+pre-commit = "^4.3.0"
+ggshield = "^1.43.0"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]

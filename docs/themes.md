@@ -215,12 +215,12 @@ There are two ways to render breadcrumbs, depending on what’s most convenient 
 Pass labeled crumbs in order. For any crumb you pass, you can optionally include an `*_href` to make it a link. The last crumb usually omits `*_href` to indicate the current page.
 
 ```django
-{% include 'components/breadcrumbs.html' with 
-  crumb1_label="Survey Dashboard" 
-  crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" 
-  crumb2_label="Question Group Builder" 
-  crumb2_href="/surveys/"|add:survey.slug|add:"/builder/" 
-  crumb3_label="Question Builder" 
+{% include 'components/breadcrumbs.html' with
+  crumb1_label="Survey Dashboard"
+  crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/"
+  crumb2_label="Question Group Builder"
+  crumb2_href="/surveys/"|add:survey.slug|add:"/builder/"
+  crumb3_label="Question Builder"
 %}
 ```
 
@@ -229,10 +229,10 @@ Pass labeled crumbs in order. For any crumb you pass, you can optionally include
 If you already have a list, pass `items` as an iterable of `(label, href)` tuples. Use `None` for href on the current page.
 
 ```django
-{% include 'components/breadcrumbs.html' with 
+{% include 'components/breadcrumbs.html' with
   items=(("Survey Dashboard", "/surveys/"|add:survey.slug|add:"/dashboard/"),
          ("Question Group Builder", "/surveys/"|add:survey.slug|add:"/builder/"),
-         ("Question Builder", None)) 
+         ("Question Builder", None))
 %}
 ```
 
@@ -429,4 +429,3 @@ Accessibility:
 ### Rebuild reminder
 
 - Changes to Tailwind/DaisyUI configs or new templates require rebuilding the CSS bundle.
-
