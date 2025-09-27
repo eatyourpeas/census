@@ -45,7 +45,8 @@ DATABASES = {
 }
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    # Use custom AdminConfig to enforce superuser-only access
+    "census_app.admin.CensusAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -231,6 +232,16 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": False,
 }
 
-# Email: console backend for development (password reset prints to console)
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Email backend
+# Use in-memory backend during tests to enable assertions against mail.outbox
+if os.environ.get("PYTEST_CURRENT_TEST"):
+    EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+else:
+    # Default to console backend for local dev unless overridden by env
+    try:
+        EMAIL_BACKEND = env(
+            "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+        )
+    except Exception:
+        EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "no-reply@example.com"

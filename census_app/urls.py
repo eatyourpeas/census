@@ -5,11 +5,18 @@ from django.contrib.auth import views as auth_views
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+from census_app.core.views import BrandedPasswordResetView
+
 urlpatterns = [
     path("", RedirectView.as_view(pattern_name="core:home", permanent=False)),
     path("admin/", admin.site.urls),
-    path("accounts/", include("django.contrib.auth.urls")),
-    # Custom templates for password change
+    # Auth routes (explicit to avoid include conflicts)
+    path(
+        "accounts/login/",
+        auth_views.LoginView.as_view(template_name="registration/login.html"),
+        name="login",
+    ),
+    path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),
     path(
         "accounts/password_change/",
         auth_views.PasswordChangeView.as_view(
@@ -24,12 +31,10 @@ urlpatterns = [
         ),
         name="password_change_done",
     ),
-    # Explicit password reset routes (use custom templates)
+    # Password reset (use branded view + templates)
     path(
         "accounts/password_reset/",
-        auth_views.PasswordResetView.as_view(
-            template_name="registration/password_reset_form.html"
-        ),
+        BrandedPasswordResetView.as_view(),
         name="password_reset",
     ),
     path(

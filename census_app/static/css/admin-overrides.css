@@ -1,0 +1,215 @@
+/* Admin DaisyUI overrides: harmonize Django admin chrome with project theme */
+
+/* Map Django admin CSS variables to DaisyUI tokens for broad theming */
+:root {
+  /* Core body + links */
+  --body-bg: hsl(var(--b2));
+  --body-fg: hsl(var(--bc));
+  --link-fg: hsl(var(--p));
+  --link-hover-color: color-mix(in oklab, hsl(var(--p)) 90%, hsl(var(--bc)) 10%);
+  /* Header + breadcrumbs */
+  --header-bg: hsl(var(--b1));
+  --header-color: hsl(var(--bc));
+  --header-branding-color: hsl(var(--p));
+  --breadcrumbs-bg: hsl(var(--b1));
+  --breadcrumbs-fg: hsl(var(--bc));
+  --breadcrumbs-link-fg: hsl(var(--bc));
+  /* Buttons */
+  --button-bg: hsl(var(--p));
+  --button-fg: hsl(var(--pc));
+  --default-button-bg: hsl(var(--p));
+  --default-button-fg: hsl(var(--pc));
+  /* Tables and borders */
+  --hairline-color: hsl(var(--b3));
+  --darkened-bg: hsl(var(--b2));
+  --selected-row: color-mix(in oklab, hsl(var(--p)) 15%, hsl(var(--b1)) 85%);
+}
+
+/* Base text/background */
+html, body {
+  color: hsl(var(--bc));
+  background: hsl(var(--b2));
+}
+
+/* Header and branding */
+#header {
+  background: hsl(var(--b1));
+  border-bottom: 1px solid hsl(var(--b3));
+}
+
+/* Header branding and user tools */
+body #header #site-name a,
+body #header #site-name a:visited {
+  color: hsl(var(--bc));
+}
+body #header #site-name a:hover,
+body #header #site-name a:focus-visible {
+  color: var(--link-hover-color);
+}
+
+/* Increase contrast for the post-login links (View site, Docs, Change password, Log out) */
+body #header #user-tools { color: hsl(var(--bc)); }
+body #header #user-tools a,
+body #header #user-tools a:visited {
+  color: hsl(var(--bc));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 600;
+}
+body #header #user-tools a:hover,
+body #header #user-tools a:focus-visible {
+  color: var(--link-hover-color);
+  text-decoration-thickness: 2px;
+}
+
+/* Ensure "Log out" link is not pale regardless of admin defaults */
+body #header #user-tools a.logout,
+body #header #user-tools a.logout:visited,
+body #header #user-tools a[href$="/logout/"],
+body #header #user-tools a[href*="logout"] {
+  color: hsl(var(--bc)) !important;
+}
+body #header #user-tools a.logout:hover,
+body #header #user-tools a[href$="/logout/"]:hover,
+body #header #user-tools a[href*="logout"]:hover {
+  color: var(--link-hover-color) !important;
+}
+
+/* Django 5+ renders Log out as a POST form with a button; make it look like a link and ensure contrast */
+body #header #user-tools form[action$="/logout/"],
+body #header #user-tools form[action*="logout"] {
+  display: inline;
+}
+body #header #user-tools form[action$="/logout/"] button,
+body #header #user-tools form[action*="logout"] button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: hsl(var(--bc)) !important;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+body #header #user-tools form[action$="/logout/"] button:hover,
+body #header #user-tools form[action*="logout"] button:hover,
+body #header #user-tools form[action$="/logout/"] button:focus-visible,
+body #header #user-tools form[action*="logout"] button:focus-visible {
+  color: var(--link-hover-color) !important;
+  text-decoration-thickness: 2px;
+}
+#branding a, #branding h1, #branding a:link, #branding a:visited {
+  color: hsl(var(--p));
+  text-decoration: none;
+}
+#user-tools, #user-tools a { color: hsl(var(--bc)); }
+
+/* Breadcrumbs */
+/* Breadcrumbs: ensure top bar matches brand colors */
+body .breadcrumbs {
+  background: hsl(var(--b1));
+  border-bottom: 1px solid hsl(var(--b3));
+  color: hsl(var(--bc));
+}
+body .breadcrumbs a,
+body .breadcrumbs a:visited { color: hsl(var(--bc)); text-decoration: underline; }
+body .breadcrumbs a:hover { color: var(--link-hover-color); }
+/* Breadcrumb items and separators */
+body .breadcrumbs li { color: hsl(var(--bc)); }
+body .breadcrumbs li::before {
+  color: hsl(var(--b3)); /* subtle separator color */
+}
+
+/* Modules and cards */
+/* Modules and cards */
+.module {
+  background: hsl(var(--b1));
+  border: 1px solid hsl(var(--b3));
+  border-radius: .5rem;
+}
+.module h2, .module caption {
+  background: hsl(var(--b2));
+  color: hsl(var(--bc));
+}
+
+/* Tables */
+table thead th {
+  background: hsl(var(--b2));
+  color: hsl(var(--bc));
+}
+
+/* Links */
+/* Global links */
+a, a:link, a:visited {
+  color: hsl(var(--p));
+}
+
+/* Form widgets */
+input[type="text"], input[type="password"], input[type="email"],
+input[type="url"], input[type="number"], select, textarea {
+  background: hsl(var(--b1));
+  border: 1px solid hsl(var(--b3));
+  color: hsl(var(--bc));
+  border-radius: .5rem;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: hsl(var(--p));
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, hsl(var(--p)) 25%, transparent);
+}
+
+/* Buttons */
+/* Buttons */
+.button, .deletelink, .submit-row input {
+  background: hsl(var(--p));
+  color: hsl(var(--pc));
+  border: none;
+  border-radius: .5rem;
+}
+.button:hover, .deletelink:hover, .submit-row input:hover {
+  filter: brightness(0.95);
+}
+/* Default/primary buttons */
+.button.default, .submit-row input.default {
+  background: hsl(var(--p));
+  color: hsl(var(--pc));
+}
+/* Destructive action */
+.deletelink, .button.delete, .submit-row .deletelink { 
+  background: hsl(var(--er));
+  color: hsl(var(--erc));
+}
+
+/* Pagination */
+.paginator {
+  background: hsl(var(--b1));
+  border: 1px solid hsl(var(--b3));
+  border-radius: .5rem;
+}
+
+/* Messages */
+.messagelist li { border-radius: .5rem; }
+/* Message level colors */
+.messagelist .success { background: hsl(var(--su)); color: hsl(var(--suc)); }
+.messagelist .warning { background: hsl(var(--wa)); color: hsl(var(--wac)); }
+.messagelist .error { background: hsl(var(--er)); color: hsl(var(--erc)); }
+.messagelist .info { background: hsl(var(--in)); color: hsl(var(--inc)); }
+
+/* Left navigation sidebar (retractable drawer) harmonization */
+#nav-sidebar {
+  background: hsl(var(--b1));
+  border-right: 1px solid hsl(var(--b3));
+}
+#nav-sidebar .module caption,
+#nav-sidebar .module h2 { background: transparent; }
+#nav-sidebar a,
+#nav-sidebar a:visited { color: hsl(var(--bc)); }
+#nav-sidebar .current-model a { color: hsl(var(--p)); }
+.toggle-nav-sidebar {
+  color: hsl(var(--bc));
+  border-color: hsl(var(--b3));
+  background: hsl(var(--b1));
+}
+.toggle-nav-sidebar:hover { filter: brightness(0.97); }
