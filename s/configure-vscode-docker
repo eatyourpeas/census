@@ -1,0 +1,85 @@
+#!/bin/bash
+
+# Configure VS Code to use Docker wrapper scripts for development
+# This script updates .vscode/settings.json to use Docker wrapper scripts instead of local virtual environment
+
+set -e  # Exit on any error
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "🔧 Configuring VS Code for Docker development environment..."
+
+# Navigate to project root
+cd "$PROJECT_ROOT"
+
+# Check if Docker wrapper scripts exist
+if [ ! -f "docker-python" ]; then
+    echo "❌ Docker wrapper scripts not found."
+    echo "   Please ensure docker-python and other wrapper scripts exist."
+    exit 1
+fi
+
+echo "✅ Found Docker wrapper scripts"
+
+# Create .vscode directory if it doesn't exist
+mkdir -p .vscode
+
+# Backup existing settings if they exist
+if [ -f ".vscode/settings.json" ]; then
+    cp .vscode/settings.json .vscode/settings.json.backup
+    echo "📦 Backed up existing VS Code settings to .vscode/settings.json.backup"
+fi
+
+# Create VS Code settings for Docker environment
+cat > .vscode/settings.json << 'EOF'
+{
+  "python.pythonPath": "./docker-python",
+  "python.defaultInterpreterPath": "./docker-python",
+  "python.linting.enabled": false,
+  "python.terminal.activateEnvironment": false,
+  "python.analysis.extraPaths": ["./"],
+  "python.analysis.autoSearchPaths": true,
+  "python.analysis.useLibraryCodeForTypes": true,
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.stubPath": "./typings",
+  "python.analysis.typeCheckingMode": "basic",
+  "pylance.insidersChannel": "off",
+  "ruff.path": ["./docker-ruff"],
+  "ruff.interpreter": ["./docker-python"],
+  "isort.path": ["./docker-isort"],
+  "isort.interpreter": ["./docker-python"],
+  "black-formatter.path": ["./docker-black"],
+  "black-formatter.interpreter": ["./docker-python"],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit",
+      "source.fixAll.ruff": "explicit"
+    }
+  },
+  "[django-html]": {
+    "editor.defaultFormatter": null,
+    "editor.formatOnSave": false
+  },
+  "[html]": {
+    "editor.defaultFormatter": null,
+    "editor.formatOnSave": false
+  }
+}
+EOF
+
+echo "✅ Updated .vscode/settings.json for Docker development"
+echo ""
+echo "🎉 VS Code configuration complete!"
+echo ""
+echo "Next steps:"
+echo "1. Make sure your Docker environment is running (./s/dev)"
+echo "2. Reload your VS Code window (Cmd/Ctrl + Shift + P → 'Developer: Reload Window')"
+echo "3. VS Code will now use Docker wrapper scripts for development"
+echo ""
+echo "💡 Note: Docker development provides isolated environment but limited IntelliSense"
+echo "💡 To switch back to local development:"
+echo "   ./s/configure-vscode-local"
+echo ""

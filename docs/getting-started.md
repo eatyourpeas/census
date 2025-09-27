@@ -45,9 +45,45 @@ This enhanced script will:
 
 ### For VS Code Users
 
-You have two excellent options for VS Code integration:
+You have three options for VS Code integration:
 
-#### Option 1: Dev Containers (Full Container Development)
+#### Option 1: Local Virtual Environment (Best IntelliSense)
+
+Develop with a local Python environment for the best IDE experience:
+
+1. **Prerequisites:**
+   - pyenv (for Python version management)
+   - Poetry will be installed automatically
+
+2. **Setup:**
+
+   ```bash
+   # Set up local virtual environment with all dependencies
+   ./s/setup-local
+   
+   # Configure VS Code to use the local environment
+   ./s/configure-vscode-local
+   ```
+
+3. **Reload VS Code window** (`Cmd+Shift+P` → "Developer: Reload Window")
+
+**Benefits:**
+
+- **Full IntelliSense support** - Complete import resolution, type hints, and autocomplete
+- All Python packages directly accessible to VS Code language server
+- Keep your host Git setup and credentials  
+- Native VS Code performance
+- Best debugging experience
+
+**Trade-offs:**
+
+- Requires local Python environment setup
+- Need to keep local dependencies in sync with Docker
+- Slightly more complex initial setup
+
+**When to use:** When you want the best possible IDE experience with full IntelliSense support.
+
+#### Option 2: Dev Containers (Full Container Development)
 
 Use the provided Dev Container configuration to develop entirely within the container:
 
@@ -70,13 +106,9 @@ Use the provided Dev Container configuration to develop entirely within the cont
 - Consistent environment across team members
 - No local Python setup required
 
-**Trade-offs:**
+**When to use:** When you prefer complete container isolation and don't mind container setup complexity.
 
-- Git credentials need container setup
-- Extensions need to be installed in container
-- Slightly slower file system performance
-
-#### Option 2: Docker Python Integration (Hybrid Development)
+#### Option 3: Docker Python Integration (Hybrid Development)
 
 Develop on your host machine while using the Docker container's Python environment:
 
@@ -176,7 +208,37 @@ These wrappers automatically execute commands inside your running Docker contain
 
 **Note:** If you're setting up a fresh clone, the `.vscode/settings.json` file should already be included in the repository. If it's missing or you want to customize it, use the configuration shown in step 4 above.
 
+### Switching Between Development Approaches
+
+You can easily switch between different development approaches using the provided configuration scripts:
+
+```bash
+# Switch to local virtual environment (best IntelliSense)
+./s/configure-vscode-local
+
+# Switch to Docker wrapper approach (hybrid)
+./s/configure-vscode-docker
+
+# Start/restart the Docker environment
+./s/dev
+```
+
+After switching approaches:
+
+1. Reload your VS Code window (`Cmd+Shift+P` → "Developer: Reload Window")
+2. Verify the Python interpreter is correct (`Cmd+Shift+P` → "Python: Select Interpreter")
+3. Test that imports and formatting work as expected
+
+**Configuration Backups:** The configuration scripts automatically backup your existing `.vscode/settings.json` to `.vscode/settings.json.backup` before making changes, so you can always revert if needed.
+
 ### Which VS Code Approach Should You Choose?
+
+**Choose Local Virtual Environment if you:**
+
+- Want the **best possible IntelliSense** with full import resolution and type hints
+- Do lots of exploratory coding or refactoring where autocomplete is crucial
+- Prefer immediate IDE feedback without any Docker overhead
+- Don't mind managing a local Python environment alongside Docker
 
 **Choose Dev Containers if you:**
 
@@ -187,10 +249,10 @@ These wrappers automatically execute commands inside your running Docker contain
 
 **Choose Docker Python Integration if you:**
 
-- Want to keep your existing host Git setup and credentials
-- Need maximum VS Code performance and responsiveness
+- Want a good balance between IDE features and environment consistency
+- Prefer to keep your existing host Git setup and credentials  
 - Want to use all your existing VS Code extensions without reconfiguration
-- Prefer a hybrid approach (host editing + container execution)
+- Are okay with slightly limited IntelliSense compared to local virtual environment
 
 #### Quick VS Code Startup
 

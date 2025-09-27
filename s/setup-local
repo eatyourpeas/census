@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Census Local Development Environment Setup
+# Simple script that creates a virtual environment and installs dependencies
+
+set -e  # Exit on any error
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+VENV_NAME="census-local"
+
+echo "🏗️  Setting up local development environment for Census..."
+echo "Project root: $PROJECT_ROOT"
+
+# Navigate to project root
+cd "$PROJECT_ROOT"
+
+# Check if pyenv is installed
+if ! command -v pyenv &> /dev/null; then
+    echo "❌ pyenv is not installed. Please install pyenv first."
+    exit 1
+fi
+
+echo "✅ pyenv found: $(pyenv --version)"
+
+# Use Python 3.12 (compatible with project requirements)
+PYTHON_VERSION="3.12.11"
+
+# Check if the required Python version is installed
+if ! pyenv versions | grep -q "$PYTHON_VERSION"; then
+    echo "📥 Installing Python $PYTHON_VERSION with pyenv..."
+    pyenv install "$PYTHON_VERSION"
+fi
+
+echo "📍 Using Python $PYTHON_VERSION"
+
+# Create virtual environment if it doesn't exist
+if ! pyenv versions | grep -q "$VENV_NAME"; then
+    echo "🔧 Creating virtual environment '$VENV_NAME'..."
+    pyenv virtualenv "$PYTHON_VERSION" "$VENV_NAME"
+else
+    echo "📂 Virtual environment '$VENV_NAME' already exists"
+    read -p "Do you want to recreate it? This will delete the existing environment. (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "🗑️  Removing existing virtual environment..."
+        pyenv virtualenv-delete -f "$VENV_NAME"
+        echo "� Creating new virtual environment '$VENV_NAME'..."
+        pyenv virtualenv "$PYTHON_VERSION" "$VENV_NAME"
+    fi
+fi
+
+# Set local Python version for the project
+echo "🎯 Setting local Python version to '$VENV_NAME'..."
+pyenv local "$VENV_NAME"
+
+# Upgrade pip and install dependencies
+echo "📦 Installing dependencies..."
+pip install --upgrade pip
+pip install poetry
+poetry install
+
+# Verify installation
+echo "🔍 Verifying installation..."
+if python -c "import django_ratelimit; print('✅ django_ratelimit imported successfully')" &> /dev/null; then
+    echo "✅ All dependencies installed correctly"
+else
+    echo "❌ There was an issue with the installation"
+    exit 1
+fi
+
+# Get Python path
+PYTHON_PATH=$(pyenv which python)
+
+echo ""
+echo "🎉 Local development environment setup complete!"
+echo ""
+echo "📍 Virtual environment: $VENV_NAME"
+echo "🐍 Python executable: $PYTHON_PATH"
+echo ""
+echo "Next steps:"
+echo "1. Configure VS Code to use the local environment:"
+echo "   ./s/configure-vscode-local"
+echo ""
+echo "2. Reload VS Code window to apply the changes"
+echo ""
+echo "💡 The virtual environment is automatically activated in this directory"
+echo "💡 To run commands:"
+echo "   python manage.py [command]"
+echo "   pytest"
+echo "   black ."
+echo ""

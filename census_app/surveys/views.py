@@ -3,8 +3,8 @@ from __future__ import annotations
 import csv
 import io
 import json
-from pathlib import Path
 import secrets
+from pathlib import Path
 
 from django import forms
 from django.conf import settings
@@ -182,17 +182,43 @@ def survey_list(request: HttpRequest) -> HttpResponse:
 
 
 class SurveyCreateForm(forms.ModelForm):
+    slug = forms.SlugField(
+        required=False, help_text="Leave blank to auto-generate from name"
+    )
+
     class Meta:
         model = Survey
         fields = ["name", "slug", "description"]
 
+    def clean_name(self):
+        name = self.cleaned_data.get("name")
+        if not name:
+            raise forms.ValidationError("Name is required")
+        return name
+
     def clean_slug(self):
-        s = self.cleaned_data.get("slug") or slugify(self.cleaned_data.get("name", ""))
-        if not s:
-            raise forms.ValidationError("Provide a name or slug")
-        if Survey.objects.filter(slug=s).exists():
+        slug = self.cleaned_data.get("slug")
+        name = self.cleaned_data.get("name", "")
+
+        # If slug is not provided, generate it from name
+        if not slug and name:
+            # Clean the name: remove brackets, apostrophes, and other non-alphanumeric chars
+            import re
+
+            cleaned_name = re.sub(
+                r"[^\w\s-]", "", name
+            )  # Remove special chars except spaces and hyphens
+            slug = slugify(cleaned_name)
+
+        # If still no slug after generation, raise error
+        if not slug:
+            raise forms.ValidationError("Could not generate slug from name")
+
+        # Check for uniqueness
+        if Survey.objects.filter(slug=slug).exists():
             raise forms.ValidationError("Slug already in use")
-        return s
+
+        return slug
 
 
 @login_required
