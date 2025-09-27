@@ -3,8 +3,9 @@ from __future__ import annotations
 import csv
 import io
 import json
-import secrets
 from pathlib import Path
+import secrets
+from typing import Union
 
 from django import forms
 from django.conf import settings
@@ -18,7 +19,6 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
-from typing import Union
 
 from .color import hex_to_oklch
 from .markdown_import import BulkParseError, parse_bulk_markdown_with_collections
@@ -1645,7 +1645,9 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 @login_required
-def survey_export_csv(request: HttpRequest, slug: str) -> Union[HttpResponse, StreamingHttpResponse]:
+def survey_export_csv(
+    request: HttpRequest, slug: str
+) -> Union[HttpResponse, StreamingHttpResponse]:
     survey = get_object_or_404(Survey, slug=slug, owner=request.user)
     if not request.session.get("survey_key"):
         messages.error(request, "Unlock survey first.")
