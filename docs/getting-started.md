@@ -45,7 +45,156 @@ This enhanced script will:
 
 ### For VS Code Users
 
-If you're using VS Code, you can automatically open it after starting the containers:
+You have two excellent options for VS Code integration:
+
+#### Option 1: Dev Containers (Full Container Development)
+
+Use the provided Dev Container configuration to develop entirely within the container:
+
+1. **Prerequisites:**
+   - Install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+2. **Usage:**
+
+   ```bash
+   # Start containers
+   ./s/dev
+   
+   # In VS Code: Cmd+Shift+P → "Dev Containers: Reopen in Container"
+   ```
+
+**Benefits:**
+
+- Complete development environment in container
+- All Python dependencies pre-installed
+- Consistent environment across team members
+- No local Python setup required
+
+**Trade-offs:**
+
+- Git credentials need container setup
+- Extensions need to be installed in container
+- Slightly slower file system performance
+
+#### Option 2: Docker Python Integration (Hybrid Development)
+
+Develop on your host machine while using the Docker container's Python environment:
+
+1. **Start your development environment:**
+
+   ```bash
+   ./s/dev
+   ```
+
+2. **Configure VS Code Python interpreter:**
+   - Open Command Palette (`Cmd+Shift+P`)
+   - Run `Python: Select Interpreter`
+   - Choose `./docker-python` from the list
+   - If not visible, select "Enter interpreter path..." and browse to `./docker-python`
+
+3. **Install required VS Code extensions:**
+
+   ```bash
+   # Install these extensions if not already installed:
+   # - Python (ms-python.python)
+   # - Pylance (ms-python.vscode-pylance) 
+   # - Black Formatter (ms-python.black-formatter)
+   # - Ruff (charliermarsh.ruff)
+   ```
+
+4. **Create VS Code settings** (if not already present):
+
+   Create or update `.vscode/settings.json` in your project root:
+
+   ```json
+   {
+     "python.pythonPath": "./docker-python",
+     "python.defaultInterpreterPath": "./docker-python",
+     "python.linting.enabled": false,
+     "python.terminal.activateEnvironment": false,
+     "python.analysis.extraPaths": ["./"],
+     "python.analysis.autoSearchPaths": true,
+     "python.analysis.useLibraryCodeForTypes": true,
+     "python.analysis.autoImportCompletions": true,
+     "pylance.insidersChannel": "off",
+     "ruff.path": ["./docker-ruff"],
+     "ruff.interpreter": ["./docker-python"],
+     "isort.path": ["./docker-isort"],
+     "isort.interpreter": ["./docker-python"],
+     "black-formatter.path": ["./docker-black"],
+     "black-formatter.interpreter": ["./docker-python"],
+     "[python]": {
+       "editor.defaultFormatter": "ms-python.black-formatter",
+       "editor.formatOnSave": true,
+       "editor.codeActionsOnSave": {
+         "source.organizeImports": "explicit",
+         "source.fixAll.ruff": "explicit"
+       }
+     },
+     "[django-html]": {
+       "editor.defaultFormatter": null,
+       "editor.formatOnSave": false
+     },
+     "[html]": {
+       "editor.defaultFormatter": null,
+       "editor.formatOnSave": false
+     }
+   }
+   ```
+
+5. **Optional: Reload VS Code window** (`Cmd+Shift+P` → "Developer: Reload Window")
+
+**Benefits:**
+
+- Keep your host Git setup and credentials
+- Native VS Code performance
+- All your extensions work normally
+- Python execution uses container environment
+
+**How it works:**
+
+- VS Code runs on your host (fast, native experience)
+- Python/linting/formatting execute in Docker (consistent environment)
+- File editing happens on host with instant sync via volume mounts
+
+**Technical Details:**
+
+This approach uses Docker wrapper scripts (`docker-python`, `docker-black`, `docker-ruff`, etc.) that VS Code calls instead of local Python tools. The project includes:
+
+- **Docker wrapper scripts**: Executable files that forward commands to the container
+- **Pre-configured VS Code settings**: Located in `.vscode/settings.json` (see step 4 above)
+
+The settings configure VS Code to:
+
+- Point Python interpreter to `./docker-python`
+- Configure Black formatter to use `./docker-black`
+- Configure Ruff linting to use `./docker-ruff`
+- Configure import sorting to use `./docker-isort`
+- Enable format-on-save and organize imports
+
+These wrappers automatically execute commands inside your running Docker container, so you get the benefits of the containerized environment without the complexity of dev containers.
+
+**Note:** If you're setting up a fresh clone, the `.vscode/settings.json` file should already be included in the repository. If it's missing or you want to customize it, use the configuration shown in step 4 above.
+
+### Which VS Code Approach Should You Choose?
+
+**Choose Dev Containers if you:**
+
+- Want a completely isolated development environment
+- Are on a team where everyone should have identical setups
+- Don't mind setting up Git credentials in the container
+- Prefer everything contained within Docker
+
+**Choose Docker Python Integration if you:**
+
+- Want to keep your existing host Git setup and credentials
+- Need maximum VS Code performance and responsiveness
+- Want to use all your existing VS Code extensions without reconfiguration
+- Prefer a hybrid approach (host editing + container execution)
+
+#### Quick VS Code Startup
+
+For either approach, you can automatically open VS Code after starting containers:
 
 ```bash
 # Option 1: Using the --code flag
@@ -54,14 +203,6 @@ If you're using VS Code, you can automatically open it after starting the contai
 # Option 2: Using environment variable
 OPEN_VSCODE=true ./s/dev
 ```
-
-**Benefits:**
-- Containers start in the background
-- VS Code opens automatically in the project directory
-- Ready to start coding immediately
-
-**Requirements:**
-- VS Code must be installed with the `code` command available in your PATH
 
 ### For Non-VS Code Users
 
@@ -127,11 +268,38 @@ docker compose down
 ./s/dev
 ```
 
+### Docker Python Integration Issues
+
+If you're using the Docker Python integration and encounter issues:
+
+1. **Python interpreter not found**: Ensure containers are running:
+
+   ```bash
+   docker ps  # Should show census-web-1 and census-db-1 running
+   ./s/dev    # Restart if needed
+   ```
+
+2. **Import errors or linting issues**: Reload VS Code window:
+   - `Cmd+Shift+P` → "Developer: Reload Window"
+   - Or restart VS Code completely
+
+3. **"ENOENT" errors**: Usually means VS Code is trying to use host Python instead of Docker:
+   - Check that Python interpreter is set to `./docker-python`
+   - Verify `.vscode/settings.json` exists with correct configuration
+   - Reload VS Code window after changes
+
+4. **Wrapper scripts not executable**: Make them executable:
+
+   ```bash
+   chmod +x docker-python docker-black docker-ruff docker-isort
+   ```
+
 ### VS Code Not Opening
 
 If you use `./s/dev --code` but VS Code doesn't open:
 
 1. **Check VS Code installation**: Ensure VS Code is installed and the `code` command is available:
+
    ```bash
    code --version
    ```
@@ -141,6 +309,7 @@ If you use `./s/dev --code` but VS Code doesn't open:
    - **Windows**: Usually installed automatically with VS Code
 
 3. **Alternative**: Start containers without VS Code integration:
+
    ```bash
    ./s/dev
    ```
