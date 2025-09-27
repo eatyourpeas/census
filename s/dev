@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Development environment startup script for Census
+# This script starts the local Docker Compose development environment
+
+set -e
+
+echo "🚀 Starting Census development environment..."
+echo "📦 Using Dockerfile.dev for development setup"
+
+# Check if Docker is running
+if ! docker info > /dev/null 2>&1; then
+    echo "❌ Docker is not running. Please start Docker and try again."
+    exit 1
+fi
+
+# Build and start the development environment
+echo "🏗️  Building and starting containers..."
+docker-compose up --build
+
+# Note: The containers will automatically:
+# - Set up PostgreSQL database
+# - Install npm dependencies
+# - Build CSS assets
+# - Run database migrations  
+# - Start Django development server on http://localhost:8000
