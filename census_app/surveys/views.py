@@ -18,6 +18,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
+from typing import Union
 
 from .color import hex_to_oklch
 from .markdown_import import BulkParseError, parse_bulk_markdown_with_collections
@@ -170,12 +171,12 @@ def survey_list(request: HttpRequest) -> HttpResponse:
     surveys = Survey.objects.none()
     if user.is_authenticated:
         owned = Survey.objects.filter(owner=user)
-        org_ids = user.org_memberships.values_list("organization_id", flat=True)
+        org_ids = user.org_memberships.values_list("organization_id", flat=True)  # type: ignore[attr-defined]
         if org_ids:
             org_surveys = Survey.objects.filter(organization_id__in=list(org_ids))
             # keep only those the user can view (admins of those orgs)
             org_surveys = [s for s in org_surveys if can_view_survey(user, s)]
-            surveys = owned | Survey.objects.filter(id__in=[s.id for s in org_surveys])
+            surveys = owned | Survey.objects.filter(id__in=[s.id for s in org_surveys])  # type: ignore[attr-defined]
         else:
             surveys = owned
     return render(request, "surveys/list.html", {"surveys": surveys})
@@ -1644,7 +1645,7 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 @login_required
-def survey_export_csv(request: HttpRequest, slug: str) -> HttpResponse:
+def survey_export_csv(request: HttpRequest, slug: str) -> Union[HttpResponse, StreamingHttpResponse]:
     survey = get_object_or_404(Survey, slug=slug, owner=request.user)
     if not request.session.get("survey_key"):
         messages.error(request, "Unlock survey first.")
