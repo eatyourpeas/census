@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import secrets
+from typing import Union
 
 from django import forms
 from django.conf import settings
@@ -170,29 +171,55 @@ def survey_list(request: HttpRequest) -> HttpResponse:
     surveys = Survey.objects.none()
     if user.is_authenticated:
         owned = Survey.objects.filter(owner=user)
-        org_ids = user.org_memberships.values_list("organization_id", flat=True)
+        org_ids = user.org_memberships.values_list("organization_id", flat=True)  # type: ignore[attr-defined]
         if org_ids:
             org_surveys = Survey.objects.filter(organization_id__in=list(org_ids))
             # keep only those the user can view (admins of those orgs)
             org_surveys = [s for s in org_surveys if can_view_survey(user, s)]
-            surveys = owned | Survey.objects.filter(id__in=[s.id for s in org_surveys])
+            surveys = owned | Survey.objects.filter(id__in=[s.id for s in org_surveys])  # type: ignore[attr-defined]
         else:
             surveys = owned
     return render(request, "surveys/list.html", {"surveys": surveys})
 
 
 class SurveyCreateForm(forms.ModelForm):
+    slug = forms.SlugField(
+        required=False, help_text="Leave blank to auto-generate from name"
+    )
+
     class Meta:
         model = Survey
         fields = ["name", "slug", "description"]
 
+    def clean_name(self):
+        name = self.cleaned_data.get("name")
+        if not name:
+            raise forms.ValidationError("Name is required")
+        return name
+
     def clean_slug(self):
-        s = self.cleaned_data.get("slug") or slugify(self.cleaned_data.get("name", ""))
-        if not s:
-            raise forms.ValidationError("Provide a name or slug")
-        if Survey.objects.filter(slug=s).exists():
+        slug = self.cleaned_data.get("slug")
+        name = self.cleaned_data.get("name", "")
+
+        # If slug is not provided, generate it from name
+        if not slug and name:
+            # Clean the name: remove brackets, apostrophes, and other non-alphanumeric chars
+            import re
+
+            cleaned_name = re.sub(
+                r"[^\w\s-]", "", name
+            )  # Remove special chars except spaces and hyphens
+            slug = slugify(cleaned_name)
+
+        # If still no slug after generation, raise error
+        if not slug:
+            raise forms.ValidationError("Could not generate slug from name")
+
+        # Check for uniqueness
+        if Survey.objects.filter(slug=slug).exists():
             raise forms.ValidationError("Slug already in use")
-        return s
+
+        return slug
 
 
 @login_required
@@ -1618,7 +1645,9 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 @login_required
-def survey_export_csv(request: HttpRequest, slug: str) -> HttpResponse:
+def survey_export_csv(
+    request: HttpRequest, slug: str
+) -> Union[HttpResponse, StreamingHttpResponse]:
     survey = get_object_or_404(Survey, slug=slug, owner=request.user)
     if not request.session.get("survey_key"):
         messages.error(request, "Unlock survey first.")

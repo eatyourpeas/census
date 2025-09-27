@@ -1,0 +1,86 @@
+#!/bin/bash
+
+# Configure VS Code to use local Poetry virtual environment
+# This script updates .vscode/settings.json to use the local .venv environment created by Poetry
+
+set -e  # Exit on any error
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "🔧 Configuring VS Code for local Poetry environment..."
+
+# Navigate to project root
+cd "$PROJECT_ROOT"
+
+# Check if Poetry .venv directory exists
+if [ ! -d ".venv" ]; then
+    echo "❌ No local .venv directory found"
+    echo "   Please run './s/setup-local' first to create the local environment."
+    exit 1
+fi
+
+# Get Python executable path from Poetry
+PYTHON_PATH="$PROJECT_ROOT/.venv/bin/python"
+
+# Verify Python executable exists
+if [ ! -f "$PYTHON_PATH" ]; then
+    echo "❌ Python executable not found at: $PYTHON_PATH"
+    echo "   Please run './s/setup-local' to set up the environment properly."
+    exit 1
+fi
+
+echo "✅ Found Poetry virtual environment at: .venv"
+echo "🐍 Python executable: $PYTHON_PATH"
+
+# Create .vscode directory if it doesn't exist
+mkdir -p .vscode
+
+# Backup existing settings if they exist
+if [ -f ".vscode/settings.json" ]; then
+    cp .vscode/settings.json .vscode/settings.json.backup
+    echo "📦 Backed up existing VS Code settings to .vscode/settings.json.backup"
+fi
+
+# Create VS Code settings for local environment
+cat > .vscode/settings.json << EOF
+{
+  "python.pythonPath": "$PYTHON_PATH",
+  "python.defaultInterpreterPath": "$PYTHON_PATH",
+  "python.terminal.activateEnvironment": true,
+  "python.analysis.autoSearchPaths": true,
+  "python.analysis.useLibraryCodeForTypes": true,
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "pylance.insidersChannel": "off",
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit",
+      "source.fixAll.ruff": "explicit"
+    }
+  },
+  "[django-html]": {
+    "editor.defaultFormatter": null,
+    "editor.formatOnSave": false
+  },
+  "[html]": {
+    "editor.defaultFormatter": null,
+    "editor.formatOnSave": false
+  }
+}
+EOF
+
+echo "✅ Updated .vscode/settings.json for local development"
+echo ""
+echo "🎉 VS Code configuration complete!"
+echo ""
+echo "Next steps:"
+echo "1. Reload your VS Code window (Cmd/Ctrl + Shift + P → 'Developer: Reload Window')"
+echo "2. VS Code should now use your local Poetry virtual environment for IntelliSense"
+echo "3. Test that django_ratelimit imports work correctly"
+echo ""
+echo "💡 To switch back to Docker development:"
+echo "   ./s/configure-vscode-docker"
+echo ""
