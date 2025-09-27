@@ -2,8 +2,46 @@
 
 # Development environment startup script for Census
 # This script starts the local Docker Compose development environment
+# Usage: ./s/dev [--code] [--help]
+#   --code    Also opens VS Code after starting containers
+#   --help    Show this help message
 
 set -e
+
+OPEN_VSCODE=false
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --code)
+            OPEN_VSCODE=true
+            shift
+            ;;
+        --help)
+            echo "Census Development Environment Startup"
+            echo ""
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --code    Also opens VS Code after starting containers"
+            echo "  --help    Show this help message"
+            echo ""
+            echo "Environment Variables:"
+            echo "  OPEN_VSCODE=true    Alternative to --code flag"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+# Check environment variable as alternative to flag
+if [[ "${OPEN_VSCODE}" == "true" ]]; then
+    OPEN_VSCODE=true
+fi
 
 echo "🚀 Starting Census development environment..."
 echo "📦 Using Dockerfile.dev for development setup"
@@ -16,11 +54,27 @@ fi
 
 # Build and start the development environment
 echo "🏗️  Building and starting containers..."
-docker-compose up --build
+docker-compose up --build -d
 
-# Note: The containers will automatically:
-# - Set up PostgreSQL database
-# - Install npm dependencies
-# - Build CSS assets
-# - Run database migrations  
-# - Start Django development server on http://localhost:8000
+if [[ "$OPEN_VSCODE" == "true" ]]; then
+    echo "💻 Opening VS Code..."
+    if command -v code &> /dev/null; then
+        code .
+    else
+        echo "⚠️  VS Code command 'code' not found in PATH"
+        echo "   Make sure VS Code is installed and the 'code' command is available"
+    fi
+fi
+
+echo ""
+echo "✅ Development environment is starting up!"
+echo "📝 The containers will automatically:"
+echo "   - Set up PostgreSQL database"
+echo "   - Install npm dependencies"
+echo "   - Build CSS assets"
+echo "   - Run database migrations"
+echo "   - Start Django development server on http://localhost:8000"
+echo ""
+if [[ "$OPEN_VSCODE" != "true" ]]; then
+    echo "💡 Tip: Use '--code' flag to automatically open VS Code next time"
+fi
