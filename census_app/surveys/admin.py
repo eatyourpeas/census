@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 
 from .models import (
@@ -51,3 +52,10 @@ class CollectionDefinitionAdmin(admin.ModelAdmin):
     list_filter = ("survey", "cardinality")
     search_fields = ("name", "key")
     inlines = [CollectionItemInline]
+
+
+# Configure admin site branding after admin is imported
+_brand_title = getattr(settings, "BRAND_TITLE", "Census")
+admin.site.site_header = f"{_brand_title} Admin"
+admin.site.site_title = f"{_brand_title} Admin"
+admin.site.index_title = "Administration"

@@ -29,3 +29,8 @@ class SignupForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
+
+## Removed BrandedPasswordResetForm in favor of Django's default behavior for
+## PasswordResetView with html_email_template_name.
+## No custom password reset form required; use Django defaults.

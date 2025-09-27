@@ -84,7 +84,7 @@
             <li><a href="/profile">Profile</a></li>
             <li><a href="{% url 'core:docs_index' %}">Documentation</a></li>
             <li>
-              <form method="post" action="{% url 'logout' %}">
+              <form method="post" action="/accounts/logout/">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-sm normal-case">Logout</button>
               </form>

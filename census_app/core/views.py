@@ -2,7 +2,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth import login, views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpResponse
@@ -248,3 +248,37 @@ def docs_page(request, slug: str):
         "core/docs.html",
         {"html": html, "active_slug": slug, "pages": _nav_pages()},
     )
+
+
+class BrandedPasswordResetView(auth_views.PasswordResetView):
+    """Password reset view that ensures brand context is available to email templates.
+
+    We pass extra_email_context on each request so templates like
+    registration/password_reset_subject.txt can use {{ brand.title }}.
+    Additionally, we ensure an HTML alternative is attached via
+    html_email_template_name.
+    """
+
+    template_name = "registration/password_reset_form.html"
+    subject_template_name = "registration/password_reset_subject.txt"
+    email_template_name = "registration/password_reset_email.txt"
+    html_email_template_name = "registration/password_reset_email.html"
+
+    def get_email_options(self):
+        opts = super().get_email_options()
+        # Merge in brand context so email templates can use {{ brand.* }}.
+        try:
+            from census_app.context_processors import branding as _branding
+
+            ctx = _branding(self.request)
+            brand = ctx.get("brand", {})
+        except Exception:
+            brand = {"title": getattr(settings, "BRAND_TITLE", "Census")}
+        extra = opts.get("extra_email_context") or {}
+        # Avoid mutating the original dict in place across requests
+        merged = {**extra, "brand": brand}
+        opts["extra_email_context"] = merged
+        return opts
+
+
+## Removed DirectPasswordResetConfirmView to use Django's standard confirm flow.
