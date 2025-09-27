@@ -1,4 +1,5 @@
 import re
+import secrets
 
 from django.contrib.auth.models import User
 from django.core import mail
@@ -14,8 +15,11 @@ class TestPasswordResetFlow:
         assert client.get(reverse("password_reset_complete")).status_code == 200
 
     def test_request_reset_sends_email(self, client):
+        # Generate passwords at runtime to avoid hardcoded secrets in repo
+        initial_password = secrets.token_urlsafe(12)
+        new_password = secrets.token_urlsafe(16)
         user = User.objects.create_user(
-            username="alice", email="alice@example.com", password="xYz!23456"
+            username="alice", email="alice@example.com", password=initial_password
         )
         resp = client.post(reverse("password_reset"), {"email": user.email})
         # Redirect to done
@@ -46,12 +50,12 @@ class TestPasswordResetFlow:
         # Post new password on the set-password URL
         post2 = client.post(
             set_password_path,
-            {"new_password1": "Newpass!2345", "new_password2": "Newpass!2345"},
+            {"new_password1": new_password, "new_password2": new_password},
         )
         assert post2.status_code == 302
         assert post2.url == reverse("password_reset_complete")
         # Can login with new password
         login = client.post(
-            "/accounts/login/", {"username": user.username, "password": "Newpass!2345"}
+            "/accounts/login/", {"username": user.username, "password": new_password}
         )
         assert login.status_code == 302
