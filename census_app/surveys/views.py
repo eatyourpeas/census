@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import csv
 from copy import deepcopy
+import csv
 import io
 import json
 from pathlib import Path
@@ -555,10 +555,14 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
                     if val:
                         block[str(fkey)] = val
                     allow_ods = (
-                        bool(field.get("allow_ods")) if isinstance(field, dict) else False
+                        bool(field.get("allow_ods"))
+                        if isinstance(field, dict)
+                        else False
                     )
                     ods_enabled = (
-                        bool(field.get("ods_enabled")) if isinstance(field, dict) else False
+                        bool(field.get("ods_enabled"))
+                        if isinstance(field, dict)
+                        else False
                     )
                     if allow_ods and ods_enabled:
                         ods_val = request.POST.get(f"{key}_{fkey}_ods")
@@ -641,8 +645,7 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
         setattr(q, "group_start", bool(curr_gid and curr_gid != prev_gid))
         setattr(q, "group_end", bool(curr_gid and curr_gid != next_gid))
     has_patient_template = any(
-        getattr(q, "type", None) == SurveyQuestion.Types.TEMPLATE_PATIENT
-        for q in qs
+        getattr(q, "type", None) == SurveyQuestion.Types.TEMPLATE_PATIENT for q in qs
     )
     has_professional_template = any(
         getattr(q, "type", None) == SurveyQuestion.Types.TEMPLATE_PROFESSIONAL
@@ -932,11 +935,7 @@ def _serialize_question_for_builder(question: SurveyQuestion) -> dict[str, Any]:
     options = question.options or []
     if question.type == SurveyQuestion.Types.TEXT:
         fmt = "free"
-        if (
-            isinstance(options, list)
-            and options
-            and isinstance(options[0], dict)
-        ):
+        if isinstance(options, list) and options and isinstance(options[0], dict):
             fmt = str(options[0].get("format") or fmt)
         payload["text_format"] = fmt
     elif question.type in {
@@ -2181,7 +2180,7 @@ def group_builder(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
     ctx = {
         "survey": survey,
         "group": group,
-    "questions": questions,
+        "questions": questions,
         "show_patient_details": show_patient_details,
         "demographics_fields": demographics_fields,
         "demographic_defs": DEMOGRAPHIC_FIELD_DEFS,
@@ -2426,9 +2425,7 @@ def builder_group_question_copy(
     survey = get_object_or_404(Survey, slug=slug)
     require_can_edit(request.user, survey)
     group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
-    question = get_object_or_404(
-        SurveyQuestion, id=qid, survey=survey, group=group
-    )
+    question = get_object_or_404(SurveyQuestion, id=qid, survey=survey, group=group)
     _duplicate_question(question)
     questions_qs = survey.questions.select_related("group").filter(group=group)
     questions = _prepare_question_rendering(survey, questions_qs)
@@ -2461,8 +2458,7 @@ def builder_group_template_add(
             message = "Patient details template already exists in this group."
         else:
             order = (
-                survey.questions.aggregate(models.Max("order")).get("order__max")
-                or 0
+                survey.questions.aggregate(models.Max("order")).get("order__max") or 0
             ) + 1
             default_options = _normalize_patient_template_options(
                 {
@@ -2494,8 +2490,7 @@ def builder_group_template_add(
             message = "Professional details template already exists in this group."
         else:
             order = (
-                survey.questions.aggregate(models.Max("order")).get("order__max")
-                or 0
+                survey.questions.aggregate(models.Max("order")).get("order__max") or 0
             ) + 1
             default_options = _normalize_professional_template_options(
                 {
@@ -2555,9 +2550,7 @@ def builder_question_template_patient_update(
 
     normalized = _normalize_patient_template_options(question.options)
     selected = {
-        key
-        for key in request.POST.getlist("fields")
-        if key in DEMOGRAPHIC_FIELD_DEFS
+        key for key in request.POST.getlist("fields") if key in DEMOGRAPHIC_FIELD_DEFS
     }
     include_imd = request.POST.get("include_imd") in ("on", "true", "1")
 
@@ -2569,8 +2562,7 @@ def builder_question_template_patient_update(
         updated_fields.append(
             {
                 "key": key,
-                "label": field.get("label")
-                or DEMOGRAPHIC_FIELD_DEFS.get(key, key),
+                "label": field.get("label") or DEMOGRAPHIC_FIELD_DEFS.get(key, key),
                 "selected": key in selected,
             }
         )
@@ -2580,9 +2572,7 @@ def builder_question_template_patient_update(
     )
     question.save(update_fields=["options"])
 
-    return _render_template_question_row(
-        request, survey, question, keep_open=True
-    )
+    return _render_template_question_row(request, survey, question, keep_open=True)
 
 
 @login_required
@@ -2603,9 +2593,7 @@ def builder_group_question_template_patient_update(
 
     normalized = _normalize_patient_template_options(question.options)
     selected = {
-        key
-        for key in request.POST.getlist("fields")
-        if key in DEMOGRAPHIC_FIELD_DEFS
+        key for key in request.POST.getlist("fields") if key in DEMOGRAPHIC_FIELD_DEFS
     }
     include_imd = request.POST.get("include_imd") in ("on", "true", "1")
 
@@ -2617,8 +2605,7 @@ def builder_group_question_template_patient_update(
         updated_fields.append(
             {
                 "key": key,
-                "label": field.get("label")
-                or DEMOGRAPHIC_FIELD_DEFS.get(key, key),
+                "label": field.get("label") or DEMOGRAPHIC_FIELD_DEFS.get(key, key),
                 "selected": key in selected,
             }
         )
@@ -2649,9 +2636,7 @@ def builder_question_template_professional_update(
 
     normalized = _normalize_professional_template_options(question.options)
     selected = {
-        key
-        for key in request.POST.getlist("fields")
-        if key in PROFESSIONAL_FIELD_DEFS
+        key for key in request.POST.getlist("fields") if key in PROFESSIONAL_FIELD_DEFS
     }
     ods_flags = {
         key: request.POST.get(f"ods_{key}") in ("on", "true", "1")
@@ -2670,8 +2655,7 @@ def builder_question_template_professional_update(
         updated_fields.append(
             {
                 "key": key,
-                "label": field.get("label")
-                or PROFESSIONAL_FIELD_DEFS.get(key, key),
+                "label": field.get("label") or PROFESSIONAL_FIELD_DEFS.get(key, key),
                 "selected": key in selected,
                 "allow_ods": allow_ods,
                 "ods_enabled": ods_enabled,
@@ -2683,9 +2667,7 @@ def builder_question_template_professional_update(
     )
     question.save(update_fields=["options"])
 
-    return _render_template_question_row(
-        request, survey, question, keep_open=True
-    )
+    return _render_template_question_row(request, survey, question, keep_open=True)
 
 
 @login_required
@@ -2706,9 +2688,7 @@ def builder_group_question_template_professional_update(
 
     normalized = _normalize_professional_template_options(question.options)
     selected = {
-        key
-        for key in request.POST.getlist("fields")
-        if key in PROFESSIONAL_FIELD_DEFS
+        key for key in request.POST.getlist("fields") if key in PROFESSIONAL_FIELD_DEFS
     }
     ods_flags = {
         key: request.POST.get(f"ods_{key}") in ("on", "true", "1")
@@ -2727,8 +2707,7 @@ def builder_group_question_template_professional_update(
         updated_fields.append(
             {
                 "key": key,
-                "label": field.get("label")
-                or PROFESSIONAL_FIELD_DEFS.get(key, key),
+                "label": field.get("label") or PROFESSIONAL_FIELD_DEFS.get(key, key),
                 "selected": key in selected,
                 "allow_ods": allow_ods,
                 "ods_enabled": ods_enabled,
