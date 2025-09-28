@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any, Dict, List
+import unicodedata
 
 
 class BulkParseError(Exception):
@@ -10,41 +11,158 @@ class BulkParseError(Exception):
 
 def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
     """
-    Parse markdown into groups and questions.
+    Parse markdown into groups and questions, capturing optional IDs and branching.
 
-    Grammar (loose, line-oriented):
-    - # Group Title
-      <group description>
-
-    - ## Question Title
-      <question description>
-      (type)
-      For option types: one "- Option" per line
-      For likert number: key-value lines like "min: 1", "max: 5", optional "left: Low", "right: High"
-
-    Supported types (case-insensitive in parentheses):
-      text | text number | mc_single | mc_multi | dropdown | orderable | yesno | image | likert categories | likert number
+    Grammar additions compared to the original importer:
+    - Group or question headings may end with `{custom-id}` to assign a stable reference.
+      If omitted, a slugified identifier is generated automatically.
+    - After the `(type)` line (and any options/likert metadata), branching lines may follow:
+        `? when <operator> <value> -> {target-id}`
+      Operators map to the SurveyQuestionCondition operators. Values may be quoted.
     """
+
     if not md_text or not md_text.strip():
         raise BulkParseError("Markdown is empty")
+
+    # Import lazily to avoid Django model imports on module load in certain contexts
+    from .models import SurveyQuestionCondition
 
     lines = md_text.splitlines()
     i = 0
     groups: List[Dict[str, Any]] = []
     current_group: Dict[str, Any] | None = None
     current_question: Dict[str, Any] | None = None
+    all_refs: set[str] = set()
+
+    def _normalize_token(value: str) -> str:
+        base = (
+            unicodedata.normalize("NFKD", (value or ""))
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
+        base = re.sub(r"[^a-zA-Z0-9\s-]", " ", base).lower().strip()
+        base = re.sub(r"[\s_-]+", "-", base).strip("-")
+        return base
+
+    def _allocate_ref(preferred: str | None, fallback: str) -> str:
+        base = _normalize_token(preferred) if preferred else ""
+        if not base:
+            base = _normalize_token(fallback)
+        candidate = base or fallback or "item"
+        orig = candidate
+        counter = 2
+        while candidate in all_refs:
+            candidate = f"{orig}-{counter}"
+            counter += 1
+        all_refs.add(candidate)
+        return candidate
+
+    def _extract_title_and_ref(raw_title: str, fallback: str) -> tuple[str, str]:
+        title = raw_title
+        explicit_ref = None
+        match = re.search(r"\{([^{}]+)\}\s*$", title)
+        if match:
+            explicit_ref = match.group(1).strip()
+            title = title[: match.start()].rstrip()
+        title = title.strip()
+        ref = _allocate_ref(explicit_ref, fallback)
+        return title, ref
 
     def is_heading(s: str) -> bool:
         s_strip = s.lstrip()
         return s_strip.startswith("# ") or s_strip.startswith("## ")
 
+    def _parse_branch_line(line: str, line_number: int) -> Dict[str, Any]:
+        if "{" not in line or "}" not in line:
+            raise BulkParseError(
+                f"Branch is missing a target id in curly braces near line {line_number}"
+            )
+        target_match = re.search(r"\{([^{}]+)\}\s*$", line)
+        if not target_match:
+            raise BulkParseError(
+                f"Branch is missing a target id in curly braces near line {line_number}"
+            )
+        target_ref_raw = target_match.group(1).strip()
+        target_ref = _normalize_token(target_ref_raw)
+        if not target_ref:
+            raise BulkParseError(
+                f"Branch target id cannot be empty near line {line_number}"
+            )
+
+        condition_part = line[: target_match.start()].strip()
+        condition_part = re.sub(r"\s*->\s*$", "", condition_part)
+        if condition_part.lower().startswith("when "):
+            condition_part = condition_part[5:].strip()
+        else:
+            raise BulkParseError(
+                f"Branch must start with 'when' followed by an operator near line {line_number}"
+            )
+
+        if not condition_part:
+            raise BulkParseError(
+                f"Branch is missing an operator near line {line_number}"
+            )
+
+        operator_tokens = condition_part.split(None, 1)
+        operator_key = operator_tokens[0].replace("-", "_").lower()
+        value_part = operator_tokens[1].strip() if len(operator_tokens) > 1 else ""
+
+        operator_map = {
+            "equals": SurveyQuestionCondition.Operator.EQUALS,
+            "eq": SurveyQuestionCondition.Operator.EQUALS,
+            "not_equals": SurveyQuestionCondition.Operator.NOT_EQUALS,
+            "neq": SurveyQuestionCondition.Operator.NOT_EQUALS,
+            "contains": SurveyQuestionCondition.Operator.CONTAINS,
+            "not_contains": SurveyQuestionCondition.Operator.NOT_CONTAINS,
+            "greater_than": SurveyQuestionCondition.Operator.GREATER_THAN,
+            "gt": SurveyQuestionCondition.Operator.GREATER_THAN,
+            "greater_equal": SurveyQuestionCondition.Operator.GREATER_EQUAL,
+            "gte": SurveyQuestionCondition.Operator.GREATER_EQUAL,
+            "less_than": SurveyQuestionCondition.Operator.LESS_THAN,
+            "lt": SurveyQuestionCondition.Operator.LESS_THAN,
+            "less_equal": SurveyQuestionCondition.Operator.LESS_EQUAL,
+            "lte": SurveyQuestionCondition.Operator.LESS_EQUAL,
+            "exists": SurveyQuestionCondition.Operator.EXISTS,
+            "not_exists": SurveyQuestionCondition.Operator.NOT_EXISTS,
+        }
+
+        if operator_key not in operator_map:
+            raise BulkParseError(
+                f"Unsupported branch operator '{operator_key}' near line {line_number}"
+            )
+
+        operator = operator_map[operator_key]
+        requires_value = operator not in {
+            SurveyQuestionCondition.Operator.EXISTS,
+            SurveyQuestionCondition.Operator.NOT_EXISTS,
+        }
+
+        if requires_value:
+            if not value_part:
+                raise BulkParseError(
+                    f"Branch with operator '{operator_key}' requires a comparison value near line {line_number}"
+                )
+            value = _unquote_value(value_part)
+        else:
+            value = ""
+
+        description = f"when {operator_key}"
+        if value:
+            description = f"{description} {value}"
+
+        return {
+            "operator": operator,
+            "value": value,
+            "description": description,
+            "target_ref": target_ref,
+        }
+
     while i < len(lines):
         raw = lines[i]
         line = raw.strip()
-        # Group heading
         if line.startswith("# ") and not line.startswith("## "):
-            title = line[2:].strip()
-            # find next non-empty as group description (if not a heading)
+            title_raw = line[2:].strip()
+            title, ref = _extract_title_and_ref(title_raw, f"group-{len(groups) + 1}")
             desc = ""
             j = i + 1
             while j < len(lines) and lines[j].strip() == "":
@@ -52,17 +170,24 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
             if j < len(lines) and not is_heading(lines[j]):
                 desc = lines[j].strip()
                 i = j
-            current_group = {"name": title, "description": desc, "questions": []}
+            current_group = {
+                "name": title,
+                "description": desc,
+                "questions": [],
+                "ref": ref,
+            }
             groups.append(current_group)
             current_question = None
-        # Question heading
         elif line.startswith("## "):
             if not current_group:
                 raise BulkParseError(
                     f"Question declared before any group at line {i+1}"
                 )
-            qtitle = line[3:].strip()
-            # next non-empty: question description
+            qtitle_raw = line[3:].strip()
+            qtitle, qref = _extract_title_and_ref(
+                qtitle_raw,
+                f"{current_group['ref']}-{len(current_group['questions']) + 1}",
+            )
             qdesc = ""
             j = i + 1
             while j < len(lines) and lines[j].strip() == "":
@@ -74,7 +199,6 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
             ):
                 qdesc = lines[j].strip()
                 i = j
-            # next non-empty: (type)
             k = i + 1
             while k < len(lines) and lines[k].strip() == "":
                 k += 1
@@ -90,12 +214,16 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
                 "type": type_line,
                 "options": [],
                 "kv": {},
+                "ref": qref,
+                "branches": [],
             }
             current_group["questions"].append(current_question)
         else:
-            # Within a question: parse options or likert kv pairs
             if current_question:
-                if line.startswith("- "):
+                if line.startswith("? ") or line.startswith("?"):
+                    branch = _parse_branch_line(line[1:].strip(), i + 1)
+                    current_question["branches"].append(branch)
+                elif line.startswith("- "):
                     current_question["options"].append(line[2:].strip())
                 else:
                     m = re.match(
@@ -108,13 +236,14 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
             # else ignore stray text
         i += 1
 
-    # Normalize and validate
+    group_lookup = {g["ref"]: g for g in groups}
+    question_lookup = {q["ref"]: q for g in groups for q in g["questions"]}
+
     for g in groups:
         if not g["name"]:
             raise BulkParseError("A group is missing a title")
         for q in g["questions"]:
             t = q["type"].lower()
-            # map types
             if t in {"text", "text free", "text freetext"}:
                 q["final_type"] = "text"
                 q["final_options"] = [{"type": "text", "format": "free"}]
@@ -150,7 +279,6 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
                         {"type": "categories", "labels": q["options"][:]}
                     ]
                 else:
-                    # number scale
                     try:
                         min_v = int(q["kv"].get("min", "1"))
                         max_v = int(q["kv"].get("max", "5"))
@@ -177,7 +305,31 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
                     f"Unsupported question type '{q['type']}' for '{q['title']}'"
                 )
 
+            validated_branches: List[Dict[str, Any]] = []
+            for idx, branch in enumerate(q["branches"]):
+                target_ref = branch["target_ref"]
+                if target_ref in group_lookup:
+                    branch["target_type"] = "group"
+                elif target_ref in question_lookup:
+                    branch["target_type"] = "question"
+                else:
+                    raise BulkParseError(
+                        f"Branch references unknown id '{target_ref}' in question '{q['title']}'"
+                    )
+                branch["order"] = idx
+                validated_branches.append(branch)
+            q["branches"] = validated_branches
+
     return groups
+
+
+def _unquote_value(raw: str) -> str:
+    if len(raw) >= 2 and (
+        (raw.startswith('"') and raw.endswith('"'))
+        or (raw.startswith("'") and raw.endswith("'"))
+    ):
+        return raw[1:-1]
+    return raw
 
 
 def parse_bulk_markdown_with_collections(md_text: str) -> Dict[str, Any]:

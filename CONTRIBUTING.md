@@ -29,6 +29,7 @@ Secret scanners (e.g. GitGuardian, GitHub Secret Scanning, ggshield) run on this
 - Do not commit real secrets, keys, or tokens.
 - Use `.env.example` as a template; never commit your real `.env`.
 - Follow existing security patterns (CSP, CSRF, HSTS, rate limiting) when adding features.
+- For convenience, before sending in a PR you can run `s/lint` which will run ruff, isort and black and fix any errors.
 
 ## Style
 

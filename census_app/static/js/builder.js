@@ -87,6 +87,77 @@
     });
   }
 
+  function initConditionForms(scope) {
+    const root = scope || document;
+    const forms = root.querySelectorAll("[data-condition-form]");
+    forms.forEach((form) => {
+      if (form.dataset.conditionBound) return;
+      form.dataset.conditionBound = "1";
+
+      const operatorSelect = form.querySelector("[data-condition-operator]");
+      const valueWrapper = form.querySelector("[data-condition-value]");
+      const valueInput = form.querySelector('input[name="value"]');
+      const targetRadios = form.querySelectorAll(
+        'input[name="target_selector"]'
+      );
+      const questionWrapper = form.querySelector(
+        '[data-target-wrapper="question"]'
+      );
+      const groupWrapper = form.querySelector('[data-target-wrapper="group"]');
+      const questionSelect = form.querySelector(
+        '[data-target-select="question"]'
+      );
+      const groupSelect = form.querySelector('[data-target-select="group"]');
+
+      const toggleValueField = () => {
+        if (!operatorSelect) return;
+        const option = operatorSelect.options[operatorSelect.selectedIndex];
+        const requiresValue = option
+          ? option.getAttribute("data-requires-value") !== "0"
+          : true;
+        if (valueWrapper) {
+          valueWrapper.classList.toggle("hidden", !requiresValue);
+        }
+        if (valueInput) {
+          valueInput.disabled = !requiresValue;
+        }
+      };
+
+      const toggleTargetFields = () => {
+        let selected = "question";
+        targetRadios.forEach((radio) => {
+          if (radio.checked) selected = radio.value;
+        });
+
+        const enableQuestion = selected === "question";
+        const enableGroup = selected === "group";
+
+        if (questionWrapper) {
+          questionWrapper.classList.toggle("hidden", !enableQuestion);
+        }
+        if (groupWrapper) {
+          groupWrapper.classList.toggle("hidden", !enableGroup);
+        }
+        if (questionSelect) {
+          questionSelect.disabled = !enableQuestion;
+        }
+        if (groupSelect) {
+          groupSelect.disabled = !enableGroup;
+        }
+      };
+
+      if (operatorSelect) {
+        operatorSelect.addEventListener("change", toggleValueField);
+      }
+      targetRadios.forEach((radio) => {
+        radio.addEventListener("change", toggleTargetFields);
+      });
+
+      toggleValueField();
+      toggleTargetFields();
+    });
+  }
+
   function updateFormModeUI(form, mode) {
     const isEdit = mode === "edit";
     form.dataset.mode = mode;
@@ -429,6 +500,7 @@
     renumberQuestions(document);
     bindEditButtons();
     bindCancelButton(document.getElementById("create-question-form"));
+    initConditionForms(document);
   });
 
   // Add CSRF header to all HTMX requests and coerce edit submissions to the correct endpoint
@@ -492,6 +564,7 @@
       initSortable(document);
       scheduleDismissals(document);
       renumberQuestions(document);
+      initConditionForms(document);
       // If this swap was triggered by the create-question form submission, reset the form
       const src = evt.detail && evt.detail.elt ? evt.detail.elt : null;
       const form = document.getElementById("create-question-form");
@@ -509,6 +582,7 @@
       bindCancelButton(document.getElementById("create-question-form"));
     }
     bindEditButtons();
+    initConditionForms(target);
   });
 
   // Also reset form after the request completes successfully, even if no swap occurred

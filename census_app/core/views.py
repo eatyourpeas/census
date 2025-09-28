@@ -193,6 +193,7 @@ DOC_PAGES = {
     "branding-and-theme-settings": "branding-and-theme-settings.md",
     "themes": "themes.md",
     "surveys": "surveys.md",
+    "import": "import.md",
     "publish-and-collection": "publish-and-collection.md",
     "user-management": "user-management.md",
     "collections": "collections.md",

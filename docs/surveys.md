@@ -30,10 +30,11 @@ From the dashboard you can set style/branding, manage members, and build content
 
 ## Question groups vs questions
 
-- Question Groups: logical sections in a survey (e.g., Demographics, Background, Outcomes). These contain several questions that tend to go together.
-- Questions: individual prompts within a group. There are different question types that can be selected from a menu.
+Question Groups are the building blocks for structuring a survey. They act like chapters: each group has a title, optional description, and an ordered list of questions. Groups keep longer surveys manageable, let you show section-specific instructions, and provide obvious breakpoints when branching to different parts of a journey. Questions can be reordered within a group, and groups themselves can be reordered from the builder sidebar.
 
-You can bulk import questions if you have a survey already to go in an document. You can use Markdown (see Bulk upload in the survey). Groups help keep longer surveys organized and can enable per-section instructions.
+Questions live inside a single group. When you add a question, the builder automatically associates it with the group you have open. Moving a question to another group updates that association immediately—there is no detached “question bank.” If you delete a group, its questions are also deleted. This ensures that every question always has a clear place in the survey hierarchy.
+
+You can bulk import questions when you already have content drafted. Uploading Markdown via the bulk upload option lets you specify groups and questions in a single document: top-level headings become groups, and nested headings/items become questions. After import you can continue refining groups and questions in the builder UI.
 
 ## Question types
 
@@ -55,6 +56,18 @@ Some types use options metadata. Examples:
 - `text`: optional format hint (e.g., constrained formats) used in previews
 
 You can preview questions in the builder, reorder them, and group them as needed.
+
+### Conditional branching
+
+Individual questions can define conditional logic that determines what a respondent sees next. Branching is configured per question from the “Logic” tab in the builder:
+
+- **Show/Hide conditions** — Display a question only when previous answers match the criteria you set (e.g., show follow-up questions when someone answers "Yes").
+- **Skip logic** — Jump the respondent to another question group once they pick a certain answer. This is useful for ending a survey early or routing different audiences to tailored sections.
+- **Option-level rules** — For multiple-choice questions you can create separate rules for each option. For free-text or numeric answers, use comparators (equals, greater than, contains, etc.) to match values.
+
+The logic engine evaluates conditions in order, so place the most specific rule first. A question without any conditions simply follows the survey’s default ordering. When branching sends a respondent to a later group, intervening groups are skipped automatically.
+
+**Tip:** Keep at least one unconditional path through every group so respondents cannot get trapped. In testing environments the builder logs a warning when conditional tables are missing—run the latest migrations before enabling branching in production.
 
 ## Managing access to surveys
 
