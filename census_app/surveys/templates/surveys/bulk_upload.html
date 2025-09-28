@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Import Questions - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose">
@@ -14,11 +15,11 @@
 {% endif %}
 
 <div class="grid md:grid-cols-2 gap-6">
-  <div>
+  <div class="space-y-6">
     <form method="post">
       {% csrf_token %}
       <label class="label">Markdown</label>
-  <textarea class="textarea textarea-bordered w-full min-h-[360px]" name="markdown" placeholder="REPEAT-5
+      <textarea class="textarea textarea-bordered w-full min-h-[360px]" name="markdown" placeholder="REPEAT-5
 # Patient
 Basic info about respondents
 
@@ -65,47 +66,77 @@ Likelihood to recommend
         <button class="btn btn-primary" type="submit">Import</button>
       </div>
     </form>
+    <section class="rounded-xl border border-base-300 bg-base-200/70 shadow-inner">
+      <div class="p-4 sm:p-6 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold text-base-content">Live structure preview</h2>
+            <p class="text-sm text-base-content/70">Groups and questions are assigned unique IDs as you edit. Use these IDs to reason about branching later.</p>
+          </div>
+          <span class="badge badge-outline hidden" id="bulk-structure-count" aria-live="polite"></span>
+        </div>
+        <div id="bulk-structure-preview" class="space-y-4" aria-live="polite" aria-busy="true">
+          <div class="text-sm text-base-content/70">Start typing (or use the sample markdown) to see the survey structure.</div>
+        </div>
+      </div>
+    </section>
   </div>
-  <div>
-    <h2 class="text-xl font-semibold">Format reference</h2>
-    <p>Use markdown with the following structure:</p>
-    <ul class="list-disc pl-5">
-      <li># Group Title, followed by a line for the group description</li>
-      <li>## Question Title, followed by a line for the question description</li>
-      <li>(type) on the next line in parentheses</li>
-      <li>If the type requires options, list each on a line starting with <code>-</code></li>
-      <li>For Likert number scales, add key-value lines: <code>min:</code>, <code>max:</code>, optional <code>left:</code>, <code>right:</code></li>
-    </ul>
-    <h3 class="mt-4 font-semibold">Supported types</h3>
-    <ul class="list-disc pl-5">
-      <li>text — free text</li>
-      <li>text number — numeric input</li>
-      <li>mc_single — multiple choice (single)</li>
-      <li>mc_multi — multiple choice (multi)</li>
-      <li>dropdown — select menu</li>
-      <li>orderable — orderable list</li>
-      <li>yesno — yes/no</li>
-      <li>image — image choice</li>
-      <li>likert categories — categories listed with <code>-</code></li>
-      <li>likert number — provide <code>min</code>/<code>max</code> and optional labels</li>
-    </ul>
-    <h3 class="mt-4 font-semibold">Optional: Collections with REPEAT</h3>
-    <p>To mark a group as repeatable, add a line with <strong>REPEAT</strong> (or <strong>REPEAT-5</strong> to cap it) immediately above the group heading.</p>
-    <p>To define a child collection nested under a repeatable parent, indent with <code>&gt; </code> and add <strong>REPEAT</strong> above the child group:</p>
-    <pre><code>REPEAT-5
+  <div class="space-y-6">
+    <div class="card bg-base-100 shadow">
+      <div class="card-body space-y-4">
+        <div>
+          <h2 class="card-title">Format reference</h2>
+          <p class="text-base-content/80">Use markdown with the following structure:</p>
+        </div>
+        <ul class="list-disc pl-5 space-y-1 text-sm">
+          <li><code># Group Title</code>, followed by a line for the group description</li>
+          <li><code>## Question Title</code>, followed by a line for the question description</li>
+          <li><code>(type)</code> on the next line in parentheses</li>
+          <li>If the type requires options, list each on a line starting with <code>-</code></li>
+          <li>For Likert number scales, add key-value lines: <code>min:</code>, <code>max:</code>, optional <code>left:</code>, <code>right:</code></li>
+        </ul>
+
+        <div>
+          <h3 class="font-semibold">Supported types</h3>
+          <ul class="list-disc pl-5 space-y-1 text-sm">
+            <li><code>text</code> — free text</li>
+            <li><code>text number</code> — numeric input</li>
+            <li><code>mc_single</code> — multiple choice (single)</li>
+            <li><code>mc_multi</code> — multiple choice (multi)</li>
+            <li><code>dropdown</code> — select menu</li>
+            <li><code>orderable</code> — orderable list</li>
+            <li><code>yesno</code> — yes/no</li>
+            <li><code>image</code> — image choice</li>
+            <li><code>likert categories</code> — categories listed with <code>-</code></li>
+            <li><code>likert number</code> — provide <code>min</code>/<code>max</code> and optional labels</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="font-semibold">Optional: Collections with REPEAT</h3>
+          <p class="text-sm text-base-content/80">To mark a group as repeatable, add a line with <strong>REPEAT</strong> (or <strong>REPEAT-5</strong> to cap it) immediately above the group heading.</p>
+          <p class="text-sm text-base-content/80">To define a child collection nested under a repeatable parent, indent with <code>&gt;</code> and add <strong>REPEAT</strong> above the child group:</p>
+          <pre class="mt-2 rounded bg-base-200/60 p-3 text-sm"><code>REPEAT-5
 # Patient
 ... group content ...
 
-> REPEAT
-> # Visit
-> ... child group content ...
-    </code></pre>
-    <ul class="list-disc pl-5">
-      <li><strong>REPEAT</strong> = unlimited repeats. <strong>REPEAT-1</strong> means one allowed.</li>
-      <li>Use <code>&gt; </code> before REPEAT and the group heading to indicate one level of nesting.</li>
-      <li>Nesting is limited to one level (Parent → Child) by design.</li>
-      <li>Groups without REPEAT are normal, non-collection groups.</li>
-    </ul>
+&gt; REPEAT
+&gt; # Visit
+&gt; ... child group content ...</code></pre>
+          <ul class="list-disc pl-5 space-y-1 text-sm">
+            <li><strong>REPEAT</strong> = unlimited repeats. <strong>REPEAT-1</strong> means one allowed.</li>
+            <li>Use <code>&gt;</code> before REPEAT and the group heading to indicate one level of nesting.</li>
+            <li>Nesting is limited to one level (Parent → Child) by design.</li>
+            <li>Groups without REPEAT are normal, non-collection groups.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
   </div>
- </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script src="{% static 'js/bulk-upload-preview.js' %}" defer></script>
 {% endblock %}
