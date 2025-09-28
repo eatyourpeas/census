@@ -1534,7 +1534,8 @@ def survey_group_create(request: HttpRequest, slug: str) -> HttpResponse:
     g = QuestionGroup.objects.create(name=name, owner=request.user)
     survey.question_groups.add(g)
     messages.success(request, "Group created.")
-    return redirect("surveys:dashboard", slug=slug)
+    # After creating, return to Groups view so the new group appears immediately
+    return redirect("surveys:groups", slug=slug)
 
 
 @login_required
@@ -1561,7 +1562,8 @@ def survey_group_delete(request: HttpRequest, slug: str, gid: int) -> HttpRespon
     if not group.surveys.exists():
         group.delete()
     messages.success(request, "Group deleted.")
-    return redirect("surveys:dashboard", slug=slug)
+    # After deletion, return to Groups view so the list refreshes in place
+    return redirect("surveys:groups", slug=slug)
 
 
 @login_required
