@@ -1,73 +1,165 @@
-<li class="list-none w-full" data-qid="{{ q.id }}">
-  <div class="w-full bg-base-200 rounded-lg border border-base-300 p-3 mb-2">
-    <div class="flex items-start gap-3">
-      <button type="button" class="drag-handle inline-flex items-center justify-center w-7 h-7 mr-1 rounded-md text-primary border border-primary/30 hover:bg-primary/20 shrink-0 cursor-move" style="background-color: color-mix(in oklch, var(--p) 12%, transparent);" aria-label="Drag to reorder" title="Drag to reorder">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 48 48" fill="currentColor" aria-hidden="true" focusable="false">
-            <title>drag-arrow</title>
-            <g id="Layer_2" data-name="Layer 2">
-                <g id="invisible_box" data-name="invisible box">
-                <rect width="48" height="48" fill="none"/>
-                </g>
-                <g id="icons_Q2" data-name="icons Q2">
-                <path d="M45.4,22.6l-5.9-6a2.1,2.1,0,0,0-2.7-.2,1.9,1.9,0,0,0-.2,3L39.2,22H26V8.8l2.6,2.6a1.9,1.9,0,0,0,3-.2,2.1,2.1,0,0,0-.2-2.7l-6-5.9a1.9,1.9,0,0,0-2.8,0l-6,5.9a2.1,2.1,0,0,0-.2,2.7,1.9,1.9,0,0,0,3,.2L22,8.8V22H8.8l2.6-2.6a1.9,1.9,0,0,0-.2-3,2.1,2.1,0,0,0-2.7.2l-5.9,6a1.9,1.9,0,0,0,0,2.8l5.9,6a2.1,2.1,0,0,0,2.7.2,1.9,1.9,0,0,0,.2-3L8.8,26H22V39.2l-2.6-2.6a1.9,1.9,0,0,0-3,.2,2.1,2.1,0,0,0,.2,2.7l6,5.9a1.9,1.9,0,0,0,2.8,0l6-5.9a2.1,2.1,0,0,0,.2-2.7,1.9,1.9,0,0,0-3-.2L26,39.2V26H39.2l-2.6,2.6a1.9,1.9,0,0,0,.2,3,2.1,2.1,0,0,0,2.7-.2l5.9-6A1.9,1.9,0,0,0,45.4,22.6Z"/>
-                </g>
-            </g>
-            </svg>
-      </button>
-      <div class="grow">
+{% with q.id|stringformat:"s" as qid %}
+  {% with 'question-data-'|add:qid as payload_id %}
+<li id="question-row-{{ q.id }}" class="list-none w-full" data-qid="{{ q.id }}">
+  <script id="{{ payload_id }}" type="application/json" data-question-payload hidden style="display:none">{{ q.builder_payload_json|default:"null"|safe }}</script>
+  {% if row_message %}
+    <div class="alert alert-success mb-2">{{ row_message }}</div>
+  {% endif %}
+  <div class="relative w-full bg-base-200 rounded-lg border border-base-300 pl-12 pr-4 py-3 mb-2 builder-question-card" data-question-card data-drag-handle>
+    <span class="drag-indicator absolute left-3 top-3 text-primary opacity-80 pointer-events-none" aria-hidden="true">
+      <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="currentColor">
+        <path d="M45.4,22.6l-5.9-6a2.1,2.1,0,0,0-2.7-.2,1.9,1.9,0,0,0-.2,3L39.2,22H26V8.8l2.6,2.6a1.9,1.9,0,0,0,3-.2,2.1,2.1,0,0,0-.2-2.7l-6-5.9a1.9,1.9,0,0,0-2.8,0l-6,5.9a2.1,2.1,0,0,0-.2,2.7,1.9,1.9,0,0,0,3,.2L22,8.8V22H8.8l2.6-2.6a1.9,1.9,0,0,0-.2-3,2.1,2.1,0,0,0-2.7.2l-5.9,6a1.9,1.9,0,0,0,0,2.8l5.9,6a2.1,2.1,0,0,0,2.7.2,1.9,1.9,0,0,0,.2-3L8.8,26H22V39.2l-2.6-2.6a1.9,1.9,0,0,0-3,.2,2.1,2.1,0,0,0,.2,2.7l6,5.9a1.9,1.9,0,0,0,2.8,0l6-5.9a2.1,2.1,0,0,0,.2-2.7,1.9,1.9,0,0,0-3-.2L26,39.2V26H39.2l-2.6,2.6a1.9,1.9,0,0,0,.2,3,2.1,2.1,0,0,0,2.7-.2l5.9-6A1.9,1.9,0,0,0,45.4,22.6Z" />
+      </svg>
+    </span>
+    <span class="sr-only">Drag to reorder this question</span>
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-3">
+      <div class="grow min-w-[16rem]">
         <div class="flex items-baseline gap-2 w-full">
           <div class="grow">
             <div class="font-medium">
               <span class="q-number text-sm opacity-70 mr-2 select-none">{{ forloop.counter }}</span>
               {{ q.text }}
             </div>
-            <div class="text-xs opacity-70">{{ q.get_type_display }}{% if q.group %} • Group: {{ q.group.name }}{% endif %}{% if q.required %} • required{% endif %}</div>
+            {% if q.type == 'template_patient' or q.type == 'template_professional' %}
+              <div class="text-xs opacity-70">Template • {{ q.get_type_display }}{% if q.required %} • required{% endif %}</div>
+            {% else %}
+              <div class="text-xs opacity-70">{{ q.get_type_display }}{% if q.group %} • Group: {{ q.group.name }}{% endif %}{% if q.required %} • required{% endif %}</div>
+            {% endif %}
             {% include 'surveys/partials/question_preview.html' %}
           </div>
-          {% comment %} <div class="flex gap-2 ml-auto pr-1"> {% endcomment %}
+          <div class="flex items-center gap-2 ml-auto pr-1">
+            {% if group and q.type != 'template_patient' and q.type != 'template_professional' %}
+              <button type="button" class="btn btn-xs btn-accent builder-edit-button" data-drag-ignore data-action="edit-question" data-payload-id="{{ payload_id }}" data-edit-url="/surveys/{{ q.survey.slug }}/builder/groups/{{ group.id }}/questions/{{ q.id }}/edit">Edit</button>
+              <form method="post" hx-post="/surveys/{{ q.survey.slug }}/builder/groups/{{ group.id }}/questions/{{ q.id }}/copy" hx-target="#questions-list" hx-swap="outerHTML">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-xs btn-outline" data-drag-ignore>Copy</button>
+              </form>
+            {% elif not group and q.type != 'template_patient' and q.type != 'template_professional' %}
+              <form method="post" hx-post="/surveys/{{ q.survey.slug }}/builder/questions/{{ q.id }}/copy" hx-target="#questions-list" hx-swap="outerHTML">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-xs btn-outline" data-drag-ignore>Copy</button>
+              </form>
+            {% endif %}
             <form method="post" hx-post="{% if group %}/surveys/{{ q.survey.slug }}/builder/groups/{{ group.id }}/questions/{{ q.id }}/delete{% else %}/surveys/{{ q.survey.slug }}/builder/questions/{{ q.id }}/delete{% endif %}" hx-target="#questions-list" hx-swap="outerHTML" hx-confirm="Delete this question?">
               {% csrf_token %}
-              <button type="submit" class="btn btn-xs btn-warning">Delete</button>
+              <button type="submit" class="btn btn-xs btn-warning" data-drag-ignore>Delete</button>
             </form>
-          {% comment %} </div> {% endcomment %}
+          </div>
         </div>
-        <details class="mt-3">
-          <summary class="cursor-pointer select-none">Edit</summary>
-          <form class="mt-3" hx-post="{% if group %}/surveys/{{ q.survey.slug }}/builder/groups/{{ group.id }}/questions/{{ q.id }}/edit{% else %}/surveys/{{ q.survey.slug }}/builder/questions/{{ q.id }}/edit{% endif %}" hx-target="closest li" hx-swap="outerHTML">
-            {% csrf_token %}
-            <label class="label">Text</label>
-            <input name="text" class="input input-bordered w-full" value="{{ q.text }}" />
-            <label class="label mt-2">Type</label>
-            <select name="type" class="select select-bordered w-full">
-              <option value="text" {% if q.type == 'text' %}selected{% endif %}>Free text</option>
-              <option value="mc_single" {% if q.type == 'mc_single' %}selected{% endif %}>Multiple choice (single)</option>
-              <option value="mc_multi" {% if q.type == 'mc_multi' %}selected{% endif %}>Multiple choice (multi)</option>
-              <option value="likert" {% if q.type == 'likert' %}selected{% endif %}>Likert scale</option>
-              <option value="orderable" {% if q.type == 'orderable' %}selected{% endif %}>Orderable list</option>
-              <option value="yesno" {% if q.type == 'yesno' %}selected{% endif %}>Yes/No</option>
-              <option value="dropdown" {% if q.type == 'dropdown' %}selected{% endif %}>Dropdown</option>
-              <option value="image" {% if q.type == 'image' %}selected{% endif %}>Image choice</option>
-            </select>
-            <label class="label mt-2">Required</label>
-            <input type="checkbox" name="required" class="toggle" {% if q.required %}checked{% endif %} />
-            <label class="label mt-2">Options (one per line)</label>
-            <textarea name="options" class="textarea textarea-bordered w-full">{% for opt in q.options %}{{ opt }}
-{% endfor %}</textarea>
-            <label class="label mt-2">Group</label>
-            <select name="group_id" class="select select-bordered w-full" {% if group %}disabled{% endif %}>
-              <option value="">(none)</option>
-              {% with selectable_groups=groups|default:q.survey.question_groups.all %}
-              {% for g in selectable_groups %}
-                <option value="{{ g.id }}" {% if q.group and q.group.id == g.id %}selected{% endif %}>{{ g.name }}</option>
-              {% endfor %}
-              {% endwith %}
-            </select>
-            <div class="mt-3">
-              <button class="btn btn-primary btn-sm" type="submit">Save</button>
+        {% if q.type == 'template_patient' %}
+          <details class="mt-3" {% if keep_template_panel_open %}open{% endif %}>
+            <summary class="cursor-pointer select-none">Configure template fields</summary>
+            <div class="mt-3 space-y-4">
+              <p class="text-sm opacity-70">Select which encrypted patient identifiers to include. Changes apply instantly.</p>
+              <form class="space-y-4" hx-post="{% if group %}/surveys/{{ q.survey.slug }}/builder/groups/{{ group.id }}/questions/{{ q.id }}/template/patient{% else %}/surveys/{{ q.survey.slug }}/builder/questions/{{ q.id }}/template/patient{% endif %}" hx-target="closest li" hx-swap="outerHTML" hx-trigger="change">
+                {% csrf_token %}
+                <fieldset>
+                  <legend class="label">Include these fields</legend>
+                  <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {% for field in q.options.fields %}
+                      <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" class="checkbox" name="fields" value="{{ field.key }}" {% if field.selected %}checked{% endif %} />
+                        <span class="label-text">{{ field.label }}</span>
+                      </label>
+                    {% endfor %}
+                  </div>
+                </fieldset>
+                {% for field in q.options.fields %}
+                  {% if field.key == 'post_code' %}
+                    {% with field.selected as post_code_selected %}
+                      <fieldset>
+                        <legend class="label">Postcode-derived fields</legend>
+                        <label class="flex items-center gap-2 cursor-pointer {% if not post_code_selected %}opacity-60{% endif %}">
+                          <input type="checkbox" class="checkbox" name="include_imd" {% if q.options.include_imd %}checked{% endif %} {% if not post_code_selected %}disabled{% endif %} />
+                          <span class="label-text">Include IMD (adds read-only “Index of Multiple Deprivation”)</span>
+                        </label>
+                        {% if not post_code_selected %}
+                          <p class="text-xs opacity-60 mt-1">Select “Post code” above to enable IMD.</p>
+                        {% endif %}
+                      </fieldset>
+                    {% endwith %}
+                  {% endif %}
+                {% endfor %}
+              </form>
             </div>
-          </form>
-        </details>
+          </details>
+        {% elif q.type == 'template_professional' %}
+          <details class="mt-3" {% if keep_template_panel_open %}open{% endif %}>
+            <summary class="cursor-pointer select-none">Configure template fields</summary>
+            <div class="mt-3 space-y-4">
+              <p class="text-sm opacity-70">Toggle which professional details to collect and whether each should capture an accompanying ODS code.</p>
+              <form class="space-y-4" hx-post="{% if group %}/surveys/{{ q.survey.slug }}/builder/groups/{{ group.id }}/questions/{{ q.id }}/template/professional{% else %}/surveys/{{ q.survey.slug }}/builder/questions/{{ q.id }}/template/professional{% endif %}" hx-target="closest li" hx-swap="outerHTML" hx-trigger="change">
+                {% csrf_token %}
+                <fieldset>
+                  <legend class="label">Include these fields</legend>
+                  <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {% for field in q.options.fields %}
+                      <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" class="checkbox" name="fields" value="{{ field.key }}" {% if field.selected %}checked{% endif %} />
+                        <span class="label-text">{{ field.label }}</span>
+                      </label>
+                    {% endfor %}
+                  </div>
+                </fieldset>
+                <fieldset>
+                  <legend class="label">ODS code toggles</legend>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {% for field in q.options.fields %}
+                      {% if field.allow_ods %}
+                        <label class="flex items-center gap-2 cursor-pointer {% if not field.selected %}opacity-60{% endif %}">
+                          <input type="checkbox" class="checkbox" name="ods_{{ field.key }}" {% if field.ods_enabled %}checked{% endif %} {% if not field.selected %}disabled{% endif %} />
+                          <span class="label-text">{{ field.label }} – include ODS code</span>
+                        </label>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                </fieldset>
+              </form>
+            </div>
+          </details>
+        {% else %}
+          {% if not group %}
+          <details class="mt-3">
+            <summary class="cursor-pointer select-none">Edit</summary>
+            <form class="mt-3" hx-post="/surveys/{{ q.survey.slug }}/builder/questions/{{ q.id }}/edit" hx-target="closest li" hx-swap="outerHTML">
+              {% csrf_token %}
+              <label class="label">Text</label>
+              <input name="text" class="input input-bordered w-full" value="{{ q.text }}" />
+              <label class="label mt-2">Type</label>
+              <select name="type" class="select select-bordered w-full">
+                <option value="text" {% if q.type == 'text' %}selected{% endif %}>Free text</option>
+                <option value="mc_single" {% if q.type == 'mc_single' %}selected{% endif %}>Multiple choice (single)</option>
+                <option value="mc_multi" {% if q.type == 'mc_multi' %}selected{% endif %}>Multiple choice (multi)</option>
+                <option value="likert" {% if q.type == 'likert' %}selected{% endif %}>Likert scale</option>
+                <option value="orderable" {% if q.type == 'orderable' %}selected{% endif %}>Orderable list</option>
+                <option value="yesno" {% if q.type == 'yesno' %}selected{% endif %}>Yes/No</option>
+                <option value="dropdown" {% if q.type == 'dropdown' %}selected{% endif %}>Dropdown</option>
+                <option value="image" {% if q.type == 'image' %}selected{% endif %}>Image choice</option>
+              </select>
+              <label class="label mt-2">Required</label>
+              <input type="checkbox" name="required" class="toggle" {% if q.required %}checked{% endif %} />
+              <label class="label mt-2">Options (one per line)</label>
+              <textarea name="options" class="textarea textarea-bordered w-full">{% for opt in q.options %}{{ opt }}
+{% endfor %}</textarea>
+              <label class="label mt-2">Group</label>
+              <select name="group_id" class="select select-bordered w-full">
+                <option value="">(none)</option>
+                {% with selectable_groups=groups|default:q.survey.question_groups.all %}
+                {% for g in selectable_groups %}
+                  <option value="{{ g.id }}" {% if q.group and q.group.id == g.id %}selected{% endif %}>{{ g.name }}</option>
+                {% endfor %}
+                {% endwith %}
+              </select>
+              <div class="mt-3">
+                <button class="btn btn-primary btn-sm" type="submit">Save</button>
+              </div>
+            </form>
+          </details>
+          {% endif %}
+        {% endif %}
       </div>
     </div>
   </div>
 </li>
+  {% endwith %}
+{% endwith %}

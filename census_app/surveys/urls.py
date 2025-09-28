@@ -94,14 +94,49 @@ urlpatterns = [
         name="builder_group_question_create",
     ),
     path(
+        "<slug:slug>/builder/groups/<int:gid>/templates/add",
+        views.builder_group_template_add,
+        name="builder_group_template_add",
+    ),
+    path(
+        "<slug:slug>/builder/questions/<int:qid>/template/patient",
+        views.builder_question_template_patient_update,
+        name="builder_question_template_patient_update",
+    ),
+    path(
+        "<slug:slug>/builder/groups/<int:gid>/questions/<int:qid>/template/patient",
+        views.builder_group_question_template_patient_update,
+        name="builder_group_question_template_patient_update",
+    ),
+    path(
+        "<slug:slug>/builder/questions/<int:qid>/template/professional",
+        views.builder_question_template_professional_update,
+        name="builder_question_template_professional_update",
+    ),
+    path(
+        "<slug:slug>/builder/groups/<int:gid>/questions/<int:qid>/template/professional",
+        views.builder_group_question_template_professional_update,
+        name="builder_group_question_template_professional_update",
+    ),
+    path(
         "<slug:slug>/builder/questions/<int:qid>/edit",
         views.builder_question_edit,
         name="builder_question_edit",
     ),
     path(
+        "<slug:slug>/builder/questions/<int:qid>/copy",
+        views.builder_question_copy,
+        name="builder_question_copy",
+    ),
+    path(
         "<slug:slug>/builder/groups/<int:gid>/questions/<int:qid>/edit",
         views.builder_group_question_edit,
         name="builder_group_question_edit",
+    ),
+    path(
+        "<slug:slug>/builder/groups/<int:gid>/questions/<int:qid>/copy",
+        views.builder_group_question_copy,
+        name="builder_group_question_copy",
     ),
     path(
         "<slug:slug>/builder/questions/<int:qid>/delete",

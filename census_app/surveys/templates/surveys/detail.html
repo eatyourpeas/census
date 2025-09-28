@@ -249,6 +249,53 @@
                   </li>
                 {% endfor %}
               </ol>
+          {% elif q.type == 'template_patient' %}
+            <div class="space-y-2">
+              <p class="text-sm opacity-70 -mb-1">These responses are encrypted and only visible to the person entering them.</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for field in q.options.fields %}
+                  {% if field.selected %}
+                    <label class="input input-bordered input-sm flex items-center gap-1.5">
+                      <input class="grow min-w-0 bg-transparent outline-none border-0" name="q_{{ q.id }}_{{ field.key }}" placeholder="{{ field.label }}" />
+                      <svg class="!w-4 !h-4 opacity-50 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <g stroke-linejoin="round" stroke-linecap="round" stroke-width="2.5" fill="none" stroke="currentColor">
+                          <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path>
+                          <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                        </g>
+                      </svg>
+                    </label>
+                  {% endif %}
+                {% endfor %}
+                {% if q.options.include_imd %}
+                  <label class="input input-bordered input-sm flex items-center gap-1.5">
+                    <input class="grow min-w-0 bg-transparent outline-none border-0" placeholder="Index of Multiple Deprivation" disabled />
+                    <svg class="!w-4 !h-4 opacity-50 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                      <g stroke-linejoin="round" stroke-linecap="round" stroke-width="2.5" fill="none" stroke="currentColor">
+                        <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path>
+                        <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                      </g>
+                    </svg>
+                  </label>
+                {% endif %}
+              </div>
+            </div>
+          {% elif q.type == 'template_professional' %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {% for field in q.options.fields %}
+                {% if field.selected %}
+                  <div class="space-y-1">
+                    <label class="input input-bordered input-sm flex items-center gap-1.5">
+                      <input class="grow min-w-0 bg-transparent outline-none border-0" name="q_{{ q.id }}_{{ field.key }}" placeholder="{{ field.label }}" />
+                    </label>
+                    {% if field.allow_ods and field.ods_enabled %}
+                      <label class="input input-bordered input-sm flex items-center gap-1.5">
+                        <input class="grow min-w-0 bg-transparent outline-none border-0" name="q_{{ q.id }}_{{ field.key }}_ods" placeholder="{{ field.label }} ODS code" />
+                      </label>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
           {% else %}
             <input class="input input-bordered w-full" type="text" name="q_{{ q.id }}" />
           {% endif %}
