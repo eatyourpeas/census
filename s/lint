@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# Lint fixer for Census
+# Runs Black, Ruff, and isort against the project root with auto-fix behavior
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+cd "$REPO_ROOT"
+
+run() {
+  echo "▶ $*"
+  "$@"
+  echo ""
+}
+
+if ! command -v poetry >/dev/null 2>&1; then
+  echo "⚠️  poetry is required to run linting tools." >&2
+  echo "    Install poetry or update the script to use your preferred environment." >&2
+  exit 127
+fi
+
+# Ruff before Black to catch import issues, then Black, and finish with isort for safety.
+run poetry run ruff check --fix .
+run poetry run black .
+run poetry run isort .
+
+echo "✅ Linting complete"

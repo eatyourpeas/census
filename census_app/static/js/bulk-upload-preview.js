@@ -2,13 +2,37 @@
   const textarea = document.querySelector('textarea[name="markdown"]');
   const previewContainer = document.getElementById("bulk-structure-preview");
   const countBadge = document.getElementById("bulk-structure-count");
+  const openModalButton = document.getElementById("bulk-import-open-modal");
+  const confirmDialog = document.getElementById("bulk-import-confirm");
+  const cancelModalButton = document.getElementById("bulk-import-cancel");
+
+  if (openModalButton && confirmDialog && cancelModalButton) {
+    openModalButton.addEventListener("click", () => {
+      if (typeof confirmDialog.showModal === "function") {
+        confirmDialog.showModal();
+      }
+    });
+
+    cancelModalButton.addEventListener("click", () => {
+      if (typeof confirmDialog.close === "function") {
+        confirmDialog.close();
+      }
+    });
+
+    confirmDialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      if (typeof confirmDialog.close === "function") {
+        confirmDialog.close();
+      }
+    });
+  }
 
   if (!textarea || !previewContainer) {
     return;
   }
 
-  const slugify = (text) => {
-    return (text || "")
+  const slugify = (text) =>
+    (text || "")
       .toString()
       .normalize("NFKD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -17,23 +41,32 @@
       .trim()
       .replace(/[\s_-]+/g, "-")
       .replace(/^-+|-+$/g, "");
-  };
 
-  const makeUniqueId = (label, fallback, registry, scopePrefix) => {
-    let base = slugify(label);
+  const allocateId = (preferred, fallback, registry) => {
+    let base = preferred ? slugify(preferred) : "";
     if (!base) {
-      base = slugify(fallback) || fallback.replace(/\s+/g, "-");
+      base = slugify(fallback);
     }
-    if (scopePrefix) {
-      base = `${scopePrefix}-${base}`;
-    }
-    let candidate = base;
+    let candidate = base || fallback || "item";
+    const original = candidate;
     let counter = 2;
     while (registry.has(candidate)) {
-      candidate = `${base}-${counter++}`;
+      candidate = `${original}-${counter++}`;
     }
     registry.add(candidate);
     return candidate;
+  };
+
+  const extractTitleAndId = (rawTitle, fallbackId, registry) => {
+    let title = rawTitle || "";
+    let explicitId;
+    const match = title.match(/\{([^{}]+)\}\s*$/);
+    if (match) {
+      explicitId = match[1].trim();
+      title = title.slice(0, match.index).trim();
+    }
+    const id = allocateId(explicitId, fallbackId, registry);
+    return { title: title.trim(), id, explicitId };
   };
 
   const createIdToken = (text, variant) => {
@@ -59,41 +92,99 @@
     return el;
   };
 
+  const createMetaBadge = (variant, label) => {
+    const badge = document.createElement("span");
+    badge.className =
+      "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium";
+    badge.style.backgroundColor = "hsl(var(--p) / 0.18)";
+    badge.style.borderColor = "hsl(var(--p) / 0.35)";
+    badge.style.color = "hsl(var(--p))";
+
+    const icon = document.createElement("span");
+    icon.setAttribute("aria-hidden", "true");
+    icon.className = "leading-none";
+    icon.textContent = variant === "repeat" ? "++" : "➜";
+
+    const text = document.createElement("span");
+    text.textContent = label;
+
+    badge.appendChild(icon);
+    badge.appendChild(text);
+
+    return badge;
+  };
+
   const parseStructure = (md) => {
-    const lines = (md || "").split(/\r?\n/);
+    const rawLines = (md || "").split(/\r?\n/);
+    const normalized = rawLines.map((raw) => {
+      let depth = 0;
+      let i = 0;
+      while (i < raw.length) {
+        const char = raw[i];
+        if (char === ">") {
+          depth += 1;
+          i += 1;
+          if (raw[i] === " ") {
+            i += 1;
+          }
+          continue;
+        }
+        if (char === " ") {
+          i += 1;
+          continue;
+        }
+        break;
+      }
+      const content = raw.slice(i);
+      return {
+        depth,
+        content,
+        trimmed: content.trim(),
+      };
+    });
+
     const groups = [];
     const warnings = [];
     const groupIds = new Set();
     const questionIds = new Set();
+    const pendingRepeat = new Map();
     let currentGroup = null;
 
     const isGroupHeading = (line) => /^#(?!#)\s+/.test(line);
     const isQuestionHeading = (line) => /^##\s+/.test(line);
 
-    for (let i = 0; i < lines.length; i += 1) {
-      const raw = lines[i];
-      const trimmed = raw.trim();
+    for (let i = 0; i < normalized.length; i += 1) {
+      const { trimmed, depth } = normalized[i];
       if (!trimmed) {
         continue;
       }
 
+      const repeatMatch = trimmed.match(/^REPEAT(?:-(\d+))?$/i);
+      if (repeatMatch) {
+        pendingRepeat.set(
+          depth,
+          repeatMatch[1] ? parseInt(repeatMatch[1], 10) : null
+        );
+        continue;
+      }
+
       if (isGroupHeading(trimmed)) {
-        const title = trimmed.replace(/^#\s+/, "").trim();
-        const groupId = makeUniqueId(
-          title,
+        const rawTitle = trimmed.replace(/^#\s+/, "").trim();
+        const { title, id: groupId } = extractTitleAndId(
+          rawTitle,
           `group-${groups.length + 1}`,
           groupIds
         );
         let description = "";
-        for (let j = i + 1; j < lines.length; j += 1) {
-          const lookahead = lines[j].trim();
+        for (let j = i + 1; j < normalized.length; j += 1) {
+          const lookahead = normalized[j].trimmed;
           if (!lookahead) {
             continue;
           }
           if (isGroupHeading(lookahead) || isQuestionHeading(lookahead)) {
             break;
           }
-          if (!/^\(.*\)$/.test(lookahead)) {
+          if (!/^\(.*\)$/.test(lookahead) && !lookahead.startsWith("?")) {
             description = lookahead;
           }
           break;
@@ -103,20 +194,26 @@
           id: groupId,
           description,
           questions: [],
+          repeat: pendingRepeat.has(depth)
+            ? { maxCount: pendingRepeat.get(depth) }
+            : null,
         };
+        if (pendingRepeat.has(depth)) {
+          pendingRepeat.delete(depth);
+        }
         groups.push(currentGroup);
         continue;
       }
 
       if (isQuestionHeading(trimmed)) {
-        const title = trimmed.replace(/^##\s+/, "").trim();
+        const rawTitle = trimmed.replace(/^##\s+/, "").trim();
         if (!currentGroup) {
           warnings.push(
             `Question “${
-              title || "Untitled"
+              rawTitle || "Untitled"
             }” appears before any group heading. It will be imported into an auto-created group.`
           );
-          const fallbackGroupId = makeUniqueId(
+          const { id: fallbackGroupId } = extractTitleAndId(
             "Ungrouped",
             `group-${groups.length + 1}`,
             groupIds
@@ -126,35 +223,53 @@
             id: fallbackGroupId,
             description: "",
             questions: [],
+            repeat: null,
           };
           groups.push(currentGroup);
         }
 
-        const questionId = makeUniqueId(
-          title,
-          `question-${questionIds.size + 1}`,
-          questionIds,
-          currentGroup.id
+        const { title, id: questionId } = extractTitleAndId(
+          rawTitle,
+          `${currentGroup.id}-${currentGroup.questions.length + 1}`,
+          questionIds
         );
         const question = {
           title: title || "Untitled question",
           id: questionId,
           description: "",
           type: "",
+          branches: [],
         };
 
-        for (let j = i + 1; j < lines.length; j += 1) {
-          const lookahead = lines[j].trim();
+        for (let j = i + 1; j < normalized.length; j += 1) {
+          const lookahead = normalized[j].trimmed;
           if (!lookahead) {
             continue;
           }
           if (isGroupHeading(lookahead) || isQuestionHeading(lookahead)) {
             break;
           }
-          if (!question.description && !/^\(.*\)$/.test(lookahead)) {
+          if (
+            !question.description &&
+            !/^\(.*\)$/.test(lookahead) &&
+            !lookahead.startsWith("?")
+          ) {
             question.description = lookahead;
           } else if (!question.type && /^\(.*\)$/.test(lookahead)) {
             question.type = lookahead.slice(1, -1).trim();
+          } else if (/^\?\s*/.test(lookahead)) {
+            const branchMatch = lookahead.match(
+              /^\?\s*when\s+(.+?)\s*->\s*\{([^{}]+)\}\s*$/i
+            );
+            if (branchMatch) {
+              const condition = branchMatch[1].trim();
+              const targetRaw = branchMatch[2].trim();
+              question.branches.push({
+                condition,
+                target: slugify(targetRaw),
+                targetRaw,
+              });
+            }
           }
         }
 
@@ -225,12 +340,25 @@
 
       header.appendChild(titleWrap);
 
+      const headerMeta = document.createElement("div");
+      headerMeta.className = "flex flex-wrap items-center gap-2";
+      headerMeta.style.marginLeft = "auto";
+
+      if (group.repeat) {
+        const repeatLabel = group.repeat.maxCount
+          ? `Repeat ×${group.repeat.maxCount}`
+          : "Repeat";
+        headerMeta.appendChild(createMetaBadge("repeat", repeatLabel));
+      }
+
       const questionCount = document.createElement("span");
       questionCount.className = "text-xs text-base-content/60";
       questionCount.textContent = `${group.questions.length} question${
         group.questions.length === 1 ? "" : "s"
       }`;
-      header.appendChild(questionCount);
+      headerMeta.appendChild(questionCount);
+
+      header.appendChild(headerMeta);
       groupCard.appendChild(header);
 
       if (group.description) {
@@ -266,10 +394,18 @@
           questionWrap.appendChild(questionTitle);
           rowHeader.appendChild(questionWrap);
 
+          const rowMeta = document.createElement("div");
+          rowMeta.className = "flex flex-wrap items-center gap-2";
+          rowMeta.style.marginLeft = "auto";
+
           if (question.type) {
             const typePill = createIdToken(question.type, "info");
             typePill.classList.add("uppercase", "tracking-wide");
-            rowHeader.appendChild(typePill);
+            rowMeta.appendChild(typePill);
+          }
+
+          if (rowMeta.childNodes.length) {
+            rowHeader.appendChild(rowMeta);
           }
 
           questionRow.appendChild(rowHeader);
@@ -279,6 +415,34 @@
             questionDescription.className = "text-xs text-base-content/70 mt-2";
             questionDescription.textContent = question.description;
             questionRow.appendChild(questionDescription);
+          }
+
+          if (question.branches.length) {
+            const branchList = document.createElement("div");
+            branchList.className = "mt-2 space-y-1";
+
+            question.branches.forEach((branch) => {
+              const row = document.createElement("div");
+              row.className =
+                "flex items-center justify-between gap-2 rounded px-2 py-1 text-xs";
+              row.style.backgroundColor = "hsl(var(--p) / 0.12)";
+              row.style.border = "1px solid hsl(var(--p) / 0.3)";
+
+              const when = document.createElement("span");
+              when.className = "font-medium";
+              when.textContent = `when ${branch.condition}`;
+
+              const targetBadge = createMetaBadge(
+                "branch",
+                `{${branch.targetRaw}}`
+              );
+
+              row.appendChild(when);
+              row.appendChild(targetBadge);
+              branchList.appendChild(row);
+            });
+
+            questionRow.appendChild(branchList);
           }
 
           questionList.appendChild(questionRow);

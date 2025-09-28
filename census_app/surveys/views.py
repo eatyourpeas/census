@@ -865,9 +865,7 @@ def _prepare_question_rendering(
             base_qs = questions.select_related("group")
             questions_iter = list(_prefetch_conditions(base_qs))
         else:
-            questions_iter = [
-                q for q in questions if isinstance(q, SurveyQuestion)
-            ]
+            questions_iter = [q for q in questions if isinstance(q, SurveyQuestion)]
             ids = [q.id for q in questions_iter if q.id is not None]
             if ids:
                 hydrated_qs = survey.questions.select_related("group").filter(
@@ -883,9 +881,7 @@ def _prepare_question_rendering(
         elif isinstance(questions, QuerySet):
             questions_iter = list(questions)
         else:
-            questions_iter = [
-                q for q in questions if isinstance(q, SurveyQuestion)
-            ]
+            questions_iter = [q for q in questions if isinstance(q, SurveyQuestion)]
 
     all_questions_meta: list[dict[str, Any]] = []
     try:
@@ -916,7 +912,9 @@ def _prepare_question_rendering(
     all_groups_meta: list[dict[str, Any]] = []
     try:
         for grp in survey.question_groups.only("id", "name").all():
-            all_groups_meta.append({"id": grp.id, "label": grp.name or f"Group {grp.id}"})
+            all_groups_meta.append(
+                {"id": grp.id, "label": grp.name or f"Group {grp.id}"}
+            )
     except Exception:
         all_groups_meta = []
 
@@ -1078,8 +1076,7 @@ def _build_condition_payload(
         order = instance.order if instance else None
     if order is None:
         next_order = (
-            question.conditions.aggregate(models.Max("order")).get("order__max")
-            or -1
+            question.conditions.aggregate(models.Max("order")).get("order__max") or -1
         ) + 1
         order = next_order
 
@@ -1308,7 +1305,9 @@ def _serialize_question_for_builder(
         if cond.target_question is not None:
             target_type = "question"
             target_id = cond.target_question.id
-            target_label = (cond.target_question.text or f"Question {target_id}").strip()
+            target_label = (
+                cond.target_question.text or f"Question {target_id}"
+            ).strip()
         elif cond.target_group is not None:
             target_type = "group"
             target_id = cond.target_group.id
@@ -1316,10 +1315,12 @@ def _serialize_question_for_builder(
 
         if cond.operator in CONDITION_OPERATORS_REQUIRING_VALUE:
             comparison = cond.value or ""
-            condition_clause = f"{cond.get_operator_display()} \"{comparison}\"".strip()
+            condition_clause = f'{cond.get_operator_display()} "{comparison}"'.strip()
         else:
             condition_clause = cond.get_operator_display()
-        summary = f"{condition_clause} → {cond.get_action_display()} {target_label}".strip()
+        summary = (
+            f"{condition_clause} → {cond.get_action_display()} {target_label}".strip()
+        )
 
         conditions_payload.append(
             {
@@ -2774,9 +2775,7 @@ def builder_question_condition_update(
     survey = get_object_or_404(Survey, slug=slug)
     require_can_edit(request.user, survey)
     question = get_object_or_404(SurveyQuestion, id=qid, survey=survey)
-    condition = get_object_or_404(
-        SurveyQuestionCondition, id=cid, question=question
-    )
+    condition = get_object_or_404(SurveyQuestionCondition, id=cid, question=question)
     try:
         payload = _build_condition_payload(
             survey, question, request.POST, instance=condition
@@ -2827,9 +2826,7 @@ def builder_question_condition_delete(
     survey = get_object_or_404(Survey, slug=slug)
     require_can_edit(request.user, survey)
     question = get_object_or_404(SurveyQuestion, id=qid, survey=survey)
-    condition = get_object_or_404(
-        SurveyQuestionCondition, id=cid, question=question
-    )
+    condition = get_object_or_404(SurveyQuestionCondition, id=cid, question=question)
     condition.delete()
     context_group_id = _safe_int(request.POST.get("context_group_id"))
     group_context = (
@@ -3356,6 +3353,41 @@ def builder_group_create(request: HttpRequest, slug: str) -> HttpResponse:
     )
 
 
+def _clear_existing_bulk_import_content(survey: Survey) -> dict[str, int]:
+    """Remove existing groups, questions, and collections before an import."""
+
+    removed_questions = survey.questions.count()
+    removed_collections = survey.collections.count()
+
+    existing_groups = list(survey.question_groups.prefetch_related("surveys").all())
+    groups_detached = len(existing_groups)
+
+    shared_or_external_ids: set[int] = set()
+    for group in existing_groups:
+        if group.shared or any(s.id != survey.id for s in group.surveys.all()):
+            shared_or_external_ids.add(group.id)
+
+    # Remove dependent structures first to satisfy FK constraints
+    survey.collections.all().delete()
+    survey.questions.all().delete()
+
+    # Detach all question groups from the survey, then delete the ones that are
+    # unshared and no longer referenced elsewhere.
+    survey.question_groups.clear()
+    deletable_group_ids = [
+        group.id for group in existing_groups if group.id not in shared_or_external_ids
+    ]
+    if deletable_group_ids:
+        QuestionGroup.objects.filter(id__in=deletable_group_ids).delete()
+
+    return {
+        "questions": removed_questions,
+        "collections": removed_collections,
+        "detached_groups": groups_detached,
+        "deleted_groups": len(deletable_group_ids),
+    }
+
+
 @login_required
 def bulk_upload(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
@@ -3369,131 +3401,189 @@ def bulk_upload(request: HttpRequest, slug: str) -> HttpResponse:
             context["error"] = str(e)
             context["markdown"] = md
             return render(request, "surveys/bulk_upload.html", context)
-
-        # Create groups and questions
-        max_order = (
-            survey.questions.aggregate(models.Max("order")).get("order__max") or 0
-        )
-        next_order = max_order + 1
-        created_groups_in_order: list[QuestionGroup] = []
-        for g in parsed["groups"]:
-            grp = QuestionGroup.objects.create(
-                name=g["name"], description=g.get("description", ""), owner=request.user
-            )
-            survey.question_groups.add(grp)
-            created_groups_in_order.append(grp)
-            for q in g["questions"]:
-                SurveyQuestion.objects.create(
-                    survey=survey,
-                    group=grp,
-                    text=q["title"],
-                    type=q["final_type"],
-                    options=q["final_options"],
-                    required=False,
-                    order=next_order,
-                )
-                next_order += 1
-
-        # Build collections from simple REPEAT markers
         repeats = parsed.get("repeats") or []
         created_collections = 0
         created_items = 0
 
-        # Helper to ensure unique key per survey
-        def _unique_key(base: str) -> str:
-            k = slugify(base)
-            if not k:
-                k = "collection"
-            candidate = k
-            i = 2
-            while CollectionDefinition.objects.filter(
-                survey=survey, key=candidate
-            ).exists():
-                candidate = f"{k}-{i}"
-                i += 1
-            return candidate
+        removal_stats: dict[str, int] = {}
 
-        defs_by_group_index: dict[int, CollectionDefinition] = {}
-        for rep in repeats:
-            gi = int(rep.get("group_index"))
-            max_count = rep.get("max_count")
-            name = (
-                created_groups_in_order[gi].name
-                if gi < len(created_groups_in_order)
-                else parsed["groups"][gi]["name"]
-            )
-            key = _unique_key(name)
-            cardinality = (
-                CollectionDefinition.Cardinality.ONE
-                if (isinstance(max_count, int) and max_count == 1)
-                else CollectionDefinition.Cardinality.MANY
-            )
-            cd = CollectionDefinition.objects.create(
-                survey=survey,
-                key=key,
-                name=name,
-                cardinality=cardinality,
-                max_count=max_count,
-            )
-            defs_by_group_index[gi] = cd
-            created_collections += 1
+        try:
+            with transaction.atomic():
+                removal_stats = _clear_existing_bulk_import_content(survey)
 
-        # Link parents now that all defs exist
-        for rep in repeats:
-            gi = int(rep.get("group_index"))
-            parent_index = rep.get("parent_index")
-            if parent_index is not None:
-                child_cd = defs_by_group_index.get(gi)
-                parent_cd = defs_by_group_index.get(int(parent_index))
-                if child_cd and parent_cd and child_cd.parent_id != parent_cd.id:
-                    child_cd.parent = parent_cd
-                    child_cd.full_clean()
-                    child_cd.save(update_fields=["parent"])
+                next_order = 0
+                created_groups_in_order: list[QuestionGroup] = []
+                group_ref_map: dict[str, QuestionGroup] = {}
+                question_ref_map: dict[str, SurveyQuestion] = {}
+                pending_branch_payloads: list[dict[str, Any]] = []
 
-        # Create items for each collection: its own group first, then any direct child collections
-        # Preserve child order according to appearance in repeats
-        for gi, cd in defs_by_group_index.items():
-            order = 0
-            if gi < len(created_groups_in_order):
-                grp = created_groups_in_order[gi]
-                CollectionItem.objects.create(
-                    collection=cd,
-                    item_type=CollectionItem.ItemType.GROUP,
-                    group=grp,
-                    order=order,
-                )
-                created_items += 1
-                order += 1
-            # children
-            for rep in repeats:
-                if rep.get("parent_index") == gi:
-                    child_cd = defs_by_group_index.get(int(rep["group_index"]))
-                    if child_cd:
-                        # Ensure the parent/child relation is set
-                        if child_cd.parent_id != cd.id:
-                            child_cd.parent = cd
+                for g in parsed["groups"]:
+                    grp = QuestionGroup.objects.create(
+                        name=g["name"],
+                        description=g.get("description", ""),
+                        owner=request.user,
+                    )
+                    survey.question_groups.add(grp)
+                    created_groups_in_order.append(grp)
+                    if g.get("ref"):
+                        group_ref_map[g["ref"]] = grp
+                    for q in g["questions"]:
+                        question = SurveyQuestion.objects.create(
+                            survey=survey,
+                            group=grp,
+                            text=q["title"],
+                            type=q["final_type"],
+                            options=q["final_options"],
+                            required=False,
+                            order=next_order,
+                        )
+                        next_order += 1
+                        if q.get("ref"):
+                            question_ref_map[q["ref"]] = question
+                        if q.get("branches"):
+                            pending_branch_payloads.append(
+                                {
+                                    "question": question,
+                                    "branches": q["branches"],
+                                }
+                            )
+
+                for payload in pending_branch_payloads:
+                    question = payload["question"]
+                    branches = payload.get("branches") or []
+                    for branch in branches:
+                        target_question = None
+                        target_group = None
+                        target_ref = branch.get("target_ref")
+                        target_type = branch.get("target_type")
+                        if target_type == "question":
+                            target_question = question_ref_map.get(target_ref)
+                        elif target_type == "group":
+                            target_group = group_ref_map.get(target_ref)
+
+                        if not target_question and not target_group:
+                            raise BulkParseError(
+                                f"Unable to resolve branch target '{target_ref}' for question '{question.text}'"
+                            )
+
+                        SurveyQuestionCondition.objects.create(
+                            question=question,
+                            operator=branch.get("operator"),
+                            value=branch.get("value", ""),
+                            target_question=target_question,
+                            target_group=target_group,
+                            action=SurveyQuestionCondition.Action.JUMP_TO,
+                            order=branch.get("order", 0),
+                            description=branch.get("description", ""),
+                        )
+
+                def _unique_key(base: str) -> str:
+                    k = slugify(base)
+                    if not k:
+                        k = "collection"
+                    candidate = k
+                    i = 2
+                    while CollectionDefinition.objects.filter(
+                        survey=survey, key=candidate
+                    ).exists():
+                        candidate = f"{k}-{i}"
+                        i += 1
+                    return candidate
+
+                defs_by_group_index: dict[int, CollectionDefinition] = {}
+                for rep in repeats:
+                    gi = int(rep.get("group_index"))
+                    max_count = rep.get("max_count")
+                    name = (
+                        created_groups_in_order[gi].name
+                        if gi < len(created_groups_in_order)
+                        else parsed["groups"][gi]["name"]
+                    )
+                    key = _unique_key(name)
+                    cardinality = (
+                        CollectionDefinition.Cardinality.ONE
+                        if (isinstance(max_count, int) and max_count == 1)
+                        else CollectionDefinition.Cardinality.MANY
+                    )
+                    cd = CollectionDefinition.objects.create(
+                        survey=survey,
+                        key=key,
+                        name=name,
+                        cardinality=cardinality,
+                        max_count=max_count,
+                    )
+                    defs_by_group_index[gi] = cd
+                    created_collections += 1
+
+                for rep in repeats:
+                    gi = int(rep.get("group_index"))
+                    parent_index = rep.get("parent_index")
+                    if parent_index is not None:
+                        child_cd = defs_by_group_index.get(gi)
+                        parent_cd = defs_by_group_index.get(int(parent_index))
+                        if (
+                            child_cd
+                            and parent_cd
+                            and child_cd.parent_id != parent_cd.id
+                        ):
+                            child_cd.parent = parent_cd
                             child_cd.full_clean()
                             child_cd.save(update_fields=["parent"])
+
+                for gi, cd in defs_by_group_index.items():
+                    order = 0
+                    if gi < len(created_groups_in_order):
+                        grp = created_groups_in_order[gi]
                         CollectionItem.objects.create(
                             collection=cd,
-                            item_type=CollectionItem.ItemType.COLLECTION,
-                            child_collection=child_cd,
+                            item_type=CollectionItem.ItemType.GROUP,
+                            group=grp,
                             order=order,
                         )
                         created_items += 1
                         order += 1
+                    for rep in repeats:
+                        if rep.get("parent_index") == gi:
+                            child_cd = defs_by_group_index.get(int(rep["group_index"]))
+                            if child_cd:
+                                if child_cd.parent_id != cd.id:
+                                    child_cd.parent = cd
+                                    child_cd.full_clean()
+                                    child_cd.save(update_fields=["parent"])
+                                CollectionItem.objects.create(
+                                    collection=cd,
+                                    item_type=CollectionItem.ItemType.COLLECTION,
+                                    child_collection=child_cd,
+                                    order=order,
+                                )
+                                created_items += 1
+                                order += 1
 
-        messages.success(
-            request,
-            (
-                f"Bulk upload successful: added {len(parsed['groups'])} group(s) and questions."
-                + (
-                    f" Also created {created_collections} collection(s) and {created_items} item(s)."
-                    if repeats
-                    else ""
-                )
-            ),
-        )
+        except BulkParseError as e:
+            context["error"] = str(e)
+            context["markdown"] = md
+            return render(request, "surveys/bulk_upload.html", context)
+        except ValidationError as e:
+            messages_list = getattr(e, "messages", None)
+            context["error"] = ", ".join(messages_list) if messages_list else str(e)
+            context["markdown"] = md
+            return render(request, "surveys/bulk_upload.html", context)
+
+        summary_parts = [
+            f"Bulk upload successful: added {len(parsed['groups'])} group(s) and questions."
+        ]
+        if repeats:
+            summary_parts.append(
+                f" Also created {created_collections} collection(s) and {created_items} item(s)."
+            )
+        if (
+            removal_stats.get("detached_groups")
+            or removal_stats.get("questions")
+            or removal_stats.get("collections")
+        ):
+            summary_parts.append(" Previous survey content was replaced.")
+
+        messages.success(request, "".join(summary_parts))
         return redirect("surveys:dashboard", slug=survey.slug)
     return render(request, "surveys/bulk_upload.html", context)
 
@@ -3501,12 +3591,13 @@ def bulk_upload(request: HttpRequest, slug: str) -> HttpResponse:
 def _bulk_upload_example_md() -> str:
     return (
         "REPEAT-5\n"
-        "# Patient\n"
+        "# Patient {patient}\n"
         "Basic info about respondents\n\n"
-        "## Age\n"
+        "## Age {patient-age}\n"
         "Age in years\n"
         "(text number)\n\n"
-        "## Gender\n"
+        "? when greater_than 17 -> {follow-up}\n\n"
+        "## Gender {patient-gender}\n"
         "Self-described gender\n"
         "(mc_single)\n"
         "- Female\n"
@@ -3514,20 +3605,20 @@ def _bulk_upload_example_md() -> str:
         "- Non-binary\n"
         "- Prefer not to say\n\n"
         "> REPEAT\n"
-        "> # Visit\n"
+        "> # Visit {visit}\n"
         "> Details about each visit\n\n"
-        "> ## Date of visit\n"
+        "> ## Date of visit {visit-date}\n"
         "> (text)\n\n"
-        "# Satisfaction\n"
-        "About the service\n\n"
-        "## Overall satisfaction\n"
+        "# Follow up {follow-up}\n"
+        "Post-visit questions\n\n"
+        "## Overall satisfaction {follow-up-overall}\n"
         "Rate from 1 to 5\n"
         "(likert number)\n"
         "min: 1\n"
         "max: 5\n"
         "left: Very poor\n"
         "right: Excellent\n\n"
-        "## Recommend to a friend\n"
+        "## Recommend to a friend {follow-up-recommend}\n"
         "Likelihood to recommend\n"
         "(likert categories)\n"
         "- Very unlikely\n"

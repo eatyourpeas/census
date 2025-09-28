@@ -1,7 +1,7 @@
 import textwrap
 
-import pytest
 from django.urls import reverse
+import pytest
 
 from census_app.surveys.markdown_import import parse_bulk_markdown
 from census_app.surveys.models import (
@@ -13,7 +13,6 @@ from census_app.surveys.models import (
     SurveyQuestionCondition,
 )
 from census_app.surveys.views import _bulk_upload_example_md
-
 
 BULK_MD = textwrap.dedent(
     """

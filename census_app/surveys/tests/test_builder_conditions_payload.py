@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import pytest
-
+from django.contrib.auth.models import User
 from django.db import OperationalError
 from django.db.models.query import QuerySet
-from django.contrib.auth.models import User
 from django.test import RequestFactory
+import pytest
 
 from census_app.surveys.models import (
     Organization,
@@ -32,7 +31,9 @@ def org(owner: User) -> Organization:
 
 @pytest.fixture
 def survey(owner: User, org: Organization) -> Survey:
-    return Survey.objects.create(owner=owner, organization=org, name="Survey", slug="survey")
+    return Survey.objects.create(
+        owner=owner, organization=org, name="Survey", slug="survey"
+    )
 
 
 def _create_question(
@@ -54,7 +55,9 @@ def _create_question(
 
 
 @pytest.mark.django_db
-def test_prepare_question_rendering_includes_condition_metadata(owner: User, survey: Survey):
+def test_prepare_question_rendering_includes_condition_metadata(
+    owner: User, survey: Survey
+):
     group = QuestionGroup.objects.create(name="Default", owner=owner)
     survey.question_groups.add(group)
 
@@ -91,7 +94,9 @@ def test_prepare_question_rendering_includes_condition_metadata(owner: User, sur
 
 
 @pytest.mark.django_db
-def test_condition_options_default_to_group_when_no_other_questions(owner: User, survey: Survey):
+def test_condition_options_default_to_group_when_no_other_questions(
+    owner: User, survey: Survey
+):
     group_primary = QuestionGroup.objects.create(name="Primary", owner=owner)
     group_secondary = QuestionGroup.objects.create(name="Secondary", owner=owner)
     survey.question_groups.add(group_primary, group_secondary)

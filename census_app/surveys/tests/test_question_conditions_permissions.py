@@ -119,7 +119,9 @@ def test_condition_create_requires_login(client, survey_bundle):
         ("outsider", 403),
     ],
 )
-def test_condition_create_permission_matrix(client, survey_bundle, user_key, expected_status):
+def test_condition_create_permission_matrix(
+    client, survey_bundle, user_key, expected_status
+):
     survey = survey_bundle["survey"]
     question = survey_bundle["question"]
     follow_up = survey_bundle["follow_up"]

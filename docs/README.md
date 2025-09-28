@@ -6,6 +6,7 @@
 - Getting started with the API: ./getting-started-api.md
 - Branding & Theme Settings: ./branding-and-theme-settings.md
 - Surveys: ./surveys.md
+- Importing surveys: ./import.md
 - User management (org & survey): ./user-management.md
 - Releases & Change Log: ./releases.md
 
