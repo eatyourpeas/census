@@ -4,6 +4,7 @@ from copy import deepcopy
 import csv
 import io
 import json
+import logging
 from pathlib import Path
 import secrets
 from typing import Any, Iterable, Union
@@ -13,11 +14,14 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db import models, transaction
+from django.core.exceptions import ValidationError
+from django.db import DatabaseError, models, transaction
+from django.db.models import QuerySet
 from django.http import (
     Http404,
     HttpRequest,
     HttpResponse,
+    JsonResponse,
     QueryDict,
     StreamingHttpResponse,
 )
@@ -40,6 +44,7 @@ from .models import (
     SurveyAccessToken,
     SurveyMembership,
     SurveyQuestion,
+    SurveyQuestionCondition,
     SurveyResponse,
 )
 from .permissions import (
@@ -51,6 +56,8 @@ from .permissions import (
     require_can_view,
 )
 from .utils import verify_key
+
+logger = logging.getLogger(__name__)
 
 # Demographics field definitions: key -> display label
 DEMOGRAPHIC_FIELD_DEFS: dict[str, str] = {
@@ -132,6 +139,18 @@ PROFESSIONAL_TEMPLATE_DEFAULT_ODS = {
     "employing_health_board": False,
     "integrated_care_board": False,
     "gp_surgery": False,
+}
+
+
+CONDITION_OPERATORS_REQUIRING_VALUE = {
+    SurveyQuestionCondition.Operator.EQUALS,
+    SurveyQuestionCondition.Operator.NOT_EQUALS,
+    SurveyQuestionCondition.Operator.CONTAINS,
+    SurveyQuestionCondition.Operator.NOT_CONTAINS,
+    SurveyQuestionCondition.Operator.GREATER_THAN,
+    SurveyQuestionCondition.Operator.GREATER_EQUAL,
+    SurveyQuestionCondition.Operator.LESS_THAN,
+    SurveyQuestionCondition.Operator.LESS_EQUAL,
 }
 
 
@@ -325,6 +344,9 @@ def _render_template_question_row(
     """Re-render a single question row after an HTMX update."""
 
     question.refresh_from_db()
+    prepared = _prepare_question_rendering(survey, [question])
+    if prepared:
+        question = prepared[0]
     if question.type == SurveyQuestion.Types.TEMPLATE_PATIENT:
         question.options = _normalize_patient_template_options(question.options)
     elif question.type == SurveyQuestion.Types.TEMPLATE_PROFESSIONAL:
@@ -798,21 +820,126 @@ def survey_preview(request: HttpRequest, slug: str) -> HttpResponse:
     )
 
 
+def _prefetch_conditions(
+    qs: QuerySet[SurveyQuestion],
+) -> QuerySet[SurveyQuestion]:
+    try:
+        return qs.prefetch_related(
+            "conditions__target_question",
+            "conditions__target_group",
+        )
+    except DatabaseError as exc:  # pragma: no cover - exercised via tests
+        logger.warning("Skipping condition prefetch due to database error: %s", exc)
+        return qs
+
+
+def _load_conditions(question: SurveyQuestion) -> list[SurveyQuestionCondition]:
+    try:
+        return list(question.conditions.all())
+    except DatabaseError as exc:  # pragma: no cover - exercised via tests
+        logger.warning(
+            "Skipping condition load for question %s due to database error: %s",
+            question.id,
+            exc,
+        )
+        return []
+
+
 def _prepare_question_rendering(
     survey: Survey, questions: Iterable[SurveyQuestion] | None = None
 ) -> list[SurveyQuestion]:
-    """Attach view-only helper attributes for template rendering.
-    Currently sets num_scale_values for likert number-scale questions.
-    Returns the sequence of questions that were processed so callers can reuse
-    the prepared objects.
+    """Attach view helper attributes used by the builder templates.
+
+    Currently sets ``num_scale_values`` for likert questions, along with
+    ``builder_payload`` and ``builder_payload_json`` that power the client-side
+    editor. Returns the processed sequence so callers can reuse the prepared
+    objects.
     """
+
+    questions_iter: list[SurveyQuestion] = []
     try:
         if questions is None:
-            questions_iter: list[SurveyQuestion] = list(survey.questions.all())
+            base_qs = survey.questions.select_related("group").all()
+            questions_iter = list(_prefetch_conditions(base_qs))
+        elif isinstance(questions, QuerySet):
+            base_qs = questions.select_related("group")
+            questions_iter = list(_prefetch_conditions(base_qs))
         else:
+            questions_iter = [
+                q for q in questions if isinstance(q, SurveyQuestion)
+            ]
+            ids = [q.id for q in questions_iter if q.id is not None]
+            if ids:
+                hydrated_qs = survey.questions.select_related("group").filter(
+                    id__in=ids
+                )
+                hydrated_qs = _prefetch_conditions(hydrated_qs)
+                hydrated = {q.id: q for q in hydrated_qs}
+                questions_iter = [hydrated.get(q.id, q) for q in questions_iter]
+    except Exception as exc:  # pragma: no cover - defensive guard
+        logger.exception("Falling back to raw question list: %s", exc)
+        if questions is None:
+            questions_iter = list(survey.questions.select_related("group"))
+        elif isinstance(questions, QuerySet):
             questions_iter = list(questions)
+        else:
+            questions_iter = [
+                q for q in questions if isinstance(q, SurveyQuestion)
+            ]
+
+    all_questions_meta: list[dict[str, Any]] = []
+    try:
+        for item in (
+            survey.questions.select_related("group")
+            .only("id", "text", "order", "group__name")
+            .all()
+        ):
+            text = (item.text or "Untitled question").strip() or "Untitled question"
+            order_display = item.order + 1 if item.order is not None else None
+            prefix = f"Q{order_display}" if order_display else f"ID {item.id}"
+            group_name = item.group.name if getattr(item, "group", None) else ""
+            label = f"{prefix} • {text}"
+            if group_name:
+                label = f"{label} ({group_name})"
+            all_questions_meta.append(
+                {
+                    "id": item.id,
+                    "order": item.order,
+                    "label": label,
+                    "group_id": item.group_id,
+                    "group_name": group_name,
+                }
+            )
     except Exception:
-        return []
+        all_questions_meta = []
+
+    all_groups_meta: list[dict[str, Any]] = []
+    try:
+        for grp in survey.question_groups.only("id", "name").all():
+            all_groups_meta.append({"id": grp.id, "label": grp.name or f"Group {grp.id}"})
+    except Exception:
+        all_groups_meta = []
+
+    operators_meta = [
+        {
+            "value": value,
+            "label": label,
+            "requires_value": value in CONDITION_OPERATORS_REQUIRING_VALUE,
+        }
+        for value, label in SurveyQuestionCondition.Operator.choices
+    ]
+    actions_meta = [
+        {
+            "value": value,
+            "label": label,
+        }
+        for value, label in SurveyQuestionCondition.Action.choices
+    ]
+    condition_meta = {
+        "operators": operators_meta,
+        "actions": actions_meta,
+    }
+
     for q in questions_iter:
         try:
             if q.type == SurveyQuestion.Types.TEMPLATE_PATIENT:
@@ -834,7 +961,12 @@ def _prepare_question_rendering(
                 setattr(q, "num_scale_values", list(range(minv, maxv + 1)))
             else:
                 setattr(q, "num_scale_values", None)
-            payload = _serialize_question_for_builder(q)
+            payload = _serialize_question_for_builder(
+                q,
+                all_questions=all_questions_meta,
+                all_groups=all_groups_meta,
+                condition_meta=condition_meta,
+            )
             setattr(q, "builder_payload", payload)
             try:
                 payload_json = json.dumps(payload, separators=(",", ":"))
@@ -904,6 +1036,110 @@ def _parse_builder_question_form(data: QueryDict) -> dict[str, Any]:
     }
 
 
+def _safe_int(value: Any) -> int | None:
+    try:
+        return int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+
+def _build_condition_payload(
+    survey: Survey,
+    question: SurveyQuestion,
+    data: QueryDict,
+    *,
+    instance: SurveyQuestionCondition | None = None,
+) -> dict[str, Any]:
+    operator = (data.get("operator") or "").strip() or (
+        instance.operator if instance else SurveyQuestionCondition.Operator.EQUALS
+    )
+    if operator not in SurveyQuestionCondition.Operator.values:
+        operator = SurveyQuestionCondition.Operator.EQUALS
+
+    action = (data.get("action") or "").strip() or (
+        instance.action if instance else SurveyQuestionCondition.Action.JUMP_TO
+    )
+    if action not in SurveyQuestionCondition.Action.values:
+        action = SurveyQuestionCondition.Action.JUMP_TO
+
+    description = (data.get("description") or "").strip()
+    if not description and instance and instance.description:
+        description = instance.description
+
+    value = data.get("value")
+    if value is None and instance is not None:
+        value = instance.value
+    else:
+        value = (value or "").strip()
+
+    order_raw = data.get("order")
+    order = _safe_int(order_raw)
+    if order is None:
+        order = instance.order if instance else None
+    if order is None:
+        next_order = (
+            question.conditions.aggregate(models.Max("order")).get("order__max")
+            or -1
+        ) + 1
+        order = next_order
+
+    target_question: SurveyQuestion | None = None
+    target_group: QuestionGroup | None = None
+    target_question_raw = data.get("target_question")
+    target_group_raw = data.get("target_group")
+
+    if target_question_raw:
+        target_question_id = _safe_int(target_question_raw)
+        if target_question_id is None:
+            raise ValidationError({"target_question": "Invalid target question."})
+        try:
+            target_question = SurveyQuestion.objects.get(
+                id=target_question_id, survey=survey
+            )
+        except SurveyQuestion.DoesNotExist as exc:
+            raise ValidationError(
+                {"target_question": "Target question must belong to this survey."}
+            ) from exc
+
+    if target_group_raw:
+        target_group_id = _safe_int(target_group_raw)
+        if target_group_id is None:
+            raise ValidationError({"target_group": "Invalid target group."})
+        target_group = survey.question_groups.filter(id=target_group_id).first()
+        if target_group is None:
+            raise ValidationError(
+                {"target_group": "Target group must belong to this survey."}
+            )
+
+    if not target_question and not target_group:
+        if instance:
+            target_question = instance.target_question
+            target_group = instance.target_group
+        else:
+            raise ValidationError(
+                {
+                    "target": "Provide either target_question or target_group for this condition.",
+                }
+            )
+
+    if target_question and target_group:
+        raise ValidationError(
+            {
+                "target": "Specify exactly one of target_question or target_group.",
+            }
+        )
+
+    return {
+        "operator": operator,
+        "action": action,
+        "description": description,
+        "value": value or "",
+        "order": order,
+        "target_question": target_question,
+        "target_group": target_group,
+    }
+
+
 def _duplicate_question(question: SurveyQuestion) -> SurveyQuestion:
     """Clone a question immediately after the original within the survey order."""
     order = question.order
@@ -923,7 +1159,13 @@ def _duplicate_question(question: SurveyQuestion) -> SurveyQuestion:
     return cloned
 
 
-def _serialize_question_for_builder(question: SurveyQuestion) -> dict[str, Any]:
+def _serialize_question_for_builder(
+    question: SurveyQuestion,
+    *,
+    all_questions: Iterable[dict[str, Any]] | None = None,
+    all_groups: Iterable[dict[str, Any]] | None = None,
+    condition_meta: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "id": question.id,
         "text": question.text or "",
@@ -990,6 +1232,116 @@ def _serialize_question_for_builder(question: SurveyQuestion) -> dict[str, Any]:
                         if candidate:
                             labels.append(str(candidate).strip())
             payload["likert_categories"] = labels
+
+    operators_meta = list((condition_meta or {}).get("operators", []))
+    if not operators_meta:
+        operators_meta = [
+            {
+                "value": value,
+                "label": label,
+                "requires_value": value in CONDITION_OPERATORS_REQUIRING_VALUE,
+            }
+            for value, label in SurveyQuestionCondition.Operator.choices
+        ]
+    actions_meta = list((condition_meta or {}).get("actions", []))
+    if not actions_meta:
+        actions_meta = [
+            {
+                "value": value,
+                "label": label,
+            }
+            for value, label in SurveyQuestionCondition.Action.choices
+        ]
+
+    target_questions: list[dict[str, Any]] = []
+    default_question_id: int | None = None
+    if all_questions:
+        for meta in all_questions:
+            if meta.get("id") == question.id:
+                continue
+            entry = {
+                "id": meta.get("id"),
+                "label": meta.get("label") or f"Question {meta.get('id')}",
+                "group_id": meta.get("group_id"),
+                "group_name": meta.get("group_name"),
+            }
+            target_questions.append(entry)
+            if default_question_id is None and entry.get("id") is not None:
+                default_question_id = int(entry["id"])
+
+    target_groups: list[dict[str, Any]] = []
+    default_group_id: int | None = None
+    if all_groups:
+        for meta in all_groups:
+            entry = {
+                "id": meta.get("id"),
+                "label": meta.get("label") or f"Group {meta.get('id')}",
+            }
+            target_groups.append(entry)
+            if default_group_id is None and entry.get("id") is not None:
+                default_group_id = int(entry["id"])
+
+    has_question_targets = bool(target_questions)
+    has_group_targets = bool(target_groups)
+    default_target_type = "question" if has_question_targets else "group"
+    if default_target_type == "group" and not has_group_targets:
+        default_target_type = "question"
+
+    payload["condition_options"] = {
+        "operators": operators_meta,
+        "actions": actions_meta,
+        "target_questions": target_questions,
+        "target_groups": target_groups,
+        "has_question_targets": has_question_targets,
+        "has_group_targets": has_group_targets,
+        "default_target_type": default_target_type,
+        "default_question_id": default_question_id,
+        "default_group_id": default_group_id,
+        "can_create": has_question_targets or has_group_targets,
+    }
+
+    conditions_payload: list[dict[str, Any]] = []
+    for cond in _load_conditions(question):
+        target_type = "group"
+        target_label = ""
+        target_id: int | None = None
+        if cond.target_question is not None:
+            target_type = "question"
+            target_id = cond.target_question.id
+            target_label = (cond.target_question.text or f"Question {target_id}").strip()
+        elif cond.target_group is not None:
+            target_type = "group"
+            target_id = cond.target_group.id
+            target_label = cond.target_group.name or f"Group {target_id}"
+
+        if cond.operator in CONDITION_OPERATORS_REQUIRING_VALUE:
+            comparison = cond.value or ""
+            condition_clause = f"{cond.get_operator_display()} \"{comparison}\"".strip()
+        else:
+            condition_clause = cond.get_operator_display()
+        summary = f"{condition_clause} → {cond.get_action_display()} {target_label}".strip()
+
+        conditions_payload.append(
+            {
+                "id": cond.id,
+                "operator": cond.operator,
+                "operator_label": cond.get_operator_display(),
+                "action": cond.action,
+                "action_label": cond.get_action_display(),
+                "value": cond.value or "",
+                "description": cond.description or "",
+                "order": cond.order,
+                "target": {
+                    "type": target_type,
+                    "id": target_id,
+                    "label": target_label,
+                },
+                "summary": summary,
+                "requires_value": cond.operator in CONDITION_OPERATORS_REQUIRING_VALUE,
+            }
+        )
+
+    payload["conditions"] = conditions_payload
 
     return payload
 
@@ -2377,6 +2729,120 @@ def builder_question_copy(request: HttpRequest, slug: str, qid: int) -> HttpResp
             "groups": groups,
             "message": "Question copied.",
         },
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_question_condition_create(
+    request: HttpRequest, slug: str, qid: int
+) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    question = get_object_or_404(SurveyQuestion, id=qid, survey=survey)
+    try:
+        payload = _build_condition_payload(survey, question, request.POST)
+    except ValidationError as exc:
+        return JsonResponse({"errors": exc.message_dict}, status=400)
+
+    condition = SurveyQuestionCondition(question=question, **payload)
+    try:
+        condition.full_clean()
+    except ValidationError as exc:
+        return JsonResponse({"errors": exc.message_dict}, status=400)
+    condition.save()
+    context_group_id = _safe_int(request.POST.get("context_group_id"))
+    group_context = (
+        survey.question_groups.filter(id=context_group_id).first()
+        if context_group_id
+        else None
+    )
+    return _render_template_question_row(
+        request,
+        survey,
+        condition.question,
+        group=group_context,
+        message="Condition added.",
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_question_condition_update(
+    request: HttpRequest, slug: str, qid: int, cid: int
+) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    question = get_object_or_404(SurveyQuestion, id=qid, survey=survey)
+    condition = get_object_or_404(
+        SurveyQuestionCondition, id=cid, question=question
+    )
+    try:
+        payload = _build_condition_payload(
+            survey, question, request.POST, instance=condition
+        )
+    except ValidationError as exc:
+        return JsonResponse({"errors": exc.message_dict}, status=400)
+
+    for field, value in payload.items():
+        setattr(condition, field, value)
+
+    try:
+        condition.full_clean()
+    except ValidationError as exc:
+        return JsonResponse({"errors": exc.message_dict}, status=400)
+
+    condition.save(
+        update_fields=[
+            "operator",
+            "action",
+            "description",
+            "value",
+            "order",
+            "target_question",
+            "target_group",
+            "updated_at",
+        ]
+    )
+    context_group_id = _safe_int(request.POST.get("context_group_id"))
+    group_context = (
+        survey.question_groups.filter(id=context_group_id).first()
+        if context_group_id
+        else None
+    )
+    return _render_template_question_row(
+        request,
+        survey,
+        question,
+        group=group_context,
+        message="Condition updated.",
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_question_condition_delete(
+    request: HttpRequest, slug: str, qid: int, cid: int
+) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    question = get_object_or_404(SurveyQuestion, id=qid, survey=survey)
+    condition = get_object_or_404(
+        SurveyQuestionCondition, id=cid, question=question
+    )
+    condition.delete()
+    context_group_id = _safe_int(request.POST.get("context_group_id"))
+    group_context = (
+        survey.question_groups.filter(id=context_group_id).first()
+        if context_group_id
+        else None
+    )
+    return _render_template_question_row(
+        request,
+        survey,
+        question,
+        group=group_context,
+        message="Condition removed.",
     )
 
 

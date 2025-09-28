@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from .utils import decrypt_sensitive, encrypt_sensitive, make_key_hash
@@ -154,6 +155,117 @@ class SurveyQuestion(models.Model):
 
     class Meta:
         ordering = ["order", "id"]
+
+
+class SurveyQuestionCondition(models.Model):
+    class Operator(models.TextChoices):
+        EQUALS = "eq", "Equals"
+        NOT_EQUALS = "neq", "Does not equal"
+        CONTAINS = "contains", "Contains"
+        NOT_CONTAINS = "not_contains", "Does not contain"
+        GREATER_THAN = "gt", "Greater than"
+        GREATER_EQUAL = "gte", "Greater or equal"
+        LESS_THAN = "lt", "Less than"
+        LESS_EQUAL = "lte", "Less or equal"
+        EXISTS = "exists", "Answer provided"
+        NOT_EXISTS = "not_exists", "Answer missing"
+
+    class Action(models.TextChoices):
+        JUMP_TO = "jump_to", "Jump to target"
+        SHOW = "show", "Show target"
+        SKIP = "skip", "Skip target"
+
+    question = models.ForeignKey(
+        SurveyQuestion, on_delete=models.CASCADE, related_name="conditions"
+    )
+    operator = models.CharField(
+        max_length=16, choices=Operator.choices, default=Operator.EQUALS
+    )
+    value = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Value to compare against the response when required by the operator.",
+    )
+    target_question = models.ForeignKey(
+        "SurveyQuestion",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="incoming_conditions",
+    )
+    target_group = models.ForeignKey(
+        QuestionGroup,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="incoming_conditions",
+    )
+    action = models.CharField(
+        max_length=32, choices=Action.choices, default=Action.JUMP_TO
+    )
+    order = models.PositiveIntegerField(default=0)
+    description = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["question", "order", "id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(target_question__isnull=False, target_group__isnull=True)
+                    | Q(target_question__isnull=True, target_group__isnull=False)
+                ),
+                name="surveyquestioncondition_single_target",
+            )
+        ]
+
+    def clean(self):  # pragma: no cover - validated via tests
+        super().clean()
+
+        if bool(self.target_question) == bool(self.target_group):
+            raise ValidationError(
+                {
+                    "target_question": "Specify exactly one of target_question or target_group.",
+                    "target_group": "Specify exactly one of target_question or target_group.",
+                }
+            )
+
+        if self.target_question and (
+            self.target_question.survey_id != self.question.survey_id
+        ):
+            raise ValidationError(
+                {
+                    "target_question": "Target question must belong to the same survey as the triggering question.",
+                }
+            )
+
+        if (
+            self.target_group
+            and not self.target_group.surveys.filter(
+                id=self.question.survey_id
+            ).exists()
+        ):
+            raise ValidationError(
+                {
+                    "target_group": "Target group must be attached to the same survey as the triggering question.",
+                }
+            )
+
+        operators_requiring_value = {
+            self.Operator.EQUALS,
+            self.Operator.NOT_EQUALS,
+            self.Operator.CONTAINS,
+            self.Operator.NOT_CONTAINS,
+            self.Operator.GREATER_THAN,
+            self.Operator.GREATER_EQUAL,
+            self.Operator.LESS_THAN,
+            self.Operator.LESS_EQUAL,
+        }
+        if self.operator in operators_requiring_value and not self.value:
+            raise ValidationError(
+                {"value": "This operator requires a comparison value."}
+            )
 
 
 class SurveyMembership(models.Model):

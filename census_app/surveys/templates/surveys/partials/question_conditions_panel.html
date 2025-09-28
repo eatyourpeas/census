@@ -1,0 +1,209 @@
+{% with payload=q.builder_payload %}
+  {% if payload.condition_options %}
+    {% with opts=payload.condition_options %}
+      <details class="mt-4 border border-base-300 rounded-lg bg-base-100/70 px-4 py-3" data-condition-panel>
+        <summary class="flex cursor-pointer items-center justify-between gap-2 text-sm font-semibold">
+          <span>Conditional logic</span>
+          {% if payload.conditions %}
+            <span class="badge badge-sm badge-outline">{{ payload.conditions|length }} active</span>
+          {% else %}
+            <span class="badge badge-sm">Off</span>
+          {% endif %}
+        </summary>
+        <div class="mt-4 space-y-5">
+          {% if not opts.can_create %}
+            <div class="alert alert-info text-sm">
+              <span>No available target questions or groups yet. Add another question or group to enable conditional branching.</span>
+            </div>
+          {% else %}
+            <div class="space-y-3 rounded-lg border border-dashed border-base-300 bg-base-200/40 p-3">
+              <h4 class="text-sm font-medium">Add a condition</h4>
+              <form method="post" hx-post="/surveys/{{ q.survey.slug }}/builder/questions/{{ q.id }}/conditions/create" hx-target="closest li[data-qid]" hx-swap="outerHTML" data-condition-form data-condition-mode="create">
+                {% csrf_token %}
+                {% if group %}
+                  <input type="hidden" name="context_group_id" value="{{ group.id }}" />
+                {% endif %}
+                <label class="label text-xs">Description <span class="opacity-60">(optional)</span></label>
+                <input type="text" name="description" class="input input-bordered w-full" placeholder="e.g. Participant answered yes" />
+
+                <label class="label text-xs mt-3">Operator</label>
+                <select name="operator" class="select select-bordered w-full" data-condition-operator>
+                  {% for operator in opts.operators %}
+                    <option value="{{ operator.value }}" data-requires-value="{{ operator.requires_value|yesno:'1,0' }}">{{ operator.label }}</option>
+                  {% endfor %}
+                </select>
+
+                <div class="mt-2" data-condition-value>
+                  <label class="label text-xs">Comparison value</label>
+                  <input type="text" name="value" class="input input-bordered w-full" placeholder="Comparison value" />
+                </div>
+
+                <label class="label text-xs mt-3">Action</label>
+                <select name="action" class="select select-bordered w-full">
+                  {% for action in opts.actions %}
+                    <option value="{{ action.value }}">{{ action.label }}</option>
+                  {% endfor %}
+                </select>
+
+                <fieldset class="mt-3">
+                  <legend class="label text-xs">Target</legend>
+                  <div class="flex flex-wrap gap-3">
+                    <label class="flex items-center gap-2 text-xs">
+                      <input type="radio" name="target_selector" value="question" class="radio radio-primary" {% if not opts.has_question_targets %}disabled{% endif %} {% if opts.default_target_type == 'question' %}checked{% endif %} />
+                      <span>Question</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-xs">
+                      <input type="radio" name="target_selector" value="group" class="radio radio-primary" {% if not opts.has_group_targets %}disabled{% endif %} {% if opts.default_target_type == 'group' %}checked{% endif %} />
+                      <span>Group</span>
+                    </label>
+                  </div>
+                </fieldset>
+
+                <div class="mt-2{% if opts.default_target_type != 'question' %} hidden{% endif %}" data-target-wrapper="question">
+                  <label class="label text-xs">Target question</label>
+                  <select name="target_question" class="select select-bordered w-full" data-target-select="question" {% if opts.default_target_type != 'question' %}disabled{% endif %}>
+                    {% if not opts.has_question_targets %}
+                      <option value="">No available questions</option>
+                    {% else %}
+                      {% for tq in opts.target_questions %}
+                        <option value="{{ tq.id }}"{% if tq.id == opts.default_question_id %} selected{% endif %}>{{ tq.label }}</option>
+                      {% endfor %}
+                    {% endif %}
+                  </select>
+                </div>
+
+                <div class="mt-2{% if opts.default_target_type != 'group' %} hidden{% endif %}" data-target-wrapper="group">
+                  <label class="label text-xs">Target group</label>
+                  <select name="target_group" class="select select-bordered w-full" data-target-select="group" {% if opts.default_target_type != 'group' %}disabled{% endif %}>
+                    {% if not opts.has_group_targets %}
+                      <option value="">No available groups</option>
+                    {% else %}
+                      <option value="">Choose a group…</option>
+                      {% for tg in opts.target_groups %}
+                        <option value="{{ tg.id }}"{% if tg.id == opts.default_group_id %} selected{% endif %}>{{ tg.label }}</option>
+                      {% endfor %}
+                    {% endif %}
+                  </select>
+                </div>
+
+                <div class="mt-3 flex justify-end">
+                  <button type="submit" class="btn btn-primary btn-sm">Add condition</button>
+                </div>
+              </form>
+            </div>
+          {% endif %}
+
+          <div>
+            <h4 class="text-sm font-medium">Existing conditions</h4>
+            {% if payload.conditions %}
+              <ul class="mt-2 space-y-3" data-condition-list>
+                {% for cond in payload.conditions %}
+                  <li class="space-y-2 rounded-lg border border-base-300 bg-base-100/70 p-3" data-condition-id="{{ cond.id }}">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p class="text-sm font-medium">{{ cond.description|default:cond.summary }}</p>
+                        <p class="text-xs opacity-70">{{ cond.summary }}</p>
+                      </div>
+                      <span class="badge badge-sm badge-outline self-start sm:self-center">Order {{ cond.order }}</span>
+                    </div>
+                    <details class="mt-2" data-condition-editor>
+                      <summary class="link link-primary text-sm">Edit condition</summary>
+                      <div class="mt-2 space-y-3">
+                        <form method="post" hx-post="/surveys/{{ q.survey.slug }}/builder/questions/{{ q.id }}/conditions/{{ cond.id }}/update" hx-target="closest li[data-qid]" hx-swap="outerHTML" data-condition-form data-condition-mode="edit">
+                          {% csrf_token %}
+                          {% if group %}
+                            <input type="hidden" name="context_group_id" value="{{ group.id }}" />
+                          {% endif %}
+                          <label class="label text-xs">Description</label>
+                          <input type="text" name="description" class="input input-bordered w-full" value="{{ cond.description }}" />
+
+                          <label class="label text-xs mt-3">Operator</label>
+                          <select name="operator" class="select select-bordered w-full" data-condition-operator>
+                            {% for operator in opts.operators %}
+                              <option value="{{ operator.value }}" data-requires-value="{{ operator.requires_value|yesno:'1,0' }}"{% if operator.value == cond.operator %} selected{% endif %}>{{ operator.label }}</option>
+                            {% endfor %}
+                          </select>
+
+                          <div class="mt-2{% if not cond.requires_value %} hidden{% endif %}" data-condition-value>
+                            <label class="label text-xs">Comparison value</label>
+                            <input type="text" name="value" class="input input-bordered w-full" value="{{ cond.value }}" {% if not cond.requires_value %}disabled{% endif %} />
+                          </div>
+
+                          <label class="label text-xs mt-3">Action</label>
+                          <select name="action" class="select select-bordered w-full">
+                            {% for action in opts.actions %}
+                              <option value="{{ action.value }}"{% if action.value == cond.action %} selected{% endif %}>{{ action.label }}</option>
+                            {% endfor %}
+                          </select>
+
+                          <fieldset class="mt-3">
+                            <legend class="label text-xs">Target</legend>
+                            <div class="flex flex-wrap gap-3">
+                              <label class="flex items-center gap-2 text-xs">
+                                <input type="radio" name="target_selector" value="question" class="radio radio-primary" {% if cond.target.type == 'question' %}checked{% endif %} {% if not opts.has_question_targets %}disabled{% endif %} />
+                                <span>Question</span>
+                              </label>
+                              <label class="flex items-center gap-2 text-xs">
+                                <input type="radio" name="target_selector" value="group" class="radio radio-primary" {% if cond.target.type == 'group' %}checked{% endif %} {% if not opts.has_group_targets %}disabled{% endif %} />
+                                <span>Group</span>
+                              </label>
+                            </div>
+                          </fieldset>
+
+                          <div class="mt-2{% if cond.target.type != 'question' %} hidden{% endif %}" data-target-wrapper="question">
+                            <label class="label text-xs">Target question</label>
+                            <select name="target_question" class="select select-bordered w-full" data-target-select="question" {% if cond.target.type != 'question' %}disabled{% endif %}>
+                              {% if not opts.has_question_targets %}
+                                <option value="">No available questions</option>
+                              {% else %}
+                                {% for tq in opts.target_questions %}
+                                  <option value="{{ tq.id }}"{% if cond.target.type == 'question' and tq.id == cond.target.id %} selected{% endif %}>{{ tq.label }}</option>
+                                {% endfor %}
+                              {% endif %}
+                            </select>
+                          </div>
+
+                          <div class="mt-2{% if cond.target.type != 'group' %} hidden{% endif %}" data-target-wrapper="group">
+                            <label class="label text-xs">Target group</label>
+                            <select name="target_group" class="select select-bordered w-full" data-target-select="group" {% if cond.target.type != 'group' %}disabled{% endif %}>
+                              {% if not opts.has_group_targets %}
+                                <option value="">No available groups</option>
+                              {% else %}
+                                <option value="">Choose a group…</option>
+                                {% for tg in opts.target_groups %}
+                                  <option value="{{ tg.id }}"{% if cond.target.type == 'group' and tg.id == cond.target.id %} selected{% endif %}>{{ tg.label }}</option>
+                                {% endfor %}
+                              {% endif %}
+                            </select>
+                          </div>
+
+                          <div class="mt-2">
+                            <label class="label text-xs">Order</label>
+                            <input type="number" name="order" class="input input-bordered w-full" value="{{ cond.order }}" min="0" />
+                          </div>
+
+                          <div class="mt-3 flex justify-end gap-2">
+                            <button type="submit" class="btn btn-primary btn-xs">Save changes</button>
+                          </div>
+                        </form>
+                        <form method="post" hx-post="/surveys/{{ q.survey.slug }}/builder/questions/{{ q.id }}/conditions/{{ cond.id }}/delete" hx-target="closest li[data-qid]" hx-swap="outerHTML" hx-confirm="Delete this condition?" class="flex justify-end">
+                          {% csrf_token %}
+                          {% if group %}
+                            <input type="hidden" name="context_group_id" value="{{ group.id }}" />
+                          {% endif %}
+                          <button type="submit" class="btn btn-warning btn-xs">Delete</button>
+                        </form>
+                      </div>
+                    </details>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-sm opacity-70">No conditions yet.</p>
+            {% endif %}
+          </div>
+        </div>
+      </details>
+    {% endwith %}
+  {% endif %}
+{% endwith %}

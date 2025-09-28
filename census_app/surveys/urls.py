@@ -129,6 +129,21 @@ urlpatterns = [
         name="builder_question_copy",
     ),
     path(
+        "<slug:slug>/builder/questions/<int:qid>/conditions/create",
+        views.builder_question_condition_create,
+        name="builder_question_condition_create",
+    ),
+    path(
+        "<slug:slug>/builder/questions/<int:qid>/conditions/<int:cid>/update",
+        views.builder_question_condition_update,
+        name="builder_question_condition_update",
+    ),
+    path(
+        "<slug:slug>/builder/questions/<int:qid>/conditions/<int:cid>/delete",
+        views.builder_question_condition_delete,
+        name="builder_question_condition_delete",
+    ),
+    path(
         "<slug:slug>/builder/groups/<int:gid>/questions/<int:qid>/edit",
         views.builder_group_question_edit,
         name="builder_group_question_edit",
