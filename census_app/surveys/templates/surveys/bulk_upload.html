@@ -16,56 +16,26 @@
 
 <div class="grid md:grid-cols-2 gap-6">
   <div class="space-y-6">
-    <form method="post">
+    <form method="post" id="bulk-import-form">
       {% csrf_token %}
       <label class="label">Markdown</label>
-      <textarea class="textarea textarea-bordered w-full min-h-[360px]" name="markdown" placeholder="REPEAT-5
-# Patient
-Basic info about respondents
-
-## Age
-Age in years
-(text number)
-
-## Gender
-Self-described gender
-(mc_single)
-- Female
-- Male
-- Non-binary
-- Prefer not to say
-
-> REPEAT
-> # Visit
-> Details about each visit
->
-> ## Date of visit
-> (text)
-
-# Satisfaction
-About the service
-
-## Overall satisfaction
-Rate from 1 to 5
-(likert number)
-min: 1
-max: 5
-left: Very poor
-right: Excellent
-
-## Recommend to a friend
-Likelihood to recommend
-(likert categories)
-- Very unlikely
-- Unlikely
-- Neutral
-- Likely
-- Very likely
-" required>{{ markdown|default:example }}</textarea>
+      <textarea class="textarea textarea-bordered w-full min-h-[360px]" name="markdown" required>{{ markdown|default:example }}</textarea>
       <div class="mt-3">
-        <button class="btn btn-primary" type="submit">Import</button>
+        <button class="btn btn-primary" type="button" id="bulk-import-open-modal">Create survey</button>
       </div>
     </form>
+    <dialog id="bulk-import-confirm" class="modal">
+      <div class="modal-box space-y-4">
+        <h3 class="text-lg font-semibold">Overwrite survey questions?</h3>
+        <p class="text-sm text-base-content/80">
+          Importing from Markdown will delete all existing question groups, questions, branching rules, and collections that belong to this survey. Continue only if you are ready to replace the current builder content with the uploaded version.
+        </p>
+        <div class="modal-action">
+          <button class="btn" type="button" id="bulk-import-cancel">Cancel</button>
+          <button class="btn btn-primary" type="submit" form="bulk-import-form">Create survey</button>
+        </div>
+      </div>
+    </dialog>
     <section class="rounded-xl border border-base-300 bg-base-200/70 shadow-inner">
       <div class="p-4 sm:p-6 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-4">
@@ -128,6 +98,29 @@ Likelihood to recommend
             <li>Use <code>&gt;</code> before REPEAT and the group heading to indicate one level of nesting.</li>
             <li>Nesting is limited to one level (Parent → Child) by design.</li>
             <li>Groups without REPEAT are normal, non-collection groups.</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold">Optional: Questions with conditional branching</h3>
+          <p class="text-sm text-base-content/80">Assign stable IDs by placing them in curly braces at the end of group or question headings. Then add branching rules below the question&rsquo;s <code>(type)</code> line using <code>? when &lt;operator&gt; &lt;value&gt; -&gt; {target-id}</code>.</p>
+          <pre class="mt-2 rounded bg-base-200/60 p-3 text-sm"><code># Intro {intro}
+## Consent {intro-consent}
+(text)
+? when equals "Yes" -> {follow-up}
+? when equals "No" -> {intro-exit}
+
+# Follow up {follow-up}
+## Feedback {follow-up-feedback}
+(text)
+
+# Exit {intro-exit}
+## Thanks {intro-exit-thanks}
+(text)</code></pre>
+          <ul class="list-disc pl-5 space-y-1 text-sm">
+            <li>Branching rules must start with <code>? when</code> and reference a question or group ID in curly braces.</li>
+            <li>Operators mirror the survey builder: <code>equals</code>, <code>not_equals</code>, <code>contains</code>, <code>greater_than</code>, and more.</li>
+            <li>IDs are normalised to lowercase slugs; keep them unique within your document.</li>
+            <li>Point to a group ID to jump to that group, or a question ID to jump directly to that question.</li>
           </ul>
         </div>
       </div>
