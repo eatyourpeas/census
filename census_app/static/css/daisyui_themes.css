@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root:where([data-theme="census-light"]),
+  :where([data-theme="census-light"]) {
+    color-scheme: light;
+    --p: #6d5aa5;
+    --pc: oklch(93% 0.034 272.788);
+    --s: #92a55a;
+    --sc: oklch(94% 0.028 342.258);
+    --a: oklch(77% 0.152 181.912);
+    --ac: oklch(38% 0.063 188.416);
+    --n: oklch(27% 0.006 286.033);
+    --nc: oklch(98% 0 0);
+    --b1: oklch(98% 0 0);
+    --b2: oklch(96% 0.001 286.375);
+    --b3: oklch(92% 0.004 286.32);
+    --bc: oklch(21% 0.006 285.885);
+    --in: #50e6ff;
+    --inc: oklch(29% 0.066 243.157);
+    --su: oklch(76% 0.177 163.223);
+    --suc: oklch(37% 0.077 168.94);
+    --wa: oklch(82% 0.189 84.429);
+    --wac: oklch(41% 0.112 45.904);
+    --er: oklch(71% 0.194 13.428);
+    --erc: oklch(27% 0.105 12.094);
+    --rounded-selector: 1rem;
+    --rounded-field: 0.25rem;
+    --rounded-box: 0rem;
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+    --border: 1px;
+    --depth: 0;
+    --noise: 0;
+    --color-primary: var(--p);
+    --color-primary-content: var(--pc);
+    --color-secondary: var(--s);
+    --color-secondary-content: var(--sc);
+    --color-accent: var(--a);
+    --color-accent-content: var(--ac);
+    --color-neutral: var(--n);
+    --color-neutral-content: var(--nc);
+    --color-base-100: var(--b1);
+    --color-base-200: var(--b2);
+    --color-base-300: var(--b3);
+    --color-base-content: var(--bc);
+    --color-info: var(--in);
+    --color-info-content: var(--inc);
+    --color-success: var(--su);
+    --color-success-content: var(--suc);
+    --color-warning: var(--wa);
+    --color-warning-content: var(--wac);
+    --color-error: var(--er);
+    --color-error-content: var(--erc);
+  }
+
+  :root:where([data-theme="census"]),
+  :where([data-theme="census"]) {
+    color-scheme: light;
+    --p: #6d5aa5;
+    --pc: oklch(93% 0.034 272.788);
+    --s: #92a55a;
+    --sc: oklch(94% 0.028 342.258);
+    --a: oklch(77% 0.152 181.912);
+    --ac: oklch(38% 0.063 188.416);
+    --n: oklch(21% 0.006 285.885);
+    --nc: oklch(92% 0.004 286.32);
+    --b1: oklch(100% 0 0);
+    --b2: oklch(98% 0 0);
+    --b3: oklch(95% 0 0);
+    --bc: oklch(21% 0.006 285.885);
+    --in: #50e6ff;
+    --inc: oklch(29% 0.066 243.157);
+    --su: oklch(76% 0.177 163.223);
+    --suc: oklch(37% 0.077 168.94);
+    --wa: oklch(82% 0.189 84.429);
+    --wac: oklch(41% 0.112 45.904);
+    --er: oklch(71% 0.194 13.428);
+    --erc: oklch(27% 0.105 12.094);
+    --rounded-selector: 0.5rem;
+    --rounded-field: 0.25rem;
+    --rounded-box: 0.5rem;
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+    --color-primary: var(--p);
+    --color-primary-content: var(--pc);
+    --color-secondary: var(--s);
+    --color-secondary-content: var(--sc);
+    --color-accent: var(--a);
+    --color-accent-content: var(--ac);
+    --color-neutral: var(--n);
+    --color-neutral-content: var(--nc);
+    --color-base-100: var(--b1);
+    --color-base-200: var(--b2);
+    --color-base-300: var(--b3);
+    --color-base-content: var(--bc);
+    --color-info: var(--in);
+    --color-info-content: var(--inc);
+    --color-success: var(--su);
+    --color-success-content: var(--suc);
+    --color-warning: var(--wa);
+    --color-warning-content: var(--wac);
+    --color-error: var(--er);
+    --color-error-content: var(--erc);
+  }
+
+  :root:where([data-theme="census-dark"]),
+  :where([data-theme="census-dark"]) {
+    color-scheme: dark;
+    --p: #6d5aa5;
+    --pc: oklch(93% 0.034 272.788);
+    --s: #92a55a;
+    --sc: oklch(94% 0.028 342.258);
+    --a: oklch(77% 0.152 181.912);
+    --ac: oklch(38% 0.063 188.416);
+    --n: oklch(27% 0.006 286.033);
+    --nc: oklch(98% 0 0);
+    --b1: oklch(13% 0 0);
+    --b2: oklch(17% 0 0);
+    --b3: oklch(22% 0 0);
+    --bc: oklch(96% 0.003 286.32);
+    --in: #50e6ff;
+    --inc: oklch(29% 0.066 243.157);
+    --su: oklch(76% 0.177 163.223);
+    --suc: oklch(37% 0.077 168.94);
+    --wa: oklch(82% 0.189 84.429);
+    --wac: oklch(41% 0.112 45.904);
+    --er: oklch(71% 0.194 13.428);
+    --erc: oklch(27% 0.105 12.094);
+    --rounded-selector: 1rem;
+    --rounded-field: 0.25rem;
+    --rounded-box: 0rem;
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+    --border: 1px;
+    --depth: 0;
+    --noise: 0;
+    --color-primary: var(--p);
+    --color-primary-content: var(--pc);
+    --color-secondary: var(--s);
+    --color-secondary-content: var(--sc);
+    --color-accent: var(--a);
+    --color-accent-content: var(--ac);
+    --color-neutral: var(--n);
+    --color-neutral-content: var(--nc);
+    --color-base-100: var(--b1);
+    --color-base-200: var(--b2);
+    --color-base-300: var(--b3);
+    --color-base-content: var(--bc);
+    --color-info: var(--in);
+    --color-info-content: var(--inc);
+    --color-success: var(--su);
+    --color-success-content: var(--suc);
+    --color-warning: var(--wa);
+    --color-warning-content: var(--wac);
+    --color-error: var(--er);
+    --color-error-content: var(--erc);
+  }
+}
+
+/* stylelint-disable at-rule-no-unknown */
+:root {
+  --theme-root: ":root";
+  --theme-list: "census-light" "census" "census-dark" "light" "dark";
+}
+/* stylelint-enable at-rule-no-unknown */
