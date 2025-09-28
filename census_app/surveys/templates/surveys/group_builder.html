@@ -4,7 +4,7 @@
 {% block content %}
 <div class="flex flex-col gap-6">
   <div class="prose">
-    {% include 'components/breadcrumbs.html' with  crumb1_label="Survey Dashboard"  crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/"  crumb2_label="Groups"  crumb2_href="/surveys/"|add:survey.slug|add:"/groups/"  crumb3_label="Manage Questions"  crumb3_href="/surveys/"|add:survey.slug|add:"/builder/groups/"|add:group.id|add:"/questions/" %}
+  {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Question Groups" crumb2_href="/surveys/"|add:survey.slug|add:"/groups/" crumb3_label="Manage Questions" %}
     <h1 class="inline-flex items-center gap-2">
       {% include "components/icons/documents.html" with classes="w-6 h-6 text-primary" %}
       <span class="text-primary">Manage Questions</span>
@@ -147,7 +147,7 @@
 
               <div class="mt-4">
                 <label class="label">Required</label>
-                <input type="checkbox" name="required" class="toggle" />
+                <input type="checkbox" name="required" class="toggle toggle-primary" />
               </div>
 
               <button class="btn btn-primary mt-4" type="submit">Add</button>
