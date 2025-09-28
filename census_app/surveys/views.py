@@ -1,19 +1,26 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import csv
 import io
 import json
 from pathlib import Path
 import secrets
-from typing import Union
+from typing import Any, Iterable, Union
 
 from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db import models
-from django.http import Http404, HttpRequest, HttpResponse, StreamingHttpResponse
+from django.db import models, transaction
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    QueryDict,
+    StreamingHttpResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.text import slugify
@@ -99,6 +106,241 @@ PROFESSIONAL_ODS_FIELDS = {
     "integrated_care_board",
     "gp_surgery",
 }
+
+PATIENT_TEMPLATE_DEFAULT_FIELDS = [
+    "first_name",
+    "surname",
+    "hospital_number",
+    "date_of_birth",
+]
+
+PROFESSIONAL_TEMPLATE_DEFAULT_FIELDS = [
+    "title",
+    "first_name",
+    "surname",
+    "job_title",
+    "employing_trust",
+    "employing_health_board",
+    "integrated_care_board",
+    "nhs_england_region",
+    "country",
+    "gp_surgery",
+]
+
+PROFESSIONAL_TEMPLATE_DEFAULT_ODS = {
+    "employing_trust": False,
+    "employing_health_board": False,
+    "integrated_care_board": False,
+    "gp_surgery": False,
+}
+
+
+def _normalize_patient_template_options(raw: Any) -> dict[str, Any]:
+    """Return a normalized patient template options payload.
+
+    Ensures we have a field entry for every known demographic key and that each
+    entry includes a boolean ``selected`` flag. ``include_imd`` is only enabled
+    when Post code is selected. This helper accepts historic formats where
+    ``fields`` could be a simple list of strings or a list of dicts without an
+    explicit ``selected`` flag.
+    """
+
+    options = raw if isinstance(raw, dict) else {}
+    if not isinstance(options, dict):
+        options = {}
+    else:
+        options = {**options}
+
+    template_key = options.get("template") or "patient_details_encrypted"
+    fields_data = options.get("fields")
+
+    selected_keys: set[str] = set()
+    meta_map: dict[str, dict[str, Any]] = {}
+
+    if isinstance(fields_data, list):
+        for item in fields_data:
+            if isinstance(item, str):
+                selected_keys.add(item)
+            elif isinstance(item, dict):
+                key = item.get("key") or item.get("value")
+                if not key:
+                    continue
+                meta_map[key] = item
+                if "selected" in item:
+                    if bool(item.get("selected")):
+                        selected_keys.add(key)
+                else:
+                    # Pre-refactor payloads only listed selected fields
+                    selected_keys.add(key)
+    elif isinstance(fields_data, dict):
+        for key, val in fields_data.items():
+            if val:
+                selected_keys.add(str(key))
+
+    if not selected_keys and not meta_map:
+        selected_keys = set(PATIENT_TEMPLATE_DEFAULT_FIELDS)
+
+    normalized_fields: list[dict[str, Any]] = []
+    for key, label in DEMOGRAPHIC_FIELD_DEFS.items():
+        meta = meta_map.get(key, {}) if isinstance(meta_map.get(key), dict) else {}
+        if "selected" in meta:
+            selected = bool(meta.get("selected"))
+        else:
+            selected = key in selected_keys
+        display_label = meta.get("label") or label
+        normalized_fields.append(
+            {
+                "key": key,
+                "label": display_label,
+                "selected": bool(selected),
+            }
+        )
+
+    include_imd = bool(options.get("include_imd"))
+    has_postcode = any(
+        field["key"] == "post_code" and field.get("selected")
+        for field in normalized_fields
+    )
+    if not has_postcode:
+        include_imd = False
+
+    normalized: dict[str, Any] = {
+        "template": template_key,
+        "fields": normalized_fields,
+        "include_imd": include_imd,
+    }
+
+    for key, value in options.items():
+        if key not in normalized:
+            normalized[key] = value
+
+    return normalized
+
+
+def _normalize_professional_template_options(raw: Any) -> dict[str, Any]:
+    """Return a normalized professional template options payload.
+
+    Populates every known professional field with a ``selected`` flag and, for
+    fields that support ODS, an ``ods_enabled`` flag. Accepts historic formats
+    where ``fields`` was a list of strings or dicts with ``has_ods``.
+    """
+
+    options = raw if isinstance(raw, dict) else {}
+    if not isinstance(options, dict):
+        options = {}
+    else:
+        options = {**options}
+
+    template_key = options.get("template") or "professional_details"
+    fields_data = options.get("fields")
+
+    selected_keys: set[str] = set()
+    meta_map: dict[str, dict[str, Any]] = {}
+
+    if isinstance(fields_data, list):
+        for item in fields_data:
+            if isinstance(item, str):
+                selected_keys.add(item)
+            elif isinstance(item, dict):
+                key = item.get("key") or item.get("value")
+                if not key:
+                    continue
+                meta_map[key] = item
+                if "selected" in item:
+                    if bool(item.get("selected")):
+                        selected_keys.add(key)
+                else:
+                    selected_keys.add(key)
+    elif isinstance(fields_data, dict):
+        for key, val in fields_data.items():
+            if val:
+                selected_keys.add(str(key))
+
+    if not selected_keys and not meta_map:
+        selected_keys = set(PROFESSIONAL_TEMPLATE_DEFAULT_FIELDS)
+
+    ods_map = options.get("ods") if isinstance(options.get("ods"), dict) else {}
+
+    normalized_fields: list[dict[str, Any]] = []
+    for key, label in PROFESSIONAL_FIELD_DEFS.items():
+        meta = meta_map.get(key, {}) if isinstance(meta_map.get(key), dict) else {}
+        if "selected" in meta:
+            selected = bool(meta.get("selected"))
+        else:
+            selected = key in selected_keys
+        display_label = meta.get("label") or label
+        allow_ods = key in PROFESSIONAL_ODS_FIELDS
+
+        if "ods_enabled" in meta:
+            ods_enabled = bool(meta.get("ods_enabled"))
+        elif "has_ods" in meta:
+            ods_enabled = bool(meta.get("has_ods"))
+        elif allow_ods and isinstance(ods_map, dict):
+            ods_enabled = bool(ods_map.get(key))
+        else:
+            ods_enabled = bool(PROFESSIONAL_TEMPLATE_DEFAULT_ODS.get(key))
+
+        if not selected or not allow_ods:
+            ods_enabled = False
+
+        field_entry = {
+            "key": key,
+            "label": display_label,
+            "selected": bool(selected),
+            "allow_ods": allow_ods,
+            "ods_enabled": bool(ods_enabled),
+        }
+        # Legacy compatibility for template rendering code that still expects has_ods
+        field_entry["has_ods"] = field_entry["allow_ods"] and field_entry["ods_enabled"]
+        normalized_fields.append(field_entry)
+
+    normalized_ods = {
+        field["key"]: field["ods_enabled"]
+        for field in normalized_fields
+        if field["allow_ods"]
+    }
+
+    normalized: dict[str, Any] = {
+        "template": template_key,
+        "fields": normalized_fields,
+        "ods": normalized_ods,
+    }
+
+    for key, value in options.items():
+        if key not in normalized:
+            normalized[key] = value
+
+    return normalized
+
+
+def _render_template_question_row(
+    request: HttpRequest,
+    survey: Survey,
+    question: SurveyQuestion,
+    *,
+    group: QuestionGroup | None = None,
+    keep_open: bool = False,
+    message: str | None = None,
+) -> HttpResponse:
+    """Re-render a single question row after an HTMX update."""
+
+    question.refresh_from_db()
+    if question.type == SurveyQuestion.Types.TEMPLATE_PATIENT:
+        question.options = _normalize_patient_template_options(question.options)
+    elif question.type == SurveyQuestion.Types.TEMPLATE_PROFESSIONAL:
+        question.options = _normalize_professional_template_options(question.options)
+
+    ctx: dict[str, Any] = {
+        "q": question,
+        "keep_template_panel_open": keep_open,
+    }
+    if message:
+        ctx["row_message"] = message
+    if group is not None:
+        ctx["group"] = group
+    else:
+        ctx["groups"] = survey.question_groups.filter(owner=request.user)
+    return render(request, "surveys/partials/question_row.html", ctx)
 
 
 def _get_professional_group_and_fields(
@@ -261,8 +503,78 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
     if request.method == "POST":
         answers = {}
+        template_patient_payload: dict[str, str] = {}
+        template_professional_payload: dict[str, str] = {}
         for q in survey.questions.all():
             key = f"q_{q.id}"
+            if q.type == SurveyQuestion.Types.TEMPLATE_PATIENT:
+                fields_meta = []
+                opts = q.options or {}
+                try:
+                    fields_meta = opts.get("fields", []) if hasattr(opts, "get") else []
+                except Exception:
+                    fields_meta = []
+                block: dict[str, str] = {}
+                for field in fields_meta:
+                    fkey = field.get("key") if isinstance(field, dict) else field
+                    if not fkey:
+                        continue
+                    selected = True
+                    if isinstance(field, dict) and "selected" in field:
+                        selected = bool(field.get("selected"))
+                    if not selected:
+                        continue
+                    val = request.POST.get(f"{key}_{fkey}")
+                    if val:
+                        block[str(fkey)] = val
+                if block:
+                    template_patient_payload.update(block)
+                answers[str(q.id)] = {
+                    "template": "patient_details_encrypted",
+                    "fields": list(block.keys()),
+                }
+                continue
+            if q.type == SurveyQuestion.Types.TEMPLATE_PROFESSIONAL:
+                fields_meta = []
+                opts = q.options or {}
+                try:
+                    fields_meta = opts.get("fields", []) if hasattr(opts, "get") else []
+                except Exception:
+                    fields_meta = []
+                block: dict[str, str] = {}
+                for field in fields_meta:
+                    fkey = field.get("key") if isinstance(field, dict) else field
+                    if not fkey:
+                        continue
+                    selected = True
+                    if isinstance(field, dict) and "selected" in field:
+                        selected = bool(field.get("selected"))
+                    if not selected:
+                        continue
+                    val = request.POST.get(f"{key}_{fkey}")
+                    if val:
+                        block[str(fkey)] = val
+                    allow_ods = (
+                        bool(field.get("allow_ods"))
+                        if isinstance(field, dict)
+                        else False
+                    )
+                    ods_enabled = (
+                        bool(field.get("ods_enabled"))
+                        if isinstance(field, dict)
+                        else False
+                    )
+                    if allow_ods and ods_enabled:
+                        ods_val = request.POST.get(f"{key}_{fkey}_ods")
+                        if ods_val:
+                            block[f"{fkey}_ods"] = ods_val
+                if block:
+                    template_professional_payload.update(block)
+                answers[str(q.id)] = {
+                    "template": "professional_details",
+                    "fields": list(block.keys()),
+                }
+                continue
             value = (
                 request.POST.getlist(key)
                 if q.type in {"mc_multi", "orderable"}
@@ -271,7 +583,7 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
             answers[str(q.id)] = value
 
         # Collect professional details (non-encrypted)
-        professional_payload = {}
+        professional_payload = {**template_professional_payload}
         for field in professional_fields:
             val = request.POST.get(f"prof_{field}")
             if val:
@@ -295,7 +607,7 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
             submitted_by=request.user if request.user.is_authenticated else None,
         )
         # Optionally store demographics if provided under special keys
-        demo = {}
+        demo = {**template_patient_payload}
         for field in demographics_fields:
             val = request.POST.get(field)
             if val:
@@ -332,8 +644,15 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
         curr_gid = q.group_id
         setattr(q, "group_start", bool(curr_gid and curr_gid != prev_gid))
         setattr(q, "group_end", bool(curr_gid and curr_gid != next_gid))
-    show_patient_details = patient_group is not None
-    show_professional_details = prof_group is not None
+    has_patient_template = any(
+        getattr(q, "type", None) == SurveyQuestion.Types.TEMPLATE_PATIENT for q in qs
+    )
+    has_professional_template = any(
+        getattr(q, "type", None) == SurveyQuestion.Types.TEMPLATE_PROFESSIONAL
+        for q in qs
+    )
+    show_patient_details = patient_group is not None and not has_patient_template
+    show_professional_details = prof_group is not None and not has_professional_template
     # Style overrides
     style = survey.style or {}
     brand_overrides = {
@@ -479,16 +798,27 @@ def survey_preview(request: HttpRequest, slug: str) -> HttpResponse:
     )
 
 
-def _prepare_question_rendering(survey: Survey) -> None:
+def _prepare_question_rendering(
+    survey: Survey, questions: Iterable[SurveyQuestion] | None = None
+) -> list[SurveyQuestion]:
     """Attach view-only helper attributes for template rendering.
     Currently sets num_scale_values for likert number-scale questions.
+    Returns the sequence of questions that were processed so callers can reuse
+    the prepared objects.
     """
     try:
-        questions = survey.questions.all()
+        if questions is None:
+            questions_iter: list[SurveyQuestion] = list(survey.questions.all())
+        else:
+            questions_iter = list(questions)
     except Exception:
-        return
-    for q in questions:
+        return []
+    for q in questions_iter:
         try:
+            if q.type == SurveyQuestion.Types.TEMPLATE_PATIENT:
+                q.options = _normalize_patient_template_options(q.options)
+            elif q.type == SurveyQuestion.Types.TEMPLATE_PROFESSIONAL:
+                q.options = _normalize_professional_template_options(q.options)
             if (
                 q.type == "likert"
                 and isinstance(q.options, list)
@@ -504,8 +834,164 @@ def _prepare_question_rendering(survey: Survey) -> None:
                 setattr(q, "num_scale_values", list(range(minv, maxv + 1)))
             else:
                 setattr(q, "num_scale_values", None)
+            payload = _serialize_question_for_builder(q)
+            setattr(q, "builder_payload", payload)
+            try:
+                payload_json = json.dumps(payload, separators=(",", ":"))
+            except TypeError:
+                payload_json = "null"
+            setattr(q, "builder_payload_json", payload_json)
         except Exception:
             setattr(q, "num_scale_values", None)
+            setattr(q, "builder_payload", {})
+            setattr(q, "builder_payload_json", "null")
+    return questions_iter
+
+
+def _parse_builder_question_form(data: QueryDict) -> dict[str, Any]:
+    text = (data.get("text") or "").strip()
+    qtype = (data.get("type") or SurveyQuestion.Types.TEXT).strip()
+    if not qtype:
+        qtype = SurveyQuestion.Types.TEXT
+    required = (data.get("required") or "").lower() in {"on", "true", "1", "yes"}
+
+    options: Any = []
+    if qtype in {
+        SurveyQuestion.Types.MULTIPLE_CHOICE_SINGLE,
+        SurveyQuestion.Types.MULTIPLE_CHOICE_MULTI,
+        SurveyQuestion.Types.DROPDOWN,
+        SurveyQuestion.Types.ORDERABLE,
+        SurveyQuestion.Types.IMAGE_CHOICE,
+    }:
+        raw = data.get("options", "")
+        options = [line.strip() for line in raw.splitlines() if line.strip()]
+    elif qtype == SurveyQuestion.Types.LIKERT:
+        likert_mode = (data.get("likert_mode") or "categories").strip()
+        if likert_mode == "number":
+            try:
+                min_v = int(data.get("likert_min", "1"))
+            except (TypeError, ValueError):
+                min_v = 1
+            try:
+                max_v = int(data.get("likert_max", "5"))
+            except (TypeError, ValueError):
+                max_v = 5
+            options = [
+                {
+                    "type": "number-scale",
+                    "min": min_v,
+                    "max": max_v,
+                    "left": (data.get("likert_left_label") or "").strip(),
+                    "right": (data.get("likert_right_label") or "").strip(),
+                }
+            ]
+        else:
+            raw = data.get("likert_categories", "")
+            options = [line.strip() for line in raw.splitlines() if line.strip()]
+    elif qtype == SurveyQuestion.Types.TEXT:
+        text_format = (data.get("text_format") or "free").strip()
+        if text_format not in {"number", "free"}:
+            text_format = "free"
+        options = [{"type": "text", "format": text_format}]
+    else:
+        options = []
+
+    return {
+        "text": text,
+        "type": qtype,
+        "required": required,
+        "options": options,
+    }
+
+
+def _duplicate_question(question: SurveyQuestion) -> SurveyQuestion:
+    """Clone a question immediately after the original within the survey order."""
+    order = question.order
+    with transaction.atomic():
+        SurveyQuestion.objects.filter(survey=question.survey, order__gt=order).update(
+            order=models.F("order") + 1
+        )
+        cloned = SurveyQuestion.objects.create(
+            survey=question.survey,
+            group=question.group,
+            text=question.text,
+            type=question.type,
+            options=deepcopy(question.options),
+            required=question.required,
+            order=order + 1,
+        )
+    return cloned
+
+
+def _serialize_question_for_builder(question: SurveyQuestion) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "id": question.id,
+        "text": question.text or "",
+        "type": question.type,
+        "required": bool(question.required),
+        "group_id": question.group_id,
+    }
+
+    options = question.options or []
+    if question.type == SurveyQuestion.Types.TEXT:
+        fmt = "free"
+        if isinstance(options, list) and options and isinstance(options[0], dict):
+            fmt = str(options[0].get("format") or fmt)
+        payload["text_format"] = fmt
+    elif question.type in {
+        SurveyQuestion.Types.MULTIPLE_CHOICE_SINGLE,
+        SurveyQuestion.Types.MULTIPLE_CHOICE_MULTI,
+        SurveyQuestion.Types.DROPDOWN,
+        SurveyQuestion.Types.ORDERABLE,
+        SurveyQuestion.Types.IMAGE_CHOICE,
+    }:
+        values: list[str] = []
+        if isinstance(options, list):
+            for opt in options:
+                if isinstance(opt, str):
+                    val = opt.strip()
+                    if val:
+                        values.append(val)
+                elif isinstance(opt, dict):
+                    candidate = opt.get("label") or opt.get("value")
+                    if candidate:
+                        values.append(str(candidate).strip())
+        payload["options"] = values
+    elif question.type == SurveyQuestion.Types.LIKERT:
+        if (
+            isinstance(options, list)
+            and options
+            and isinstance(options[0], dict)
+            and options[0].get("type") == "number-scale"
+        ):
+            meta = options[0]
+            payload["likert_mode"] = "number"
+            try:
+                payload["likert_min"] = int(meta.get("min", 1))
+            except (TypeError, ValueError):
+                payload["likert_min"] = 1
+            try:
+                payload["likert_max"] = int(meta.get("max", 5))
+            except (TypeError, ValueError):
+                payload["likert_max"] = 5
+            payload["likert_left_label"] = str(meta.get("left") or "").strip()
+            payload["likert_right_label"] = str(meta.get("right") or "").strip()
+        else:
+            payload["likert_mode"] = "categories"
+            labels: list[str] = []
+            if isinstance(options, list):
+                for opt in options:
+                    if isinstance(opt, str):
+                        val = opt.strip()
+                        if val:
+                            labels.append(val)
+                    elif isinstance(opt, dict):
+                        candidate = opt.get("label") or opt.get("value")
+                        if candidate:
+                            labels.append(str(candidate).strip())
+            payload["likert_categories"] = labels
+
+    return payload
 
 
 @login_required
@@ -1534,7 +2020,8 @@ def survey_group_create(request: HttpRequest, slug: str) -> HttpResponse:
     g = QuestionGroup.objects.create(name=name, owner=request.user)
     survey.question_groups.add(g)
     messages.success(request, "Group created.")
-    return redirect("surveys:dashboard", slug=slug)
+    # After creating, return to Groups view so the new group appears immediately
+    return redirect("surveys:groups", slug=slug)
 
 
 @login_required
@@ -1561,7 +2048,8 @@ def survey_group_delete(request: HttpRequest, slug: str, gid: int) -> HttpRespon
     if not group.surveys.exists():
         group.delete()
     messages.success(request, "Group deleted.")
-    return redirect("surveys:dashboard", slug=slug)
+    # After deletion, return to Groups view so the list refreshes in place
+    return redirect("surveys:groups", slug=slug)
 
 
 @login_required
@@ -1578,12 +2066,7 @@ def survey_group_create_from_template(request: HttpRequest, slug: str) -> HttpRe
             schema={
                 "template": "patient_details_encrypted",
                 # default initial selection per spec
-                "fields": [
-                    "first_name",
-                    "surname",
-                    "hospital_number",
-                    "date_of_birth",
-                ],
+                "fields": PATIENT_TEMPLATE_DEFAULT_FIELDS.copy(),
             },
         )
         survey.question_groups.add(g)
@@ -1598,25 +2081,9 @@ def survey_group_create_from_template(request: HttpRequest, slug: str) -> HttpRe
             owner=request.user,
             schema={
                 "template": "professional_details",
-                "fields": [
-                    "title",
-                    "first_name",
-                    "surname",
-                    "job_title",
-                    "employing_trust",
-                    "employing_health_board",
-                    "integrated_care_board",
-                    "nhs_england_region",
-                    "country",
-                    "gp_surgery",
-                ],
+                "fields": PROFESSIONAL_TEMPLATE_DEFAULT_FIELDS.copy(),
                 # ODS toggles per field
-                "ods": {
-                    "employing_trust": False,
-                    "employing_health_board": False,
-                    "integrated_care_board": False,
-                    "gp_surgery": False,
-                },
+                "ods": PROFESSIONAL_TEMPLATE_DEFAULT_ODS.copy(),
             },
         )
         survey.question_groups.add(g)
@@ -1683,8 +2150,8 @@ def group_builder(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     require_can_edit(request.user, survey)
     group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
-    questions = survey.questions.select_related("group").filter(group=group)
-    _prepare_question_rendering(survey)
+    questions_qs = survey.questions.select_related("group").filter(group=group)
+    questions = _prepare_question_rendering(survey, questions_qs)
     patient_group, demographics_fields = _get_patient_group_and_fields(survey)
     show_patient_details = patient_group is not None
     include_imd = (
@@ -1855,55 +2322,17 @@ def builder_professional_update(request: HttpRequest, slug: str) -> HttpResponse
 def builder_question_create(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     require_can_edit(request.user, survey)
-    text = request.POST.get("text", "").strip()
-    qtype = request.POST.get("type", "text")
-    required = request.POST.get("required") == "on"
-    options_raw = request.POST.get("options", "").strip()
+    form_data = _parse_builder_question_form(request.POST)
+    text = form_data["text"]
+    qtype = form_data["type"]
+    required = form_data["required"]
+    options = form_data["options"]
     group_id = request.POST.get("group_id")
     group = (
         QuestionGroup.objects.filter(id=group_id, owner=request.user).first()
         if group_id
         else None
     )
-    options: list[str] = []
-    # Process per-type extra fields
-    if qtype in {"mc_single", "mc_multi", "dropdown", "orderable", "image"}:
-        options = (
-            [o.strip() for o in options_raw.splitlines() if o.strip()]
-            if options_raw
-            else []
-        )
-    elif qtype == "likert":
-        likert_mode = request.POST.get("likert_mode", "categories")
-        if likert_mode == "categories":
-            cats_raw = request.POST.get("likert_categories", "").strip()
-            options = (
-                [o.strip() for o in cats_raw.splitlines() if o.strip()]
-                if cats_raw
-                else []
-            )
-        else:
-            # number scale captured as [min, max, left_label, right_label]
-            try:
-                min_v = int(request.POST.get("likert_min", "1"))
-                max_v = int(request.POST.get("likert_max", "5"))
-            except ValueError:
-                min_v, max_v = 1, 5
-            left_label = request.POST.get("likert_left_label", "")
-            right_label = request.POST.get("likert_right_label", "")
-            options = [
-                {
-                    "type": "number-scale",
-                    "min": min_v,
-                    "max": max_v,
-                    "left": left_label,
-                    "right": right_label,
-                }
-            ]
-    elif qtype == "text":
-        # store text format hint in options for downstream rendering
-        text_format = request.POST.get("text_format", "free")
-        options = [{"type": "text", "format": text_format}]
     order = (survey.questions.aggregate(models.Max("order")).get("order__max") or 0) + 1
     SurveyQuestion.objects.create(
         survey=survey,
@@ -1914,8 +2343,8 @@ def builder_question_create(request: HttpRequest, slug: str) -> HttpResponse:
         required=required,
         order=order,
     )
-    questions = survey.questions.select_related("group").all()
-    _prepare_question_rendering(survey)
+    questions_qs = survey.questions.select_related("group").all()
+    questions = _prepare_question_rendering(survey, questions_qs)
     groups = survey.question_groups.filter(owner=request.user)
     return render(
         request,
@@ -1931,52 +2360,39 @@ def builder_question_create(request: HttpRequest, slug: str) -> HttpResponse:
 
 @login_required
 @require_http_methods(["POST"])
+def builder_question_copy(request: HttpRequest, slug: str, qid: int) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    question = get_object_or_404(SurveyQuestion, id=qid, survey=survey)
+    _duplicate_question(question)
+    questions_qs = survey.questions.select_related("group").all()
+    questions = _prepare_question_rendering(survey, questions_qs)
+    groups = survey.question_groups.filter(owner=request.user)
+    return render(
+        request,
+        "surveys/partials/questions_list.html",
+        {
+            "survey": survey,
+            "questions": questions,
+            "groups": groups,
+            "message": "Question copied.",
+        },
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
 def builder_group_question_create(
     request: HttpRequest, slug: str, gid: int
 ) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     require_can_edit(request.user, survey)
     group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
-    text = request.POST.get("text", "").strip()
-    qtype = request.POST.get("type", "text")
-    required = request.POST.get("required") == "on"
-    options_raw = request.POST.get("options", "").strip()
-    options: list[str] = []
-    if qtype in {"mc_single", "mc_multi", "dropdown", "orderable", "image"}:
-        options = (
-            [o.strip() for o in options_raw.splitlines() if o.strip()]
-            if options_raw
-            else []
-        )
-    elif qtype == "likert":
-        likert_mode = request.POST.get("likert_mode", "categories")
-        if likert_mode == "categories":
-            cats_raw = request.POST.get("likert_categories", "").strip()
-            options = (
-                [o.strip() for o in cats_raw.splitlines() if o.strip()]
-                if cats_raw
-                else []
-            )
-        else:
-            try:
-                min_v = int(request.POST.get("likert_min", "1"))
-                max_v = int(request.POST.get("likert_max", "5"))
-            except ValueError:
-                min_v, max_v = 1, 5
-            left_label = request.POST.get("likert_left_label", "")
-            right_label = request.POST.get("likert_right_label", "")
-            options = [
-                {
-                    "type": "number-scale",
-                    "min": min_v,
-                    "max": max_v,
-                    "left": left_label,
-                    "right": right_label,
-                }
-            ]
-    elif qtype == "text":
-        text_format = request.POST.get("text_format", "free")
-        options = [{"type": "text", "format": text_format}]
+    form_data = _parse_builder_question_form(request.POST)
+    text = form_data["text"]
+    qtype = form_data["type"]
+    required = form_data["required"]
+    options = form_data["options"]
     order = (survey.questions.aggregate(models.Max("order")).get("order__max") or 0) + 1
     SurveyQuestion.objects.create(
         survey=survey,
@@ -1987,8 +2403,8 @@ def builder_group_question_create(
         required=required,
         order=order,
     )
-    questions = survey.questions.select_related("group").filter(group=group)
-    _prepare_question_rendering(survey)
+    questions_qs = survey.questions.select_related("group").filter(group=group)
+    questions = _prepare_question_rendering(survey, questions_qs)
     return render(
         request,
         "surveys/partials/questions_list_group.html",
@@ -2003,19 +2419,322 @@ def builder_group_question_create(
 
 @login_required
 @require_http_methods(["POST"])
+def builder_group_question_copy(
+    request: HttpRequest, slug: str, gid: int, qid: int
+) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
+    question = get_object_or_404(SurveyQuestion, id=qid, survey=survey, group=group)
+    _duplicate_question(question)
+    questions_qs = survey.questions.select_related("group").filter(group=group)
+    questions = _prepare_question_rendering(survey, questions_qs)
+    return render(
+        request,
+        "surveys/partials/questions_list_group.html",
+        {
+            "survey": survey,
+            "group": group,
+            "questions": questions,
+            "message": "Question copied.",
+        },
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_group_template_add(
+    request: HttpRequest, slug: str, gid: int
+) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
+    template_key = request.POST.get("template")
+    message = "Template added."
+    if template_key == "patient_details_encrypted":
+        if survey.questions.filter(
+            group=group, type=SurveyQuestion.Types.TEMPLATE_PATIENT
+        ).exists():
+            message = "Patient details template already exists in this group."
+        else:
+            order = (
+                survey.questions.aggregate(models.Max("order")).get("order__max") or 0
+            ) + 1
+            default_options = _normalize_patient_template_options(
+                {
+                    "template": template_key,
+                    "fields": [
+                        {
+                            "key": field,
+                            "label": DEMOGRAPHIC_FIELD_DEFS.get(field, field),
+                            "selected": True,
+                        }
+                        for field in PATIENT_TEMPLATE_DEFAULT_FIELDS
+                    ],
+                    "include_imd": False,
+                }
+            )
+            SurveyQuestion.objects.create(
+                survey=survey,
+                group=group,
+                text="Patient details (encrypted)",
+                type=SurveyQuestion.Types.TEMPLATE_PATIENT,
+                options=default_options,
+                required=False,
+                order=order,
+            )
+    elif template_key == "professional_details":
+        if survey.questions.filter(
+            group=group, type=SurveyQuestion.Types.TEMPLATE_PROFESSIONAL
+        ).exists():
+            message = "Professional details template already exists in this group."
+        else:
+            order = (
+                survey.questions.aggregate(models.Max("order")).get("order__max") or 0
+            ) + 1
+            default_options = _normalize_professional_template_options(
+                {
+                    "template": template_key,
+                    "fields": [
+                        {
+                            "key": field,
+                            "label": PROFESSIONAL_FIELD_DEFS.get(field, field),
+                            "selected": True,
+                            "ods_enabled": bool(
+                                PROFESSIONAL_TEMPLATE_DEFAULT_ODS.get(field)
+                            ),
+                        }
+                        for field in PROFESSIONAL_TEMPLATE_DEFAULT_FIELDS
+                    ],
+                }
+            )
+            SurveyQuestion.objects.create(
+                survey=survey,
+                group=group,
+                text="Professional details",
+                type=SurveyQuestion.Types.TEMPLATE_PROFESSIONAL,
+                options=default_options,
+                required=False,
+                order=order,
+            )
+    else:
+        message = "Unknown template."
+        messages.error(request, "Unknown template.")
+    questions_qs = survey.questions.select_related("group").filter(group=group)
+    questions = _prepare_question_rendering(survey, questions_qs)
+    return render(
+        request,
+        "surveys/partials/questions_list_group.html",
+        {
+            "survey": survey,
+            "group": group,
+            "questions": questions,
+            "message": message,
+        },
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_question_template_patient_update(
+    request: HttpRequest, slug: str, qid: int
+) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    question = get_object_or_404(
+        SurveyQuestion,
+        id=qid,
+        survey=survey,
+        type=SurveyQuestion.Types.TEMPLATE_PATIENT,
+    )
+
+    normalized = _normalize_patient_template_options(question.options)
+    selected = {
+        key for key in request.POST.getlist("fields") if key in DEMOGRAPHIC_FIELD_DEFS
+    }
+    include_imd = request.POST.get("include_imd") in ("on", "true", "1")
+
+    updated_fields: list[dict[str, Any]] = []
+    for field in normalized.get("fields", []):
+        key = field.get("key")
+        if not key:
+            continue
+        updated_fields.append(
+            {
+                "key": key,
+                "label": field.get("label") or DEMOGRAPHIC_FIELD_DEFS.get(key, key),
+                "selected": key in selected,
+            }
+        )
+
+    question.options = _normalize_patient_template_options(
+        {**normalized, "fields": updated_fields, "include_imd": include_imd}
+    )
+    question.save(update_fields=["options"])
+
+    return _render_template_question_row(request, survey, question, keep_open=True)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_group_question_template_patient_update(
+    request: HttpRequest, slug: str, gid: int, qid: int
+) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
+    question = get_object_or_404(
+        SurveyQuestion,
+        id=qid,
+        survey=survey,
+        group=group,
+        type=SurveyQuestion.Types.TEMPLATE_PATIENT,
+    )
+
+    normalized = _normalize_patient_template_options(question.options)
+    selected = {
+        key for key in request.POST.getlist("fields") if key in DEMOGRAPHIC_FIELD_DEFS
+    }
+    include_imd = request.POST.get("include_imd") in ("on", "true", "1")
+
+    updated_fields: list[dict[str, Any]] = []
+    for field in normalized.get("fields", []):
+        key = field.get("key")
+        if not key:
+            continue
+        updated_fields.append(
+            {
+                "key": key,
+                "label": field.get("label") or DEMOGRAPHIC_FIELD_DEFS.get(key, key),
+                "selected": key in selected,
+            }
+        )
+
+    question.options = _normalize_patient_template_options(
+        {**normalized, "fields": updated_fields, "include_imd": include_imd}
+    )
+    question.save(update_fields=["options"])
+
+    return _render_template_question_row(
+        request, survey, question, group=group, keep_open=True
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_question_template_professional_update(
+    request: HttpRequest, slug: str, qid: int
+) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    question = get_object_or_404(
+        SurveyQuestion,
+        id=qid,
+        survey=survey,
+        type=SurveyQuestion.Types.TEMPLATE_PROFESSIONAL,
+    )
+
+    normalized = _normalize_professional_template_options(question.options)
+    selected = {
+        key for key in request.POST.getlist("fields") if key in PROFESSIONAL_FIELD_DEFS
+    }
+    ods_flags = {
+        key: request.POST.get(f"ods_{key}") in ("on", "true", "1")
+        for key in PROFESSIONAL_ODS_FIELDS
+    }
+
+    updated_fields: list[dict[str, Any]] = []
+    for field in normalized.get("fields", []):
+        key = field.get("key")
+        if not key:
+            continue
+        allow_ods = bool(field.get("allow_ods")) or key in PROFESSIONAL_ODS_FIELDS
+        ods_enabled = allow_ods and ods_flags.get(key, False)
+        if key not in selected:
+            ods_enabled = False
+        updated_fields.append(
+            {
+                "key": key,
+                "label": field.get("label") or PROFESSIONAL_FIELD_DEFS.get(key, key),
+                "selected": key in selected,
+                "allow_ods": allow_ods,
+                "ods_enabled": ods_enabled,
+            }
+        )
+
+    question.options = _normalize_professional_template_options(
+        {**normalized, "fields": updated_fields}
+    )
+    question.save(update_fields=["options"])
+
+    return _render_template_question_row(request, survey, question, keep_open=True)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_group_question_template_professional_update(
+    request: HttpRequest, slug: str, gid: int, qid: int
+) -> HttpResponse:
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+    group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
+    question = get_object_or_404(
+        SurveyQuestion,
+        id=qid,
+        survey=survey,
+        group=group,
+        type=SurveyQuestion.Types.TEMPLATE_PROFESSIONAL,
+    )
+
+    normalized = _normalize_professional_template_options(question.options)
+    selected = {
+        key for key in request.POST.getlist("fields") if key in PROFESSIONAL_FIELD_DEFS
+    }
+    ods_flags = {
+        key: request.POST.get(f"ods_{key}") in ("on", "true", "1")
+        for key in PROFESSIONAL_ODS_FIELDS
+    }
+
+    updated_fields: list[dict[str, Any]] = []
+    for field in normalized.get("fields", []):
+        key = field.get("key")
+        if not key:
+            continue
+        allow_ods = bool(field.get("allow_ods")) or key in PROFESSIONAL_ODS_FIELDS
+        ods_enabled = allow_ods and ods_flags.get(key, False)
+        if key not in selected:
+            ods_enabled = False
+        updated_fields.append(
+            {
+                "key": key,
+                "label": field.get("label") or PROFESSIONAL_FIELD_DEFS.get(key, key),
+                "selected": key in selected,
+                "allow_ods": allow_ods,
+                "ods_enabled": ods_enabled,
+            }
+        )
+
+    question.options = _normalize_professional_template_options(
+        {**normalized, "fields": updated_fields}
+    )
+    question.save(update_fields=["options"])
+
+    return _render_template_question_row(
+        request, survey, question, group=group, keep_open=True
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
 def builder_question_edit(request: HttpRequest, slug: str, qid: int) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     require_can_edit(request.user, survey)
     q = get_object_or_404(SurveyQuestion, id=qid, survey=survey)
-    q.text = request.POST.get("text", q.text)
-    q.type = request.POST.get("type", q.type)
-    q.required = request.POST.get("required") == "on"
-    options_raw = request.POST.get("options", "").strip()
-    q.options = (
-        [o.strip() for o in options_raw.splitlines() if o.strip()]
-        if options_raw
-        else []
-    )
+    form_data = _parse_builder_question_form(request.POST)
+    q.text = form_data["text"] or "Untitled"
+    q.type = form_data["type"]
+    q.required = form_data["required"]
+    q.options = form_data["options"]
     group_id = request.POST.get("group_id")
     q.group = (
         QuestionGroup.objects.filter(id=group_id, owner=request.user).first()
@@ -2023,11 +2742,11 @@ def builder_question_edit(request: HttpRequest, slug: str, qid: int) -> HttpResp
         else None
     )
     q.save()
-    # Refresh and prepare rendering helpers
-    _prepare_question_rendering(survey)
-    groups = QuestionGroup.objects.filter(owner=request.user)
-    return render(
-        request, "surveys/partials/question_row.html", {"q": q, "groups": groups}
+    return _render_template_question_row(
+        request,
+        survey,
+        q,
+        message="Question updated.",
     )
 
 
@@ -2040,18 +2759,19 @@ def builder_group_question_edit(
     require_can_edit(request.user, survey)
     group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
     q = get_object_or_404(SurveyQuestion, id=qid, survey=survey, group=group)
-    q.text = request.POST.get("text", q.text)
-    q.type = request.POST.get("type", q.type)
-    q.required = request.POST.get("required") == "on"
-    options_raw = request.POST.get("options", "").strip()
-    q.options = (
-        [o.strip() for o in options_raw.splitlines() if o.strip()]
-        if options_raw
-        else []
-    )
+    form_data = _parse_builder_question_form(request.POST)
+    q.text = form_data["text"] or "Untitled"
+    q.type = form_data["type"]
+    q.required = form_data["required"]
+    q.options = form_data["options"]
     q.save()
-    _prepare_question_rendering(survey)
-    return render(request, "surveys/partials/question_row.html", {"q": q})
+    return _render_template_question_row(
+        request,
+        survey,
+        q,
+        group=group,
+        message="Question updated.",
+    )
 
 
 @login_required
@@ -2061,8 +2781,8 @@ def builder_question_delete(request: HttpRequest, slug: str, qid: int) -> HttpRe
     require_can_edit(request.user, survey)
     q = get_object_or_404(SurveyQuestion, id=qid, survey=survey)
     q.delete()
-    questions = survey.questions.select_related("group").all()
-    _prepare_question_rendering(survey)
+    questions_qs = survey.questions.select_related("group").all()
+    questions = _prepare_question_rendering(survey, questions_qs)
     groups = survey.question_groups.filter(owner=request.user)
     return render(
         request,
@@ -2086,8 +2806,8 @@ def builder_group_question_delete(
     group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
     q = get_object_or_404(SurveyQuestion, id=qid, survey=survey, group=group)
     q.delete()
-    questions = survey.questions.select_related("group").filter(group=group)
-    _prepare_question_rendering(survey)
+    questions_qs = survey.questions.select_related("group").filter(group=group)
+    questions = _prepare_question_rendering(survey, questions_qs)
     return render(
         request,
         "surveys/partials/questions_list_group.html",
@@ -2109,8 +2829,8 @@ def builder_questions_reorder(request: HttpRequest, slug: str) -> HttpResponse:
     ids = [int(i) for i in order_csv.split(",") if i.isdigit()]
     for idx, qid in enumerate(ids):
         SurveyQuestion.objects.filter(id=qid, survey=survey).update(order=idx)
-    questions = survey.questions.select_related("group").all()
-    _prepare_question_rendering(survey)
+    questions_qs = survey.questions.select_related("group").all()
+    questions = _prepare_question_rendering(survey, questions_qs)
     groups = survey.question_groups.filter(owner=request.user)
     return render(
         request,
@@ -2138,8 +2858,8 @@ def builder_group_questions_reorder(
         SurveyQuestion.objects.filter(id=qid, survey=survey, group=group).update(
             order=idx
         )
-    questions = survey.questions.select_related("group").filter(group=group)
-    _prepare_question_rendering(survey)
+    questions_qs = survey.questions.select_related("group").filter(group=group)
+    questions = _prepare_question_rendering(survey, questions_qs)
     return render(
         request,
         "surveys/partials/questions_list_group.html",
@@ -2159,8 +2879,8 @@ def builder_group_create(request: HttpRequest, slug: str) -> HttpResponse:
     require_can_edit(request.user, survey)
     name = request.POST.get("name", "").strip() or "New Group"
     g = QuestionGroup.objects.create(name=name, owner=request.user)
-    questions = survey.questions.select_related("group").all()
-    _prepare_question_rendering(survey)
+    questions_qs = survey.questions.select_related("group").all()
+    questions = _prepare_question_rendering(survey, questions_qs)
     survey.question_groups.add(g)
     groups = survey.question_groups.filter(owner=request.user)
     return render(

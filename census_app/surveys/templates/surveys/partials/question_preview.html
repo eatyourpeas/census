@@ -76,6 +76,36 @@
           </li>
         {% endfor %}
       </ol>
+  {% elif q.type == 'template_patient' %}
+    <div class="space-y-2 text-sm opacity-80">
+      <p>Includes encrypted patient identifiers:</p>
+      <ul class="list-disc list-inside space-y-1">
+        {% for field in q.options.fields %}
+          {% if field.selected %}
+            <li>{{ field.label }}</li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+      {% if q.options.include_imd %}
+        <p class="text-xs opacity-60">IMD band is added automatically when Post code is collected.</p>
+      {% endif %}
+    </div>
+  {% elif q.type == 'template_professional' %}
+    <div class="space-y-2 text-sm opacity-80">
+      <p>Includes professional details fields:</p>
+      <ul class="list-disc list-inside space-y-1">
+        {% for field in q.options.fields %}
+          {% if field.selected %}
+            <li>
+              {{ field.label }}
+              {% if field.allow_ods and field.ods_enabled %}
+                <span class="badge badge-outline badge-xs ml-2">ODS optional</span>
+              {% endif %}
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
   {% else %}
     <input class="input input-bordered w-full" type="text" disabled />
   {% endif %}

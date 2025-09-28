@@ -137,6 +137,8 @@ class SurveyQuestion(models.Model):
         YESNO = "yesno", "Yes/No"
         DROPDOWN = "dropdown", "Dropdown"
         IMAGE_CHOICE = "image", "Image choice"
+        TEMPLATE_PATIENT = "template_patient", "Patient details template"
+        TEMPLATE_PROFESSIONAL = "template_professional", "Professional details template"
 
     survey = models.ForeignKey(
         Survey, on_delete=models.CASCADE, related_name="questions"
@@ -145,7 +147,7 @@ class SurveyQuestion(models.Model):
         QuestionGroup, on_delete=models.SET_NULL, null=True, blank=True
     )
     text = models.TextField()
-    type = models.CharField(max_length=20, choices=Types.choices)
+    type = models.CharField(max_length=50, choices=Types.choices)
     options = models.JSONField(default=list, blank=True)
     required = models.BooleanField(default=False)
     order = models.PositiveIntegerField(default=0)

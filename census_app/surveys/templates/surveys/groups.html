@@ -22,7 +22,7 @@
 {% block title %}{% trans "Groups" %} - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose max-w-none">
-  {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Groups" %}
+  {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Question Groups" %}
   <h1 class="inline-flex items-center gap-2 w-full">
     {% include "components/icons/documents.html" with classes="w-7 h-7 text-primary" %}
     <span class="text-primary">{% blocktrans %}Question Groups for {{ survey }}{% endblocktrans %}</span>
@@ -117,30 +117,10 @@
     <form method="post" action="/surveys/{{ survey.slug }}/groups/create" class="inline-flex">
       {% csrf_token %}
       <div class="join">
-  <input id="create-group-name" class="input input-bordered join-item" name="name" placeholder="{% trans "New group name" %}" required />
-  <button id="create-group-submit" class="btn join-item btn-primary" type="submit" disabled>{% trans "Create new question group" %}</button>
+        <input id="create-group-name" class="input input-bordered join-item" name="name" placeholder="{% trans "New group name" %}" required />
+        <button id="create-group-submit" class="btn join-item btn-primary" type="submit" disabled>{% trans "Create new question group" %}</button>
       </div>
-
     </form>
-    <div class="dropdown dropdown-top dropdown-center">
-  <div tabindex="0" role="button" class="btn m-1 btn-primary">{% trans "Create from template" %}</div>
-        <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
-            <li>
-                <form method="post" action="/surveys/{{ survey.slug }}/groups/template/create">
-                    {% csrf_token %}
-                    <input type="hidden" name="template" value="patient_details_encrypted" />
-                    <button type="submit">{% trans "Patient details (encrypted)" %}</button>
-                </form>
-            </li>
-            <li>
-            <form method="post" action="/surveys/{{ survey.slug }}/groups/template/create">
-                {% csrf_token %}
-                <input type="hidden" name="template" value="professional_details" />
-                <button type="submit">{% trans "Professional details" %}</button>
-            </form>
-            </li>
-        </ul>
-    </div>
     {% endif %}
   </div>
 

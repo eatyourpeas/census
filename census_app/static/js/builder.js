@@ -1,4 +1,10 @@
 (function () {
+  let currentEditingRow = null;
+  let currentEditingCard = null;
+  let currentEditButton = null;
+  let builderEditorCard = null;
+  let editButtonsDelegated = false;
+
   function csrfToken() {
     const name = "csrftoken";
     const m = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
@@ -22,12 +28,14 @@
   }
 
   function initSortable(container) {
-    if (!container) return;
+    bindEditButtons();
     const el = container.querySelector("#questions-draggable");
     if (!el || el.dataset.sortableBound) return;
     el.dataset.sortableBound = "1";
     new Sortable(el, {
-      handle: ".drag-handle",
+      handle: "[data-drag-handle]",
+      filter: "[data-drag-ignore]",
+      preventOnFilter: false,
       animation: 150,
       forceFallback: true,
       onEnd: function () {
@@ -61,6 +69,7 @@
           .catch((err) => {
             console.error("Error persisting question order", err);
           });
+        bindEditButtons(document);
       },
     });
   }
@@ -78,16 +87,385 @@
     });
   }
 
+  function updateFormModeUI(form, mode) {
+    const isEdit = mode === "edit";
+    form.dataset.mode = mode;
+    const toggleHidden = (selector, hidden) => {
+      form.querySelectorAll(selector).forEach((el) => {
+        el.classList.toggle("hidden", hidden);
+      });
+    };
+    toggleHidden('[data-editor-label="headline-add"]', isEdit);
+    toggleHidden('[data-editor-label="headline-edit"]', !isEdit);
+    toggleHidden('[data-editor-label="submit-add"]', isEdit);
+    toggleHidden('[data-editor-label="submit-edit"]', !isEdit);
+    toggleHidden('[data-editor-label="edit-hint"]', !isEdit);
+    const cancelBtn = form.querySelector('[data-action="cancel-edit"]');
+    if (cancelBtn) cancelBtn.classList.toggle("hidden", !isEdit);
+  }
+
+  function focusFirstField(form) {
+    const firstField = form.querySelector(
+      "input:not([type=hidden]):not([disabled]), textarea, select"
+    );
+    if (firstField && firstField.focus) {
+      firstField.focus();
+    }
+  }
+
+  function exitEditMode(form, options) {
+    if (!form) return;
+    const opts = Object.assign({ reset: false, focus: false }, options || {});
+    const createUrl =
+      form.dataset.createUrl ||
+      form.getAttribute("data-create-url") ||
+      form.getAttribute("hx-post");
+    if (createUrl) {
+      form.setAttribute("hx-post", createUrl);
+    }
+    const createTarget =
+      form.dataset.createTarget ||
+      form.getAttribute("data-create-target") ||
+      form.getAttribute("hx-target") ||
+      "";
+    if (createTarget) {
+      form.setAttribute("hx-target", createTarget);
+    } else {
+      form.removeAttribute("hx-target");
+    }
+    const createSwap =
+      form.dataset.createSwap ||
+      form.getAttribute("data-create-swap") ||
+      form.getAttribute("hx-swap") ||
+      "";
+    if (createSwap) {
+      form.setAttribute("hx-swap", createSwap);
+    } else {
+      form.removeAttribute("hx-swap");
+    }
+    delete form.dataset.editingQuestionId;
+    delete form.dataset.currentEditUrl;
+    if (currentEditingCard) {
+      currentEditingCard.classList.remove("is-active");
+    }
+    if (builderEditorCard) {
+      builderEditorCard.classList.remove("is-active");
+    }
+    if (currentEditingRow && currentEditingRow.parentElement) {
+      currentEditingRow.classList.remove("is-editing");
+    }
+    if (currentEditButton) {
+      currentEditButton.classList.remove("is-active");
+    }
+    currentEditingRow = null;
+    currentEditingCard = null;
+    currentEditButton = null;
+    updateFormModeUI(form, "add");
+    if (opts.reset) {
+      form.reset();
+      if (typeof form._refreshCreateToggles === "function") {
+        form._refreshCreateToggles();
+      } else {
+        const evtChange = new Event("change", { bubbles: true });
+        const checkedType = form.querySelector('input[name="type"]:checked');
+        if (checkedType) checkedType.dispatchEvent(evtChange);
+      }
+    }
+    if (opts.focus) {
+      focusFirstField(form);
+    }
+  }
+
+  function populateFormForPayload(form, payload) {
+    if (!form || !payload) return;
+    const textInput = form.querySelector('input[name="text"]');
+    if (textInput) {
+      textInput.value = payload.text || "";
+    }
+
+    const typeInput = payload.type
+      ? form.querySelector(`input[name="type"][value="${payload.type}"]`)
+      : null;
+    if (typeInput) {
+      typeInput.checked = true;
+      typeInput.dispatchEvent(new Event("change", { bubbles: true }));
+    } else if (typeof form._refreshCreateToggles === "function") {
+      form._refreshCreateToggles();
+    }
+
+    const requiredInput = form.querySelector('input[name="required"]');
+    if (requiredInput) {
+      requiredInput.checked = Boolean(payload.required);
+    }
+
+    const optionsField = form.querySelector('textarea[name="options"]');
+    if (optionsField) {
+      if (Array.isArray(payload.options)) {
+        optionsField.value = payload.options.join("\n");
+      } else if (typeof payload.options === "string") {
+        optionsField.value = payload.options;
+      } else {
+        optionsField.value = "";
+      }
+    }
+
+    if (payload.type === "text") {
+      const fmt = payload.text_format || payload.textFormat || "free";
+      const fmtInput = form.querySelector(
+        `input[name="text_format"][value="${fmt}"]`
+      );
+      if (fmtInput) fmtInput.checked = true;
+    }
+
+    if (payload.type === "likert") {
+      const likertMode =
+        payload.likert_mode || payload.likertMode || "categories";
+      const likertRadio = form.querySelector(
+        `input[name="likert_mode"][value="${likertMode}"]`
+      );
+      if (likertRadio) {
+        likertRadio.checked = true;
+        likertRadio.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      if (likertMode === "number") {
+        const minField = form.querySelector('input[name="likert_min"]');
+        const maxField = form.querySelector('input[name="likert_max"]');
+        const leftField = form.querySelector('input[name="likert_left_label"]');
+        const rightField = form.querySelector(
+          'input[name="likert_right_label"]'
+        );
+        if (minField)
+          minField.value =
+            payload.likert_min !== undefined && payload.likert_min !== null
+              ? payload.likert_min
+              : "1";
+        if (maxField)
+          maxField.value =
+            payload.likert_max !== undefined && payload.likert_max !== null
+              ? payload.likert_max
+              : "5";
+        if (leftField) leftField.value = payload.likert_left_label || "";
+        if (rightField) rightField.value = payload.likert_right_label || "";
+      } else {
+        const catsField = form.querySelector(
+          'textarea[name="likert_categories"]'
+        );
+        if (catsField) {
+          if (Array.isArray(payload.likert_categories)) {
+            catsField.value = payload.likert_categories.join("\n");
+          } else if (typeof payload.likert_categories === "string") {
+            catsField.value = payload.likert_categories;
+          } else {
+            catsField.value = "";
+          }
+        }
+      }
+    }
+
+    const groupSelect = form.querySelector('select[name="group_id"]');
+    if (groupSelect) {
+      if (payload.group_id) {
+        groupSelect.value = String(payload.group_id);
+      } else {
+        groupSelect.value = "";
+      }
+    }
+
+    if (textInput && textInput.focus) {
+      textInput.focus();
+    }
+  }
+
+  function enterEditMode(form, payload, button, editUrl) {
+    if (!form || !payload) return;
+    if (!form.dataset.createUrl) {
+      form.dataset.createUrl =
+        form.getAttribute("data-create-url") ||
+        form.getAttribute("hx-post") ||
+        "";
+    }
+    if (!form.dataset.createTarget) {
+      form.dataset.createTarget =
+        form.getAttribute("data-create-target") ||
+        form.getAttribute("hx-target") ||
+        "";
+    }
+    if (!form.dataset.createSwap) {
+      form.dataset.createSwap =
+        form.getAttribute("data-create-swap") ||
+        form.getAttribute("hx-swap") ||
+        "outerHTML";
+    }
+    const destination = editUrl;
+    if (destination) {
+      form.setAttribute("hx-post", destination);
+      form.dataset.currentEditUrl = destination;
+    } else {
+      delete form.dataset.currentEditUrl;
+    }
+    form.dataset.editingQuestionId =
+      payload.id != null ? String(payload.id) : "";
+
+    if (payload.id != null) {
+      form.setAttribute("hx-target", `#question-row-${payload.id}`);
+      form.setAttribute("hx-swap", "outerHTML");
+    }
+
+    const nextRow = button.closest("li");
+    const nextCard = nextRow
+      ? nextRow.querySelector("[data-question-card]")
+      : null;
+
+    if (!builderEditorCard) {
+      builderEditorCard = form.closest("[data-builder-editor-card]") || null;
+    }
+
+    if (currentEditButton && currentEditButton !== button) {
+      currentEditButton.classList.remove("is-active");
+    }
+    currentEditButton = button;
+    if (currentEditButton) {
+      currentEditButton.classList.add("is-active");
+    }
+
+    if (currentEditingCard && currentEditingCard !== nextCard) {
+      currentEditingCard.classList.remove("is-active");
+    }
+    if (currentEditingRow && currentEditingRow !== nextRow) {
+      currentEditingRow.classList.remove("is-editing");
+    }
+
+    currentEditingRow = nextRow;
+    currentEditingCard = nextCard;
+    if (currentEditingRow) {
+      currentEditingRow.classList.add("is-editing");
+    }
+    if (currentEditingCard) {
+      currentEditingCard.classList.add("is-active");
+    }
+    if (builderEditorCard) {
+      builderEditorCard.classList.add("is-active");
+    }
+
+    updateFormModeUI(form, "edit");
+    form.reset();
+    if (typeof form._refreshCreateToggles === "function") {
+      form._refreshCreateToggles();
+    }
+    populateFormForPayload(form, payload);
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function handleEditButtonClick(btn) {
+    const form = document.getElementById("create-question-form");
+    if (!form || !document.body.contains(btn)) return;
+
+    if (currentEditButton === btn && btn.classList.contains("is-active")) {
+      exitEditMode(form, { reset: true, focus: true });
+      return;
+    }
+
+    const payloadId = btn.dataset.payloadId;
+    if (!payloadId) return;
+    const scriptEl = document.getElementById(payloadId);
+    if (!scriptEl) return;
+    const raw = (scriptEl.textContent || "").trim();
+    if (!raw) {
+      console.error("Question payload was empty", scriptEl);
+      return;
+    }
+    let payload;
+    try {
+      payload = JSON.parse(raw);
+      if (typeof payload === "string") {
+        payload = JSON.parse(payload);
+      }
+    } catch (err) {
+      console.error("Failed to parse question payload", err);
+      return;
+    }
+
+    const base = form.dataset.editUrlBase || "";
+    const explicitUrl = btn.dataset.editUrl;
+    const questionId =
+      payload && payload.id != null ? String(payload.id) : null;
+    let editUrl = explicitUrl || null;
+    if (!editUrl && base && questionId) {
+      editUrl = base.replace(/\/$/, "") + "/" + questionId + "/edit";
+    }
+    if (!editUrl) {
+      console.error("Could not determine edit URL for question", payload);
+      return;
+    }
+
+    enterEditMode(form, payload, btn, editUrl);
+  }
+
+  function bindEditButtons() {
+    if (editButtonsDelegated) return;
+    editButtonsDelegated = true;
+    document.addEventListener("click", function (evt) {
+      const btn = evt.target.closest('button[data-action="edit-question"]');
+      if (!btn) return;
+      evt.preventDefault();
+      handleEditButtonClick(btn);
+    });
+  }
+
+  function bindCancelButton(form) {
+    if (!form) return;
+    const cancelBtn = form.querySelector('[data-action="cancel-edit"]');
+    if (!cancelBtn || cancelBtn.dataset.bound) return;
+    cancelBtn.dataset.bound = "1";
+    cancelBtn.addEventListener("click", function () {
+      exitEditMode(form, { reset: true, focus: true });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     initSortable(document);
     scheduleDismissals(document);
     initCreateFormToggles();
     renumberQuestions(document);
+    bindEditButtons();
+    bindCancelButton(document.getElementById("create-question-form"));
   });
 
-  // Add CSRF header to all HTMX requests
+  // Add CSRF header to all HTMX requests and coerce edit submissions to the correct endpoint
   document.body.addEventListener("htmx:configRequest", function (evt) {
-    evt.detail.headers["X-CSRFToken"] = csrfToken();
+    const detail = evt.detail || {};
+    const headers = detail.headers || (detail.headers = {});
+    headers["X-CSRFToken"] = csrfToken();
+
+    const src = detail.elt || null;
+    if (!src) return;
+    const form =
+      src.id === "create-question-form"
+        ? src
+        : src.closest && src.closest("#create-question-form");
+    if (!form) return;
+
+    const editingId = form.dataset.editingQuestionId || "";
+    if (!editingId) return;
+
+    const explicitUrl = form.dataset.currentEditUrl || "";
+    const base = form.dataset.editUrlBase || "";
+    let editUrl = explicitUrl;
+    if (!editUrl && base) {
+      editUrl = base.replace(/\/$/, "") + "/" + editingId + "/edit";
+    }
+    if (editUrl) {
+      detail.path = editUrl;
+      headers["HX-Request-Path"] = editUrl;
+    }
+    const targetSelector = `#question-row-${editingId}`;
+    headers["HX-Target"] = targetSelector;
+    if (!detail.target) {
+      const explicitTarget = document.querySelector(targetSelector);
+      if (explicitTarget) {
+        detail.target = explicitTarget;
+      }
+    }
   });
 
   // Disable the Add button while submitting to avoid double posts
@@ -122,28 +500,15 @@
         form &&
         (src === form || (src.closest && src.closest("#create-question-form")))
       ) {
-        // Reset to initial defaults
-        form.reset();
-        // Re-apply conditional visibility based on defaults
-        if (typeof form._refreshCreateToggles === "function") {
-          form._refreshCreateToggles();
-        } else {
-          // Fallback: trigger a change event to force recompute
-          const evtChange = new Event("change", { bubbles: true });
-          const checkedType = form.querySelector('input[name="type"]:checked');
-          if (checkedType) checkedType.dispatchEvent(evtChange);
-        }
-        // Focus first usable input for faster entry
-        const firstField = form.querySelector(
-          "input:not([type=hidden]):not([disabled]), textarea, select"
-        );
-        if (firstField && firstField.focus) firstField.focus();
+        exitEditMode(form, { reset: true, focus: true });
       }
     }
     // Re-bind toggles for the create form if present
     if (document.getElementById("create-question-form")) {
       initCreateFormToggles();
+      bindCancelButton(document.getElementById("create-question-form"));
     }
+    bindEditButtons();
   });
 
   // Also reset form after the request completes successfully, even if no swap occurred
@@ -161,14 +526,7 @@
     if (xhr && xhr.status >= 200 && xhr.status < 300) {
       const form = document.getElementById("create-question-form") || src;
       if (!form) return;
-      form.reset();
-      if (typeof form._refreshCreateToggles === "function") {
-        form._refreshCreateToggles();
-      }
-      const firstField = form.querySelector(
-        "input:not([type=hidden]):not([disabled]), textarea, select"
-      );
-      if (firstField && firstField.focus) firstField.focus();
+      exitEditMode(form, { reset: true, focus: true });
     }
     // Always re-enable submit button after request completes
     const form = document.getElementById("create-question-form") || src;
@@ -176,6 +534,25 @@
       const btn = form.querySelector('button[type="submit"]');
       if (btn) btn.disabled = false;
     }
+  });
+
+  document.addEventListener("pointerdown", function (evt) {
+    const form = document.getElementById("create-question-form");
+    if (!form || !form.dataset.editingQuestionId) return;
+    const target = evt.target;
+    if (!target) return;
+    const activeCard = currentEditingCard;
+    const editorCard =
+      builderEditorCard || form.closest("[data-builder-editor-card]") || null;
+    if (
+      (activeCard && (activeCard === target || activeCard.contains(target))) ||
+      (editorCard && (editorCard === target || editorCard.contains(target))) ||
+      (currentEditButton &&
+        (currentEditButton === target || currentEditButton.contains(target)))
+    ) {
+      return;
+    }
+    exitEditMode(form, { reset: true, focus: false });
   });
 
   function initCreateFormToggles() {

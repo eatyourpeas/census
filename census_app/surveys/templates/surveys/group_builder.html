@@ -4,12 +4,12 @@
 {% block content %}
 <div class="flex flex-col gap-6">
   <div class="prose">
-    {% include 'components/breadcrumbs.html' with  crumb1_label="Survey Dashboard"  crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/"  crumb2_label="Groups"  crumb2_href="/surveys/"|add:survey.slug|add:"/groups/"  crumb3_label="Manage Questions"  crumb3_href="/surveys/"|add:survey.slug|add:"/builder/groups/"|add:group.id|add:"/questions/" %}
+  {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Question Groups" crumb2_href="/surveys/"|add:survey.slug|add:"/groups/" crumb3_label="Manage Questions" %}
     <h1 class="inline-flex items-center gap-2">
       {% include "components/icons/documents.html" with classes="w-6 h-6 text-primary" %}
       <span class="text-primary">Manage Questions</span>
     </h1>
-    <h2 class="mt-0">Group: {{ group.name }}</h2>
+    <h2 class="mt-0 text-secondary">Question Group: {{ group.name }}</h2>
     {% if group.description %}<p class="mt-0">{{ group.description }}</p>{% endif %}
   </div>
 
@@ -29,15 +29,15 @@
         <div class="card bg-base-100 shadow">
           <div class="card-body">
             <h2 class="card-title inline-flex items-center gap-2 text-primary">
-              {% include "components/icons/document.html" with classes="w-5 h-5 text-primary" %}
+              {% include "components/icons/documents.html" with classes="w-5 h-5 text-primary" %}
               <span>Questions in this group</span>
             </h2>
             <div id="questions-list">
-              <ul id="questions-draggable" class="menu bg-base-100 rounded-box" data-reorder-url="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/reorder">
+              <ul id="questions-draggable" class="flex flex-col gap-3 w-full" data-reorder-url="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/reorder">
                 {% for q in questions %}
                   {% include 'surveys/partials/question_row.html' %}
                 {% empty %}
-                  <li class="p-4 opacity-70">No questions in this group yet.</li>
+                  <li class="p-4 opacity-70 bg-base-200 rounded-lg border border-dashed border-base-300 text-center">No questions in this group yet.</li>
                 {% endfor %}
               </ul>
             </div>
@@ -45,98 +45,156 @@
         </div>
       </div>
 
+
+
       <div>
-        <div class="card bg-base-100 shadow">
+        <div class="card bg-base-100 shadow builder-editor-card" data-builder-editor-card>
           <div class="card-body">
             <h2 class="card-title inline-flex items-center gap-2 text-primary">
               {% include "components/icons/document.html" with classes="w-5 h-5 text-primary" %}
-              <span>Add Question</span>
+              <span data-editor-label="headline-add">Add Question</span>
+              <span data-editor-label="headline-edit" class="hidden">Edit Question</span>
             </h2>
-            <form id="create-question-form" hx-post="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/create" hx-target="#questions-list" hx-swap="outerHTML">
+            <p class="text-sm opacity-60 hidden" data-editor-label="edit-hint">Editing an existing question. Save to apply your changes or cancel to restore the original.</p>
+            <form id="create-question-form" hx-post="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/create" hx-target="#questions-list" hx-swap="outerHTML" data-create-url="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/create" data-create-target="#questions-list" data-create-swap="outerHTML" data-edit-url-base="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/">
               {% csrf_token %}
-              <fieldset>
-                <legend class="label">Type</legend>
-                <div class="flex flex-wrap gap-3">
-                  <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="text" class="radio primary" checked> <span>Text</span></label>
-                  <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="mc_single" class="radio primary"> <span>MC (single)</span></label>
-                  <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="mc_multi" class="radio primary"> <span>MC (multi)</span></label>
-                  <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="dropdown" class="radio primary"> <span>Dropdown</span></label>
-                  <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="orderable" class="radio primary"> <span>Orderable</span></label>
-                  <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="yesno" class="radio primary"> <span>Yes/No</span></label>
-                  <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="likert" class="radio primary"> <span>Likert</span></label>
-                  <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="image" class="radio primary"> <span>Image choice</span></label>
-                </div>
-              </fieldset>
 
-              <label class="label mt-2">Question text</label>
-              <input name="text" class="input input-bordered w-full" required />
+              <div role="tablist" class="tabs tabs-lift">
+                <input type="radio" name="add_question_tabs" role="tab" class="tab" aria-label="Build question" checked />
+                <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-4">
+                  Select a question type
+                  <fieldset>
+                    <legend class="label">Type</legend>
+                    <div class="flex flex-wrap gap-3">
+                      <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="text" class="radio radio-primary" checked> <span>Text/Number</span></label>
+                      <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="mc_single" class="radio radio-primary"> <span>Multiple Choice (single)</span></label>
+                      <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="mc_multi" class="radio radio-primary"> <span>Multiple Choice (multi)</span></label>
+                      <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="dropdown" class="radio radio-primary"> <span>Dropdown</span></label>
+                      <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="orderable" class="radio radio-primary"> <span>Orderable</span></label>
+                      <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="yesno" class="radio radio-primary"> <span>Yes/No</span></label>
+                      <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="likert" class="radio radio-primary"> <span>Likert scale</span></label>
+                      <label class="label cursor-pointer gap-2"><input type="radio" name="type" value="image" class="radio radio-primary"> <span>Image choice</span></label>
+                    </div>
+                  </fieldset>
 
-              <div data-section="text-options" class="mt-3">
-                <fieldset>
-                  <legend class="label">Answer format</legend>
-                  <div class="flex gap-3">
-                    <label class="label cursor-pointer gap-2"><input type="radio" name="text_format" value="free" class="radio primary" checked> <span>Free text</span></label>
-                    <label class="label cursor-pointer gap-2"><input type="radio" name="text_format" value="number" class="radio primary"> <span>Number</span></label>
+                  <label class="label mt-2">Question text</label>
+                  <input name="text" class="input input-bordered w-full" required />
+
+                  <div data-section="text-options" class="mt-3">
+                    <fieldset>
+                      <legend class="label">Answer format</legend>
+                      <div class="flex gap-3">
+                        <label class="label cursor-pointer gap-2"><input type="radio" name="text_format" value="free" class="radio radio-primary" checked> <span>Free text</span></label>
+                        <label class="label cursor-pointer gap-2"><input type="radio" name="text_format" value="number" class="radio radio-primary"> <span>Number</span></label>
+                      </div>
+                    </fieldset>
                   </div>
-                </fieldset>
+
+                  <div data-section="options" class="mt-3 hidden">
+                    <label class="label">Options (one per line)</label>
+                    <textarea name="options" class="textarea textarea-bordered w-full" placeholder="Option A Option B"></textarea>
+                  </div>
+
+                  <div data-section="likert" class="mt-3 hidden">
+                    <fieldset>
+                      <legend class="label">Likert mode</legend>
+                      <div class="flex gap-3">
+                        <label class="label cursor-pointer gap-2"><input type="radio" name="likert_mode" value="categories" class="radio" checked> <span>Categories</span></label>
+                        <label class="label cursor-pointer gap-2"><input type="radio" name="likert_mode" value="number" class="radio"> <span>Number scale</span></label>
+                      </div>
+                    </fieldset>
+                    <div data-likert="categories" class="mt-3">
+                      <label class="label">Categories (one per line)</label>
+                      <textarea name="likert_categories" class="textarea textarea-bordered w-full" placeholder="Strongly disagree
+                          Disagree
+                          Neutral
+                          Agree
+                          Strongly agree"></textarea>
+                    </div>
+                    <div data-likert="number" class="mt-3 hidden">
+                      <div class="grid grid-cols-2 gap-3">
+                        <div>
+                          <label class="label">Min value</label>
+                          <input type="number" name="likert_min" class="input input-bordered w-full" value="1" />
+                        </div>
+                        <div>
+                          <label class="label">Max value</label>
+                          <input type="number" name="likert_max" class="input input-bordered w-full" value="5" />
+                        </div>
+                      </div>
+                      <div class="grid grid-cols-2 gap-3 mt-3">
+                        <div>
+                          <label class="label">Left label</label>
+                          <input type="text" name="likert_left_label" class="input input-bordered w-full" placeholder="Low" />
+                        </div>
+                        <div>
+                          <label class="label">Right label</label>
+                          <input type="text" name="likert_right_label" class="input input-bordered w-full" placeholder="High" />
+                        </div>
+                      </div>
+                    </div>
+                </div>
               </div>
 
-              <div data-section="options" class="mt-3 hidden">
-                <label class="label">Options (one per line)</label>
-                <textarea name="options" class="textarea textarea-bordered w-full" placeholder="Option A
-Option B"></textarea>
-              </div>
-
-              <div data-section="likert" class="mt-3 hidden">
-                <fieldset>
-                  <legend class="label">Likert mode</legend>
-                  <div class="flex gap-3">
-                    <label class="label cursor-pointer gap-2"><input type="radio" name="likert_mode" value="categories" class="radio" checked> <span>Categories</span></label>
-                    <label class="label cursor-pointer gap-2"><input type="radio" name="likert_mode" value="number" class="radio"> <span>Number scale</span></label>
-                  </div>
-                </fieldset>
-                <div data-likert="categories" class="mt-3">
-                  <label class="label">Categories (one per line)</label>
-                  <textarea name="likert_categories" class="textarea textarea-bordered w-full" placeholder="Strongly disagree
-Disagree
-Neutral
-Agree
-Strongly agree"></textarea>
-                </div>
-                <div data-likert="number" class="mt-3 hidden">
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <label class="label">Min value</label>
-                      <input type="number" name="likert_min" class="input input-bordered w-full" value="1" />
-                    </div>
-                    <div>
-                      <label class="label">Max value</label>
-                      <input type="number" name="likert_max" class="input input-bordered w-full" value="5" />
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-2 gap-3 mt-3">
-                    <div>
-                      <label class="label">Left label</label>
-                      <input type="text" name="likert_left_label" class="input input-bordered w-full" placeholder="Low" />
-                    </div>
-                    <div>
-                      <label class="label">Right label</label>
-                      <input type="text" name="likert_right_label" class="input input-bordered w-full" placeholder="High" />
+                {% if user.is_authenticated and user == survey.owner %}
+                <input type="radio" name="add_question_tabs" role="tab" class="tab" aria-label="Special Templates" />
+                <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-4">
+                  <div class="space-y-4">
+                    <p class="text-sm opacity-60 leading-snug">
+                      Templates are predefined sets of questions for common use cases. They can form part of question groups or be used on their own.
+                    </p>
+                    <div class="space-y-3">
+                      <div class="space-y-2">
+                        <button type="submit" form="create-template-patient-form" class="link link-primary font-semibold inline-flex justify-start text-left">
+                          Patient details (encrypted)
+                        </button>
+                        <p class="text-sm opacity-60 leading-snug max-w-prose">
+                          Customisable set of patient identifier questions, with answers stored encrypted, viewable only to the person that entered the data.
+                        </p>
+                      </div>
+                      <div class="space-y-2">
+                        <button type="submit" form="create-template-professional-form" class="link link-primary font-semibold inline-flex justify-start text-left">
+                          Professional details
+                        </button>
+                        <p class="text-sm opacity-60 leading-snug max-w-prose">
+                          Customisable set of professional identifier questions. Answers are stored in clear (non-encrypted) and can be exported.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
+                {% endif %}
               </div>
 
-              <div class="mt-3">
+              <div class="mt-4">
                 <label class="label">Required</label>
-                <input type="checkbox" name="required" class="toggle" />
+                <input type="checkbox" name="required" class="toggle toggle-primary" />
               </div>
 
-              <button class="btn btn-primary mt-4" type="submit">Add</button>
+              <div class="mt-4 flex items-center gap-3">
+                <button class="btn btn-primary" type="submit">
+                  <span data-editor-label="submit-add">Add</span>
+                  <span data-editor-label="submit-edit" class="hidden">Save changes</span>
+                </button>
+                <button type="button" class="btn btn-ghost hidden" data-action="cancel-edit">Cancel</button>
+              </div>
             </form>
+
+
           </div>
         </div>
       </div>
+
+      {% if user.is_authenticated and user == survey.owner %}
+      <form id="create-template-patient-form" method="post" action="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/templates/add" class="hidden" hx-post="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/templates/add" hx-target="#questions-list" hx-swap="outerHTML">
+        {% csrf_token %}
+        <input type="hidden" name="template" value="patient_details_encrypted" />
+      </form>
+      <form id="create-template-professional-form" method="post" action="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/templates/add" class="hidden" hx-post="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/templates/add" hx-target="#questions-list" hx-swap="outerHTML">
+        {% csrf_token %}
+        <input type="hidden" name="template" value="professional_details" />
+      </form>
+      {% endif %}
     {% endif %}
   </div>
 </div>
