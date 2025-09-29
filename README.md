@@ -115,6 +115,11 @@ Without Docker (Python + Node):
 - python manage.py createsuperuser
 - python manage.py runserver
 
+Container deployments:
+
+- Run `python manage.py collectstatic --noinput` once the environment variables (including `DATABASE_URL`) are available.
+- Start the app with `python manage.py migrate --noinput && gunicorn census_app.wsgi:application --bind 0.0.0.0:${PORT:-8000}`.
+
 API endpoints:
 
 - GET /api/health
