@@ -9,7 +9,6 @@ env = environ.Env(
     DEBUG=(bool, False),
     SECRET_KEY=(str, ""),
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
-    DATABASE_URL=(str, "sqlite:///db.sqlite3"),
     SECURE_SSL_REDIRECT=(bool, False),
     CSRF_TRUSTED_ORIGINS=(list, []),
     BRAND_TITLE=(str, "Census"),
@@ -41,7 +40,7 @@ SECRET_KEY = env("SECRET_KEY") or os.urandom(32)
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
 DATABASES = {
-    "default": env.db(),
+    "default": env.db("DATABASE_URL"),
 }
 
 INSTALLED_APPS = [
@@ -196,12 +195,6 @@ AXES_LOCKOUT_PARAMETERS = ["username"]
 
 # Ratelimit example (used in views)
 RATELIMIT_ENABLE = True
-
-# File-based data storage for responses
-DATA_ROOT = BASE_DIR / "data"
-DATA_ROOT.mkdir(parents=True, exist_ok=True)
-
-# Survey responses retained as JSON blobs per survey
 
 # Auth redirects
 LOGIN_REDIRECT_URL = "/"

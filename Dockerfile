@@ -28,10 +28,6 @@ COPY CONTRIBUTING.md ./
 RUN poetry install --only main --no-interaction --no-ansi
 RUN npm run build:css
 
-# Collect static files for production (admin and app assets)
-ENV DJANGO_SETTINGS_MODULE=census_app.settings
-RUN python manage.py collectstatic --noinput
-
 RUN adduser --disabled-login --gecos "" appuser
 USER appuser
 
@@ -40,4 +36,4 @@ ENV PORT=8000
 
 EXPOSE 8000
 
-CMD ["sh", "-lc", "python manage.py migrate --noinput && gunicorn census_app.wsgi:application --bind 0.0.0.0:${PORT} --workers 3"]
+CMD ["sh", "-lc", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn census_app.wsgi:application --bind 0.0.0.0:${PORT} --workers 3"]
