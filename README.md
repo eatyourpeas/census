@@ -51,7 +51,7 @@ Surveys are distributed either by links in an email list or are scheduled to be 
 
 ### Data Storage
 
-Data on each survey are stored in a local folder or as blob storage as with each response to a survey in json. Critical fields are hashed and accessible only to those with the survey key. Data is exportable as csv without the identifiers but not exportable with the identifiers. Data with identifiers is viewable in the platform to those in possession of the survey key and who are users with permission to edit the survey.
+Data on each survey are stored in a postgres 16 database. Critical fields are hashed and accessible only to those with the survey key. Data is exportable as csv without the identifiers but not exportable with the identifiers. Data with identifiers is viewable in the platform to those in possession of the survey key and who are users with permission to edit the survey.
 
 ### Reporting
 
@@ -132,7 +132,7 @@ Security posture:
 - Strict password validators, lockout on brute force (django-axes)
 - Rate limiting on form posts (django-ratelimit)
 - CSP headers (django-csp) and static via WhiteNoise
-- Sensitive demographics encrypted per-survey using AES-GCM with derived keys; responses mirrored to filesystem under data/
+- Sensitive demographics encrypted per-survey using AES-GCM with derived keys
 - API uses JWT (Bearer) auth; include Authorization header in requests.
 
 ## Tests

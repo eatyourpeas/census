@@ -5,7 +5,6 @@ import csv
 import io
 import json
 import logging
-from pathlib import Path
 import secrets
 from typing import Any, Iterable, Union
 
@@ -641,17 +640,6 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
         except Exception:
             messages.error(request, "You have already submitted this survey.")
             return redirect("surveys:detail", slug=slug)
-
-        # Also write to filesystem as JSON, excluding enc demographics
-        out_dir = Path(settings.DATA_ROOT) / f"survey_{survey.id}"
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_file = out_dir / f"response_{resp.id}.json"
-        out_file.write_text(
-            json.dumps(
-                {"answers": answers, "submitted_at": resp.submitted_at.isoformat()},
-                indent=2,
-            )
-        )
 
         messages.success(request, "Thank you for your response.")
         return redirect("surveys:detail", slug=slug)
@@ -1684,17 +1672,6 @@ def _handle_participant_submission(
             if request.user.is_authenticated:
                 token_obj.used_by = request.user
             token_obj.save(update_fields=["used_at", "used_by"])
-
-        # Also mirror to filesystem as per authenticated detail view
-        out_dir = Path(settings.DATA_ROOT) / f"survey_{survey.id}"
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_file = out_dir / f"response_{resp.id}.json"
-        out_file.write_text(
-            json.dumps(
-                {"answers": answers, "submitted_at": resp.submitted_at.isoformat()},
-                indent=2,
-            )
-        )
 
     messages.success(request, "Thank you for your response.")
     # Redirect to thank-you page
