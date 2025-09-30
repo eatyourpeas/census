@@ -2,6 +2,10 @@
 
 Census is a survey platform for medical audit and research. It is secure with encrypted identifiers only visible to users entering the data.
 
+Try it out [here](https://census.eatyourpeas.dev)
+>[!NOTE]
+>This is in a sandbox dev environment and is for demo purposes only. Do not store patient or sensitive information here.
+
 ## Contributing
 
 Please read CONTRIBUTING.md for guidelines, especially around dummy credentials in tests and secret scanning.
