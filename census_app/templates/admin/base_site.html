@@ -45,11 +45,11 @@
 
 {% block branding %}
   <h1 id="site-name" class="m-0 p-0">
-    <a href="{% url 'admin:index' %}" class="inline-flex items-center gap-2 text-xl font-semibold text-primary no-underline">
+  <a href="{% url 'admin:index' %}" class="inline-flex items-center gap-2 text-xl font-semibold text-base-content no-underline">
       {% if brand.icon_url %}
         <img src="{{ brand.icon_url }}" alt="{{ brand.icon_alt|default:brand.title }}" class="{{ brand.icon_size_class|default:'w-6 h-6' }}" />
       {% else %}
-        {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-6 h-6 text-primary' %}
+  {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-6 h-6 text-base-content' %}
       {% endif %}
       <span>{{ brand.title }}</span>
       <span class="opacity-60">Admin</span>

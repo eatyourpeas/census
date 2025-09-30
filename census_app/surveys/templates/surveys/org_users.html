@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-4 inline-flex items-center gap-2 text-primary">
-  {% include "components/icons/users.html" with classes="w-6 h-6 text-primary" %}
+<h1 class="text-2xl font-bold mb-4 inline-flex items-center gap-2 text-base-content">
+  {% include "components/icons/users.html" with classes="w-6 h-6 text-base-content" %}
   <span>Organisation users: {{ org.name }}</span>
 </h1>
 <table class="table w-full mb-6">
@@ -26,8 +26,8 @@
   </tbody>
 </table>
 
-<h2 class="text-xl font-semibold mb-2 text-primary inline-flex items-center gap-2">
-  {% include "components/icons/users.html" with classes="w-5 h-5 text-primary" %}
+<h2 class="text-xl font-semibold mb-2 inline-flex items-center gap-2 text-base-content">
+  {% include "components/icons/users.html" with classes="w-5 h-5 text-base-content" %}
   <span>Add or update user</span>
 </h2>
 <form method="post" class="space-y-2">

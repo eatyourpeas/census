@@ -5,8 +5,8 @@
 <div class="prose max-w-none">
   {% include 'components/breadcrumbs.html' with crumb1_label='Surveys' crumb1_href='/surveys/' %}
   <h1 class="inline-flex items-center gap-2">
-    {% include "components/icons/clipboard.html" with classes="w-6 h-6 text-primary" %}
-    <span class="text-primary">Your Surveys</span>
+    {% include "components/icons/clipboard.html" with classes="w-6 h-6 text-base-content" %}
+    <span>Your Surveys</span>
   </h1>
   {% if user.is_authenticated %}
     <p><a class="btn btn-primary not-prose" href="/surveys/create/">Create survey</a></p>
