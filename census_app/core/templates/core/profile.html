@@ -12,14 +12,14 @@
 {% endblock %}
 {% block content %}
 <div class="prose">
-  <h1 class="inline-flex items-center gap-2 text-primary">
-    {% include "components/icons/users.html" with classes="w-6 h-6 text-primary" %}
+  <h1 class="inline-flex items-center gap-2 text-base-content">
+    {% include "components/icons/users.html" with classes="w-6 h-6 text-base-content" %}
     <span>Your Profile</span>
   </h1>
   <p>Signed in as <strong>{{ request.user.username }}</strong></p>
   {% if org %}
-  <h2 class="inline-flex items-center gap-2 text-primary mt-2">
-    {% include "components/icons/building.html" with classes="w-5 h-5 text-primary" %}
+  <h2 class="inline-flex items-center gap-2 text-base-content mt-2">
+    {% include "components/icons/building.html" with classes="w-5 h-5 text-base-content" %}
     <span>Your organisation: {{ org.name }}</span>
   </h2>
   {% endif %}
@@ -28,8 +28,8 @@
 <div class="mt-6 max-w-2xl">
   <div class="card bg-base-100 shadow mb-6">
     <div class="card-body">
-      <h2 class="card-title inline-flex items-center gap-2 text-primary">
-        {% include "components/icons/users.html" with classes="w-5 h-5 text-primary" %}
+      <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+        {% include "components/icons/users.html" with classes="w-5 h-5 text-base-content" %}
         <span>Your badges</span>
       </h2>
       <div class="flex flex-wrap gap-2 items-center">
@@ -71,8 +71,8 @@
   </div>
   <div class="card bg-base-100 shadow mb-6">
     <div class="card-body">
-      <h2 class="card-title inline-flex items-center gap-2 text-primary">
-        {% include "components/icons/bolt.html" with classes="w-5 h-5 text-primary" %}
+      <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+        {% include "components/icons/bolt.html" with classes="w-5 h-5 text-base-content" %}
         <span>Appearance</span>
       </h2>
       <p class="opacity-80">Choose your theme. This only affects your view and is saved in your browser.</p>
@@ -99,8 +99,8 @@
   {% if request.user.is_superuser %}
   <div class="card bg-base-100 shadow mb-6">
     <div class="card-body">
-      <h2 class="card-title inline-flex items-center gap-2 text-primary">
-        {% include "components/icons/hammer_wrench.html" with classes="w-5 h-5 text-primary" %}
+      <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+        {% include "components/icons/hammer_wrench.html" with classes="w-5 h-5 text-base-content" %}
         <span>Project theme and brand (admins)</span>
       </h2>
       <p class="opacity-80">Paste DaisyUI Builder output (light and dark) to reskin the whole app. Fonts and icon apply globally.</p>
@@ -165,7 +165,7 @@
             <span class="label"><span class="label-text">Theme CSS (light) — paste variables from DaisyUI Builder</span></span>
             <textarea class="textarea textarea-bordered h-36" name="theme_light_css" placeholder="--color-base-100: ...;\n--color-primary: ...;">{{ brand.theme_css_light }}</textarea>
           </label>
-          <label class="form-control md:col-span-2">
+          <label class="form-control md:col-span-1">
             <span class="label"><span class="label-text">Theme CSS (dark) — optional</span></span>
             <textarea class="textarea textarea-bordered h-36" name="theme_dark_css" placeholder="--color-base-100: ...;\n--color-primary: ...;">{{ brand.theme_css_dark }}</textarea>
           </label>
@@ -178,8 +178,8 @@
   {% if not can_manage_any_users %}
     <div class="card bg-base-100 shadow">
       <div class="card-body">
-        <h2 class="card-title inline-flex items-center gap-2 text-primary">
-          {% include "components/icons/building.html" with classes="w-5 h-5 text-primary" %}
+        <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+          {% include "components/icons/building.html" with classes="w-5 h-5 text-base-content" %}
           <span>Upgrade to organisation</span>
         </h2>
         <p class="opacity-80">Upgrading creates an organisation that you administer. You’ll be able to host surveys and build a team. Simple users cannot gain permissions inside someone else’s organisation, but you can create your own organisation at any time.</p>

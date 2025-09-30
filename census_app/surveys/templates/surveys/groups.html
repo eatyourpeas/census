@@ -23,9 +23,9 @@
 {% block content %}
 <div class="prose max-w-none">
   {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Question Groups" %}
-  <h1 class="inline-flex items-center gap-2 w-full">
-    {% include "components/icons/documents.html" with classes="w-7 h-7 text-primary" %}
-    <span class="text-primary">{% blocktrans %}Question Groups for {{ survey }}{% endblocktrans %}</span>
+  <h1 class="inline-flex items-center gap-2 w-full text-base-content">
+    {% include "components/icons/documents.html" with classes="w-7 h-7 text-base-content" %}
+    <span>{% blocktrans %}Question Groups for {{ survey }}{% endblocktrans %}</span>
   </h1>
   <p class="mt-2 text-sm opacity-80 w-full">{% blocktrans %}Question Groups are reusable sets of questions. Arrange them here to control the order in which participants see question sets. You can also mark a set of groups as a repeating entity (e.g. People or Visits) directly here—no separate collections screen required.{% endblocktrans %}</p>
 </div>
@@ -57,7 +57,7 @@
               {% endif %}
               <div class="q-number badge badge-primary badge-sm shrink-0">{{ forloop.counter }}</div>
               <div class="flex-1 min-w-0 flex items-center gap-2">
-                <a class="font-medium link text-primary" href="/surveys/{{ survey.slug }}/builder/groups/{{ g.id }}/">{{ g.name }}</a>
+                <a class="font-medium link" href="/surveys/{{ survey.slug }}/builder/groups/{{ g.id }}/">{{ g.name }}</a>
                 <span class="sel-repeat-icon hidden tooltip" data-tip="{% trans "Selected for repeat" %}">
                   {% include "components/icons/repeat.html" with classes="w-4 h-4 opacity-70" %}
                 </span>

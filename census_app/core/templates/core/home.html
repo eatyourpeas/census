@@ -22,7 +22,7 @@
       <img src="{{ brand.icon_url }}" alt="{{ brand.icon_alt|default:brand.title }}" class="block h-24 w-24 md:h-40 md:w-40 lg:h-[32vh] lg:w-auto max-w-full object-contain" />
       {% else %}
       <div class="h-24 md:h-40 lg:h-[32vh] w-auto flex items-center justify-start">
-        {% include "components/icons/census_brand.html" with classes="h-full w-auto text-primary" %}
+  {% include "components/icons/census_brand.html" with classes="h-full w-auto text-base-content" %}
       </div>
       {% endif %}
     </div>
@@ -87,8 +87,8 @@
   <div class="card bg-secondary/10 border border-secondary/20 hover:bg-secondary/20 transition-colors">
     <div class="card-body">
         <div class="flex items-center gap-3">
-          <span class="text-secondary">{% include "components/icons/hammer_wrench.html" with classes="w-8 h-8" %}</span>
-          <h3 class="card-title text-secondary">Build</h3>
+          <span class="text-base-content/80">{% include "components/icons/hammer_wrench.html" with classes="w-8 h-8" %}</span>
+          <h3 class="card-title text-base-content">Build</h3>
         </div>
         <p>Drag-and-drop groups and questions, apply DaisyUI themes per survey, and control access with roles.</p>
         <div class="card-actions justify-start mt-2">
@@ -104,8 +104,8 @@
   <div class="card bg-secondary/10 border border-secondary/20 hover:bg-secondary/20 transition-colors">
     <div class="card-body">
         <div class="flex items-center gap-3">
-          <span class="text-secondary">{% include "components/icons/documents.html" with classes="w-8 h-8" %}</span>
-          <h3 class="card-title text-secondary">Distribute</h3>
+          <span class="text-base-content/80">{% include "components/icons/documents.html" with classes="w-8 h-8" %}</span>
+          <h3 class="card-title text-base-content">Distribute</h3>
         </div>
         <p>Invite your team, scope visibility by organisation and survey membership, and manage participation securely.</p>
         <div class="card-actions justify-start mt-2">
@@ -121,8 +121,8 @@
   <div class="card bg-secondary/10 border border-secondary/20 hover:bg-secondary/20 transition-colors">
     <div class="card-body">
         <div class="flex items-center gap-3">
-          <span class="text-secondary">{% include "components/icons/document.html" with classes="w-8 h-8" %}</span>
-          <h3 class="card-title text-secondary">Analyze</h3>
+          <span class="text-base-content/80">{% include "components/icons/document.html" with classes="w-8 h-8" %}</span>
+          <h3 class="card-title text-base-content">Analyze</h3>
         </div>
         <p>Monitor dashboards, export CSV, and audit changes. Everything runs on a secure SSR stack.</p>
         <div class="card-actions justify-start mt-2">

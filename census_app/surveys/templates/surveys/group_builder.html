@@ -5,11 +5,11 @@
 <div class="flex flex-col gap-6">
   <div class="prose">
   {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Question Groups" crumb2_href="/surveys/"|add:survey.slug|add:"/groups/" crumb3_label="Manage Questions" %}
-    <h1 class="inline-flex items-center gap-2">
-      {% include "components/icons/documents.html" with classes="w-6 h-6 text-primary" %}
-      <span class="text-primary">Manage Questions</span>
+    <h1 class="inline-flex items-center gap-2 text-base-content">
+      {% include "components/icons/documents.html" with classes="w-6 h-6 text-base-content" %}
+      <span>Manage Questions</span>
     </h1>
-    <h2 class="mt-0 text-secondary">Question Group: {{ group.name }}</h2>
+    <h2 class="mt-0 text-base-content/80">Question Group: {{ group.name }}</h2>
     {% if group.description %}<p class="mt-0">{{ group.description }}</p>{% endif %}
   </div>
 
@@ -28,8 +28,8 @@
       <div class="md:col-span-2">
         <div class="card bg-base-100 shadow">
           <div class="card-body">
-            <h2 class="card-title inline-flex items-center gap-2 text-primary">
-              {% include "components/icons/documents.html" with classes="w-5 h-5 text-primary" %}
+            <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+              {% include "components/icons/documents.html" with classes="w-5 h-5 text-base-content" %}
               <span>Questions in this group</span>
             </h2>
             <div id="questions-list">
@@ -50,8 +50,8 @@
       <div>
         <div class="card bg-base-100 shadow builder-editor-card" data-builder-editor-card>
           <div class="card-body">
-            <h2 class="card-title inline-flex items-center gap-2 text-primary">
-              {% include "components/icons/document.html" with classes="w-5 h-5 text-primary" %}
+            <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+              {% include "components/icons/document.html" with classes="w-5 h-5 text-base-content" %}
               <span data-editor-label="headline-add">Add Question</span>
               <span data-editor-label="headline-edit" class="hidden">Edit Question</span>
             </h2>

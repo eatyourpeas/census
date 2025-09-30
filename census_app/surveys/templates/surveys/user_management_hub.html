@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}User management · {{ block.super }}{% endblock %}
 {% block content %}
-  <h1 class="text-2xl font-semibold mb-4 inline-flex items-center gap-2 text-primary">
-    {% include "components/icons/users.html" with classes="w-6 h-6 text-primary" %}
-    <span class="text-primary">User management</span>
+  <h1 class="text-2xl font-semibold mb-4 inline-flex items-center gap-2 text-base-content">
+    {% include "components/icons/users.html" with classes="w-6 h-6 text-base-content" %}
+    <span>User management</span>
   </h1>
 
   {% if not org %}
@@ -11,9 +11,9 @@
   {% else %}
     <div class="card bg-base-100 shadow mb-6">
       <div class="card-body">
-        <h2 class="inline-flex items-center gap-2 font-semibold text-lg text-primary">
-          {% include "components/icons/users.html" with classes="w-5 h-5 text-primary" %}
-          <span class="text-primary">Organisation: {{ org.name }}</span>
+        <h2 class="inline-flex items-center gap-2 font-semibold text-lg text-base-content">
+          {% include "components/icons/users.html" with classes="w-5 h-5 text-base-content" %}
+          <span>Organisation: {{ org.name }}</span>
         </h2>
         <div class="mb-3">
           <form hx-post="{% url 'surveys:user_management_hub' %}" hx-target="#org-add-result" hx-swap="innerHTML" method="post" class="flex items-end gap-2">
@@ -49,9 +49,9 @@
 
     <div class="card bg-base-100 shadow">
       <div class="card-body">
-        <h2 class="inline-flex items-center gap-2 font-semibold text-lg text-primary">
-          {% include "components/icons/users.html" with classes="w-5 h-5 text-primary" %}
-          <span class="text-primary">Users by survey</span>
+        <h2 class="inline-flex items-center gap-2 font-semibold text-lg text-base-content">
+          {% include "components/icons/users.html" with classes="w-5 h-5 text-base-content" %}
+          <span>Users by survey</span>
         </h2>
         <div class="mb-3">
           <form hx-post="{% url 'surveys:user_management_hub' %}" hx-target="#survey-add-result" hx-swap="innerHTML" method="post" class="flex items-end gap-2">
