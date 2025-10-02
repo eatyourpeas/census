@@ -644,6 +644,13 @@
       ? likertSection.querySelector('[data-likert="number"]')
       : null;
 
+    // Prefilled dataset controls
+    const prefilledToggle = form.querySelector("[data-prefilled-toggle]");
+    const prefilledSection = form.querySelector("[data-prefilled-section]");
+    const prefilledDataset = form.querySelector("[data-prefilled-dataset]");
+    const loadDatasetBtn = form.querySelector("[data-load-dataset]");
+    const optionsTextarea = form.querySelector('textarea[name="options"]');
+
     function refresh() {
       const checked = form.querySelector('input[name="type"]:checked');
       const type = checked ? checked.value : null;
@@ -670,6 +677,74 @@
           likertCat.classList.toggle("hidden", mode !== "categories");
         if (likertNum) likertNum.classList.toggle("hidden", mode !== "number");
       }
+    }
+
+    // Prefilled dataset toggle handler
+    if (prefilledToggle && prefilledSection) {
+      prefilledToggle.addEventListener("change", function () {
+        const isChecked = prefilledToggle.checked;
+        prefilledSection.classList.toggle("hidden", !isChecked);
+        if (!isChecked && prefilledDataset) {
+          prefilledDataset.value = "";
+        }
+      });
+    }
+
+    // Load dataset button handler
+    if (loadDatasetBtn && prefilledDataset && optionsTextarea) {
+      loadDatasetBtn.addEventListener("click", async function () {
+        const datasetKey = prefilledDataset.value;
+        if (!datasetKey) {
+          if (typeof window.showToast === "function") {
+            window.showToast("Please select a dataset first", "error");
+          } else {
+            alert("Please select a dataset first");
+          }
+          return;
+        }
+
+        loadDatasetBtn.disabled = true;
+        loadDatasetBtn.textContent = "Loading...";
+
+        try {
+          const response = await fetch(`/api/datasets/${datasetKey}/`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrfToken(),
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to load dataset: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          if (data.options && Array.isArray(data.options)) {
+            optionsTextarea.value = data.options.join("\n");
+            // Store the dataset key as a data attribute for later retrieval
+            optionsTextarea.dataset.prefilledDataset = datasetKey;
+            if (typeof window.showToast === "function") {
+              window.showToast(
+                `Loaded ${data.options.length} options`,
+                "success"
+              );
+            }
+          } else {
+            throw new Error("Invalid response format");
+          }
+        } catch (error) {
+          console.error("Error loading dataset:", error);
+          if (typeof window.showToast === "function") {
+            window.showToast("Failed to load dataset options", "error");
+          } else {
+            alert("Failed to load dataset options: " + error.message);
+          }
+        } finally {
+          loadDatasetBtn.disabled = false;
+          loadDatasetBtn.textContent = "Load options";
+        }
+      });
     }
 
     // Expose refresh so we can call it after external resets
