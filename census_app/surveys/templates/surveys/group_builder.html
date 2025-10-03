@@ -91,7 +91,7 @@
                   </div>
 
                   <div data-section="options" class="mt-3 hidden">
-                    <div class="mb-3">
+                    <div class="mb-3" data-prefilled-container>
                       <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" class="checkbox checkbox-sm" id="use-prefilled-options" data-prefilled-toggle />
                         <span class="label-text">Use prefilled options</span>
@@ -99,15 +99,13 @@
                     </div>
                     <div id="prefilled-dataset-section" class="mb-3 hidden" data-prefilled-section>
                       <label class="label">Select dataset</label>
-                      <select id="prefilled-dataset-select" class="select select-bordered w-full" data-prefilled-dataset>
+                      <select name="prefilled_dataset" id="prefilled-dataset-select" class="select select-bordered w-full" data-prefilled-dataset>
                         <option value="">-- Choose a dataset --</option>
-                        <option value="hospitals_england">Hospitals (England)</option>
-                        <option value="hospitals_wales">Hospitals (Wales)</option>
-                        <option value="hospitals_england_wales">Hospitals (England & Wales)</option>
-                        <option value="nhs_trusts">NHS Trusts</option>
-                        <option value="welsh_lhbs">Welsh Local Health Boards</option>
+                        {% for key, name in available_datasets.items %}
+                        <option value="{{ key }}">{{ name }}</option>
+                        {% endfor %}
                       </select>
-                      <button type="button" class="btn btn-sm btn-secondary mt-2" data-load-dataset>Load options</button>
+                      <button type="button" class="btn btn-sm btn-primary mt-2" data-load-dataset>Load options</button>
                     </div>
                     <label class="label">Options (one per line)</label>
                     <textarea name="options" class="textarea textarea-bordered w-full" placeholder="Option A

@@ -41,7 +41,43 @@ This enhanced script will:
 - Serve the app on <http://localhost:8000>
 - Provide helpful status updates and tips
 
+## Environment Variables
+
+Census uses environment variables for configuration. For local development with Docker Compose, most variables are pre-configured in `docker-compose.yml` with sensible defaults.
+
+### External Dataset API (Optional)
+
+For features that fetch external datasets (e.g., hospitals, NHS trusts), configure these optional variables:
+
+**In `docker-compose.yml`** (already configured for local development):
+
+```yaml
+environment:
+  EXTERNAL_DATASET_API_URL: ${EXTERNAL_DATASET_API_URL:-https://api.rcpch.ac.uk/nhs-organisations/v1}
+  EXTERNAL_DATASET_API_KEY: ${EXTERNAL_DATASET_API_KEY:-}
+```
+
+**For production deployment** (e.g., Northflank, Heroku), set these environment variables:
+
+- `EXTERNAL_DATASET_API_URL=https://api.rcpch.ac.uk/nhs-organisations/v1`
+- `EXTERNAL_DATASET_API_KEY=` (leave empty for public API)
+
+The RCPCH NHS Organisations API is a public API and doesn't require an API key. If you're using a different API provider, you can set your custom URL and API key.
+
+### Other Environment Variables
+
+For local development, all other variables (database, secrets, etc.) are pre-configured in `docker-compose.yml`. For production deployment, you'll need to set:
+
+- `DATABASE_URL` - PostgreSQL connection string
+- `SECRET_KEY` - Django secret key (generate with `python -c "import secrets; print(secrets.token_urlsafe(50))"`)
+- `ALLOWED_HOSTS` - Comma-separated list of allowed hostnames
+- `DEBUG` - Set to `False` in production
+
+See `.env.example` for a complete list of available environment variables.
+
 ## Development Environment Options
+
+````
 
 ### For VS Code Users
 

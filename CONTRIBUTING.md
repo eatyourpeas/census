@@ -117,6 +117,29 @@ poetry run black --check .
 poetry run isort --check-only .
 ```
 
+## Environment Variables
+
+For local development, environment variables are configured in `docker-compose.yml` with sensible defaults. You don't need to create a `.env` file unless you want to override specific values.
+
+### External Dataset API
+
+If you're working on features that use external datasets (hospitals, NHS trusts, etc.), these are already configured:
+
+- `EXTERNAL_DATASET_API_URL` - Defaults to RCPCH NHS Organisations API
+- `EXTERNAL_DATASET_API_KEY` - Empty by default (RCPCH API is public)
+
+These settings are in `docker-compose.yml` and will be picked up automatically when you run `./s/dev` or `docker compose up`.
+
+### Production Deployment
+
+For production environments (Northflank, Heroku, etc.), ensure these environment variables are set in your platform's configuration:
+
+- `EXTERNAL_DATASET_API_URL=https://api.rcpch.ac.uk/nhs-organisations/v1`
+- `EXTERNAL_DATASET_API_KEY=` (leave empty unless using a private API)
+- Plus standard Django variables: `DATABASE_URL`, `SECRET_KEY`, `ALLOWED_HOSTS`, `DEBUG=False`
+
+See `docs/getting-started.md` for complete environment variable documentation.
+
 ## Secret scanning with GitGuardian (ggshield)
 
 Authenticate once locally so scans run without prompts:

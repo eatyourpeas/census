@@ -27,7 +27,75 @@ from census_app.surveys.external_datasets import (
 from census_app.surveys.models import Organization, OrganizationMembership
 
 User = get_user_model()
-TEST_PASSWORD = "test-pass"
+TEST_PASSWORD = "testpass123"
+
+
+def get_mock_hospital_response():
+    """Get realistic hospital API response."""
+    return [
+        {"ods_code": "RGT01", "name": "ADDENBROOKE'S HOSPITAL"},
+        {"ods_code": "RCF22", "name": "AIREDALE GENERAL HOSPITAL"},
+        {"ods_code": "RBS25", "name": "ALDER HEY CHILDREN'S HOSPITAL"},
+    ]
+
+
+def get_mock_trust_response():
+    """Get realistic trust API response."""
+    return [
+        {
+            "ods_code": "RCF",
+            "name": "AIREDALE NHS FOUNDATION TRUST",
+            "address_line_1": "AIREDALE GENERAL HOSPITAL",
+            "address_line_2": "SKIPTON ROAD",
+            "town": "KEIGHLEY",
+            "postcode": "BD20 6TD",
+            "country": "ENGLAND",
+            "telephone": None,
+            "website": None,
+            "active": True,
+            "published_at": None,
+        },
+        {
+            "ods_code": "RBS",
+            "name": "ALDER HEY CHILDREN'S NHS FOUNDATION TRUST",
+            "address_line_1": "ALDER HEY CHILDREN'S HOSPITAL",
+            "address_line_2": "EATON ROAD",
+            "town": "LIVERPOOL",
+            "postcode": "L12 2AP",
+            "country": "ENGLAND",
+            "telephone": None,
+            "website": None,
+            "active": True,
+            "published_at": None,
+        },
+    ]
+
+
+def get_mock_lhb_response():
+    """Get realistic local health board API response."""
+    return [
+        {
+            "ods_code": "7A3",
+            "boundary_identifier": "W11000031",
+            "name": "Swansea Bay University Health Board",
+            "organisations": [
+                {"ods_code": "7A3LW", "name": "CHILD DEVELOPMENT UNIT"},
+                {"ods_code": "7A3C7", "name": "MORRISTON HOSPITAL"},
+                {"ods_code": "7A3CJ", "name": "NEATH PORT TALBOT HOSPITAL"},
+            ],
+        },
+        {
+            "ods_code": "7A4",
+            "boundary_identifier": "W11000028",
+            "name": "Cardiff and Vale University Health Board",
+            "organisations": [
+                {"ods_code": "7A4BV", "name": "UNIVERSITY HOSPITAL OF WALES"},
+            ],
+        },
+    ]
+
+
+
 
 
 def auth_hdr(client, username: str, password: str) -> dict:
@@ -95,12 +163,11 @@ def test_get_dataset_authenticated_allowed(client, authenticated_user):
     """Authenticated users can get dataset details."""
     hdrs = auth_hdr(client, "testuser", TEST_PASSWORD)
 
-    # Mock the external API call
-    mock_options = ["Hospital A", "Hospital B", "Hospital C"]
+    # Mock the external API call with realistic response
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"options": mock_options}
+        mock_response.json.return_value = get_mock_hospital_response()
         mock_get.return_value = mock_response
 
         resp = client.get("/api/datasets/hospitals_england/", **hdrs)
@@ -141,12 +208,11 @@ def test_list_datasets_returns_all_datasets(client, authenticated_user):
 def test_get_dataset_returns_options(client, authenticated_user):
     """Get dataset endpoint returns options from external API."""
     hdrs = auth_hdr(client, "testuser", TEST_PASSWORD)
-    mock_options = ["Royal Free Hospital", "St Mary's Hospital", "Guy's Hospital"]
 
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"options": mock_options}
+        mock_response.json.return_value = get_mock_hospital_response()
         mock_get.return_value = mock_response
 
         resp = client.get("/api/datasets/hospitals_england/", **hdrs)
@@ -154,27 +220,29 @@ def test_get_dataset_returns_options(client, authenticated_user):
         assert resp.status_code == 200
         data = resp.json()
         assert data["dataset_key"] == "hospitals_england"
-        assert data["options"] == mock_options
+        assert "options" in data
         assert len(data["options"]) == 3
+        # Verify format: "NAME (CODE)"
+        assert "ADDENBROOKE'S HOSPITAL (RGT01)" in data["options"]
 
 
 @pytest.mark.django_db
 def test_get_dataset_handles_list_response_format(client, authenticated_user):
     """Get dataset handles response that is a direct list."""
     hdrs = auth_hdr(client, "testuser", TEST_PASSWORD)
-    mock_options = ["Trust A", "Trust B"]
 
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = mock_options  # Direct list, not wrapped
+        mock_response.json.return_value = get_mock_trust_response()
         mock_get.return_value = mock_response
 
         resp = client.get("/api/datasets/nhs_trusts/", **hdrs)
 
         assert resp.status_code == 200
         data = resp.json()
-        assert data["options"] == mock_options
+        assert len(data["options"]) == 2
+        assert "AIREDALE NHS FOUNDATION TRUST (RCF)" in data["options"]
 
 
 # ============================================================================
@@ -255,12 +323,11 @@ def test_get_dataset_non_string_options_returns_502(client, authenticated_user):
 def test_get_dataset_caches_result(client, authenticated_user):
     """Successful dataset fetch is cached."""
     hdrs = auth_hdr(client, "testuser", TEST_PASSWORD)
-    mock_options = ["Hospital 1", "Hospital 2"]
 
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"options": mock_options}
+        mock_response.json.return_value = get_mock_hospital_response()
         mock_get.return_value = mock_response
 
         # First call
@@ -305,12 +372,10 @@ def test_get_dataset_cache_survives_authentication_changes(
     user1 = django_user_model.objects.create_user(username="user1", password="pass1")
     user2 = django_user_model.objects.create_user(username="user2", password="pass2")
 
-    mock_options = ["Shared Hospital"]
-
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"options": mock_options}
+        mock_response.json.return_value = get_mock_hospital_response()
         mock_get.return_value = mock_response
 
         # User 1 fetches dataset
@@ -348,17 +413,17 @@ def test_get_dataset_with_force_authenticate(api_client, authenticated_user):
     """Test get dataset using APIClient with force_authenticate."""
     api_client.force_authenticate(authenticated_user)
 
-    mock_options = ["Option 1", "Option 2"]
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"options": mock_options}
+        mock_response.json.return_value = get_mock_trust_response()
         mock_get.return_value = mock_response
 
         resp = api_client.get("/api/datasets/nhs_trusts/")
 
         assert resp.status_code == 200
-        assert resp.data["options"] == mock_options
+        assert "options" in resp.data
+        assert len(resp.data["options"]) == 2
 
 
 # ============================================================================
@@ -443,7 +508,7 @@ def test_get_dataset_response_structure(client, authenticated_user):
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"options": ["A", "B"]}
+        mock_response.json.return_value = get_mock_hospital_response()
         mock_get.return_value = mock_response
 
         resp = client.get("/api/datasets/hospitals_england/", **hdrs)
@@ -476,7 +541,7 @@ def test_org_admin_can_access_datasets(client, django_user_model):
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"options": ["Option 1"]}
+        mock_response.json.return_value = get_mock_hospital_response()
         mock_get.return_value = mock_response
 
         # List datasets
@@ -505,7 +570,7 @@ def test_org_creator_can_access_datasets(client, django_user_model):
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"options": ["Option 1"]}
+        mock_response.json.return_value = get_mock_hospital_response()
         mock_get.return_value = mock_response
 
         # List datasets
@@ -532,7 +597,7 @@ def test_org_viewer_can_access_datasets(client, django_user_model):
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"options": ["Option 1"]}
+        mock_response.json.return_value = get_mock_hospital_response()
         mock_get.return_value = mock_response
 
         # List datasets
@@ -559,7 +624,7 @@ def test_user_without_org_membership_can_access_datasets(client, django_user_mod
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"options": ["Option 1"]}
+        mock_response.json.return_value = get_mock_hospital_response()
         mock_get.return_value = mock_response
 
         # List datasets
