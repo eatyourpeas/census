@@ -15,12 +15,13 @@ To add a new dataset:
 
 See docs/adding-external-datasets.md for detailed examples.
 """
+
 import logging
 from typing import Any
 
-import requests
-from django.core.cache import cache
 from django.conf import settings
+from django.core.cache import cache
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -115,14 +116,20 @@ def _transform_response_to_options(dataset_key: str, data: Any) -> list[str]:
         DatasetFetchError: If data format is invalid
     """
     if not isinstance(data, list):
-        raise DatasetFetchError(f"Expected list response for {dataset_key}, got {type(data)}")
+        raise DatasetFetchError(
+            f"Expected list response for {dataset_key}, got {type(data)}"
+        )
 
     options = []
 
     if dataset_key == "hospitals_england_wales":
         # Format: {"ods_code": "RGT01", "name": "ADDENBROOKE'S HOSPITAL"}
         for item in data:
-            if not isinstance(item, dict) or "name" not in item or "ods_code" not in item:
+            if (
+                not isinstance(item, dict)
+                or "name" not in item
+                or "ods_code" not in item
+            ):
                 logger.warning(f"Skipping invalid hospital item: {item}")
                 continue
             options.append(f"{item['name']} ({item['ods_code']})")
@@ -130,7 +137,11 @@ def _transform_response_to_options(dataset_key: str, data: Any) -> list[str]:
     elif dataset_key == "nhs_trusts":
         # Format: {"ods_code": "RCF", "name": "AIREDALE NHS FOUNDATION TRUST", ...}
         for item in data:
-            if not isinstance(item, dict) or "name" not in item or "ods_code" not in item:
+            if (
+                not isinstance(item, dict)
+                or "name" not in item
+                or "ods_code" not in item
+            ):
                 logger.warning(f"Skipping invalid trust item: {item}")
                 continue
             options.append(f"{item['name']} ({item['ods_code']})")
@@ -155,7 +166,11 @@ def _transform_response_to_options(dataset_key: str, data: Any) -> list[str]:
     elif dataset_key == "london_boroughs":
         # Format: {"name": "Westminster", "gss_code": "E09000033", ...}
         for item in data:
-            if not isinstance(item, dict) or "name" not in item or "gss_code" not in item:
+            if (
+                not isinstance(item, dict)
+                or "name" not in item
+                or "gss_code" not in item
+            ):
                 logger.warning(f"Skipping invalid London borough item: {item}")
                 continue
             options.append(f"{item['name']} ({item['gss_code']})")
@@ -163,7 +178,11 @@ def _transform_response_to_options(dataset_key: str, data: Any) -> list[str]:
     elif dataset_key == "nhs_england_regions":
         # Format: {"region_code": "Y58", "name": "South West", ...}
         for item in data:
-            if not isinstance(item, dict) or "name" not in item or "region_code" not in item:
+            if (
+                not isinstance(item, dict)
+                or "name" not in item
+                or "region_code" not in item
+            ):
                 logger.warning(f"Skipping invalid NHS England region item: {item}")
                 continue
             options.append(f"{item['name']} ({item['region_code']})")
@@ -172,14 +191,18 @@ def _transform_response_to_options(dataset_key: str, data: Any) -> list[str]:
         # Format: {"pz_code": "PZ215", "primary_organisation": {"name": "...", "ods_code": "..."}, ...}
         for item in data:
             if not isinstance(item, dict) or "pz_code" not in item:
-                logger.warning(f"Skipping invalid paediatric diabetes unit item: {item}")
+                logger.warning(
+                    f"Skipping invalid paediatric diabetes unit item: {item}"
+                )
                 continue
 
             # Try to get name from primary_organisation, fall back to parent
             name = None
             code = item["pz_code"]
 
-            if "primary_organisation" in item and isinstance(item["primary_organisation"], dict):
+            if "primary_organisation" in item and isinstance(
+                item["primary_organisation"], dict
+            ):
                 primary = item["primary_organisation"]
                 if "name" in primary:
                     name = primary["name"]
@@ -201,7 +224,11 @@ def _transform_response_to_options(dataset_key: str, data: Any) -> list[str]:
     elif dataset_key == "integrated_care_boards":
         # Format: {"ods_code": "QOX", "name": "NHS Bath and North East Somerset...", ...}
         for item in data:
-            if not isinstance(item, dict) or "name" not in item or "ods_code" not in item:
+            if (
+                not isinstance(item, dict)
+                or "name" not in item
+                or "ods_code" not in item
+            ):
                 logger.warning(f"Skipping invalid ICB item: {item}")
                 continue
             options.append(f"{item['name']} ({item['ods_code']})")
@@ -210,7 +237,6 @@ def _transform_response_to_options(dataset_key: str, data: Any) -> list[str]:
         raise DatasetFetchError(f"No valid options found in response for {dataset_key}")
 
     return options
-
 
 
 def fetch_dataset(dataset_key: str) -> list[str]:
@@ -243,7 +269,9 @@ def fetch_dataset(dataset_key: str) -> list[str]:
         endpoint = _get_endpoint_for_dataset(dataset_key)
 
         if not endpoint:
-            raise DatasetFetchError(f"No endpoint configured for dataset: {dataset_key}")
+            raise DatasetFetchError(
+                f"No endpoint configured for dataset: {dataset_key}"
+            )
 
         url = f"{api_url}{endpoint}"
         logger.info(f"Fetching dataset from external API: {dataset_key} from {url}")

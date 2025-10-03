@@ -253,11 +253,13 @@ def _discover_doc_pages():
         # Add to category if specified
         category = config.get("category")
         if category and category in categorized:
-            categorized[category].append({
-                "slug": slug,
-                "title": config.get("title") or _doc_title(slug),
-                "file": file_path,
-            })
+            categorized[category].append(
+                {
+                    "slug": slug,
+                    "title": config.get("title") or _doc_title(slug),
+                    "file": file_path,
+                }
+            )
 
     # Auto-discover markdown files in docs/
     if DOCS_DIR.exists():
@@ -280,11 +282,13 @@ def _discover_doc_pages():
             title = _extract_title_from_file(md_file) or _doc_title(slug)
 
             pages[slug] = md_file
-            categorized[category].append({
-                "slug": slug,
-                "title": title,
-                "file": md_file,
-            })
+            categorized[category].append(
+                {
+                    "slug": slug,
+                    "title": title,
+                    "file": md_file,
+                }
+            )
 
     return pages, categorized
 
@@ -298,15 +302,23 @@ def _infer_category(slug: str) -> str:
         return "getting-started"
 
     # Features
-    if any(x in slug_lower for x in ["surveys", "collections", "groups", "import", "publish"]):
+    if any(
+        x in slug_lower
+        for x in ["surveys", "collections", "groups", "import", "publish"]
+    ):
         return "features"
 
     # Configuration
-    if any(x in slug_lower for x in ["branding", "theme", "user-management", "prefilled-datasets-setup"]):
+    if any(
+        x in slug_lower
+        for x in ["branding", "theme", "user-management", "prefilled-datasets-setup"]
+    ):
         return "configuration"
 
     # API & Development
-    if any(x in slug_lower for x in ["api", "authentication", "adding-", "development"]):
+    if any(
+        x in slug_lower for x in ["api", "authentication", "adding-", "development"]
+    ):
         return "api"
 
     # Advanced
@@ -348,13 +360,15 @@ def _nav_pages():
 
         cat_info = DOC_CATEGORIES.get(cat_key, {"title": cat_key.title(), "order": 99})
 
-        nav.append({
-            "key": cat_key,
-            "title": cat_info.get("title", cat_key.title()),
-            "icon": cat_info.get("icon", ""),
-            "order": cat_info.get("order", 99),
-            "pages": sorted(pages_list, key=lambda p: p["title"]),
-        })
+        nav.append(
+            {
+                "key": cat_key,
+                "title": cat_info.get("title", cat_key.title()),
+                "icon": cat_info.get("icon", ""),
+                "order": cat_info.get("order", 99),
+                "pages": sorted(pages_list, key=lambda p: p["title"]),
+            }
+        )
 
     # Sort categories by order
     nav.sort(key=lambda c: c["order"])

@@ -242,7 +242,6 @@ DEFAULT_FROM_EMAIL = "no-reply@example.com"
 
 # External Dataset API Configuration
 EXTERNAL_DATASET_API_URL = os.environ.get(
-    "EXTERNAL_DATASET_API_URL",
-    "https://api.rcpch.ac.uk"
+    "EXTERNAL_DATASET_API_URL", "https://api.rcpch.ac.uk"
 )
 EXTERNAL_DATASET_API_KEY = os.environ.get("EXTERNAL_DATASET_API_KEY", "")

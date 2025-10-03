@@ -11,6 +11,11 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
+from census_app.surveys.external_datasets import (
+    DatasetFetchError,
+    fetch_dataset,
+    get_available_datasets,
+)
 from census_app.surveys.models import (
     AuditLog,
     Organization,
@@ -22,11 +27,6 @@ from census_app.surveys.models import (
     SurveyQuestion,
 )
 from census_app.surveys.permissions import can_edit_survey, can_view_survey
-from census_app.surveys.external_datasets import (
-    fetch_dataset,
-    get_available_datasets,
-    DatasetFetchError,
-)
 
 User = get_user_model()
 
@@ -641,11 +641,7 @@ def list_datasets(request):
     """List available prefilled datasets for dropdowns."""
     datasets = get_available_datasets()
     return Response(
-        {
-            "datasets": [
-                {"key": key, "name": name} for key, name in datasets.items()
-            ]
-        }
+        {"datasets": [{"key": key, "name": name} for key, name in datasets.items()]}
     )
 
 
