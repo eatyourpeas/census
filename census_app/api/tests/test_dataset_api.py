@@ -362,12 +362,12 @@ def test_get_dataset_cache_key_isolation(client, authenticated_user):
 def test_get_dataset_cache_survives_authentication_changes(client, django_user_model):
     """Cached data is shared across users."""
     # Create two users
-    user1 = django_user_model.objects.create_user(
+    user1 = django_user_model.objects.create_user(  # noqa: F841
         username="user1", password="pass1"
-    )  # noqa: F841
-    user2 = django_user_model.objects.create_user(
+    )
+    user2 = django_user_model.objects.create_user(  # noqa: F841
         username="user2", password="pass2"
-    )  # noqa: F841
+    )
 
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
@@ -612,9 +612,9 @@ def test_user_without_org_membership_can_access_datasets(client, django_user_mod
     user might need. The restriction happens at the survey editing level, not
     at the dataset access level.
     """
-    user = django_user_model.objects.create_user(
+    user = django_user_model.objects.create_user(  # noqa: F841
         username="user", password="pass"
-    )  # noqa: F841
+    )
 
     hdrs = auth_hdr(client, "user", "pass")
 
