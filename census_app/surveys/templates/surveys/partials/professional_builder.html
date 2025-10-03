@@ -1,3 +1,4 @@
+{% load survey_extras %}
 {% if show_professional_details %}
 <div id="professional-preview" class="card bg-base-100 shadow mt-4">
   <div class="card-body">
@@ -6,10 +7,27 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
       {% for key,label in professional_defs.items %}
         {% if key in professional_fields %}
-          <div class="space-y-1">
-            <label class="input input-bordered input-sm flex items-center gap-1.5">
-              <input class="grow min-w-0 bg-transparent outline-none border-0" name="prof_{{ key }}" placeholder="{{ label }}" />
-            </label>
+          <div class="space-y-1" data-professional-field="{{ key }}">
+            {% if professional_field_datasets|dict_get:key %}
+              {# Field has a dataset mapping - use dropdown #}
+              <label class="label">
+                <span class="label-text">{{ label }}</span>
+              </label>
+              <select
+                class="select select-bordered select-sm w-full"
+                name="prof_{{ key }}"
+                data-dataset-field="{{ key }}"
+                data-dataset-key="{{ professional_field_datasets|dict_get:key }}"
+                disabled>
+                <option value="">-- Select {{ label }} --</option>
+                <option value="__preview__" disabled selected>Options loaded in live form</option>
+              </select>
+            {% else %}
+              {# Regular text input #}
+              <label class="input input-bordered input-sm flex items-center gap-1.5">
+                <input class="grow min-w-0 bg-transparent outline-none border-0" name="prof_{{ key }}" placeholder="{{ label }}" />
+              </label>
+            {% endif %}
             {% if professional_ods_on and key in professional_ods_on %}
               <label class="input input-bordered input-sm flex items-center gap-1.5">
                 <input class="grow min-w-0 bg-transparent outline-none border-0" name="prof_{{ key }}_ods" placeholder="{{ label }} ODS code" />

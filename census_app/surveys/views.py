@@ -114,6 +114,15 @@ PROFESSIONAL_ODS_FIELDS = {
     "gp_surgery",
 }
 
+# Map professional fields to external dataset keys (for prefilled dropdowns)
+PROFESSIONAL_FIELD_TO_DATASET = {
+    "employing_trust": "nhs_trusts",
+    "employing_health_board": "welsh_lhbs",
+    "integrated_care_board": "integrated_care_boards",
+    "nhs_england_region": "nhs_england_regions",
+    "gp_surgery": "hospitals_england_wales",  # GP surgeries could use hospitals dataset
+}
+
 PATIENT_TEMPLATE_DEFAULT_FIELDS = [
     "first_name",
     "surname",
@@ -688,6 +697,7 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
         "professional_fields": professional_fields,
         "professional_defs": PROFESSIONAL_FIELD_DEFS,
         "professional_ods": professional_ods,
+        "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
     }
     if any(
         v for k, v in brand_overrides.items() if k != "primary_hex"
@@ -771,6 +781,7 @@ def survey_preview(request: HttpRequest, slug: str) -> HttpResponse:
         "professional_fields": professional_fields,
         "professional_defs": PROFESSIONAL_FIELD_DEFS,
         "professional_ods": professional_ods,
+        "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
     }
     if any(
         v for k, v in brand_overrides.items() if k != "primary_hex"
@@ -1733,6 +1744,7 @@ def _handle_participant_submission(
         "professional_fields": professional_fields,
         "professional_defs": PROFESSIONAL_FIELD_DEFS,
         "professional_ods": professional_ods,
+        "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
     }
     return render(request, "surveys/detail.html", ctx)
 
@@ -2551,6 +2563,7 @@ def group_builder(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
         "professional_ods": professional_ods,
         "professional_ods_on": professional_ods_on,
         "professional_ods_pairs": professional_ods_pairs,
+        "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
         "available_datasets": get_available_datasets(),
     }
     if any(brand_overrides.values()):
@@ -2671,6 +2684,7 @@ def builder_professional_update(request: HttpRequest, slug: str) -> HttpResponse
             "professional_ods": professional_ods,
             "professional_ods_on": professional_ods_on,
             "professional_ods_pairs": professional_ods_pairs,
+            "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
         },
     )
 

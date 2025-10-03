@@ -22,7 +22,7 @@
 {% load static %}
 {% block title %}{{ survey.name }} - Census{% endblock %}
 {% block content %}
-<div class="card bg-base-100 image-full min-w-full shadow-sm">
+<div class="card bg-primary image-full min-w-full shadow-sm">
     <div class="card-body">
         <h2 class="card-title inline-flex items-center gap-2">
           {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
@@ -58,13 +58,12 @@
         <div class="card-body pt-0">
     {% endif %}
 
-    {# Render question either inside the open group card or as its own card if ungrouped #}
-    {% if q.group %}
-      <div class="mb-4">
-        <h2 class="font-semibold inline-flex items-center gap-2">
-          {% include "components/icons/document.html" with classes="w-4 h-4 opacity-70" %}
-          <span><span class="text-sm opacity-70 mr-2 select-none">{{ q.idx }}.</span> {{ q.text }} {% if q.required %}<span class="text-error">*</span>{% endif %}</span>
-        </h2>
+    {# Render question inside the group card #}
+    <div class="mb-4">
+      <h2 class="font-semibold inline-flex items-center gap-2">
+        {% include "components/icons/document.html" with classes="w-4 h-4 opacity-70" %}
+        <span><span class="text-sm opacity-70 mr-2 select-none">{{ q.idx }}.</span> {{ q.text }} {% if q.required %}<span class="text-error">*</span>{% endif %}</span>
+      </h2>
         {% if q.type == 'text' %}
           {% with q.options|options_meta as meta %}
             {% if meta and meta.format == 'number' %}
@@ -156,119 +155,14 @@
               </li>
             {% endfor %}
           </ol>
-        {% else %}
-          <input class="input input-bordered w-full" type="text" name="q_{{ q.id }}" />
-        {% endif %}
-      </div>
-      {# Close the group card if this is the last question of the group #}
-      {% if q.group_end %}
-        </div></div>
-      {% endif %}
-    {% else %}
-      <div class="card bg-base-100 shadow">
-        <div class="card-body">
-          <h2 class="card-title inline-flex items-center gap-2">
-            {% include "components/icons/document.html" with classes="w-4 h-4 opacity-70" %}
-            <span><span class="text-sm opacity-70 mr-2 select-none">{{ q.idx }}.</span> {{ q.text }} {% if q.required %}<span class="text-error">*</span>{% endif %}</span>
-          </h2>
-          {% if q.type == 'text' %}
-            {% with q.options.0 as meta %}
-              {% if meta and meta.format == 'number' %}
-                <input class="input input-bordered w-full" type="number" name="q_{{ q.id }}" />
-              {% else %}
-                <input class="input input-bordered w-full" type="text" name="q_{{ q.id }}" />
-              {% endif %}
-            {% endwith %}
-          {% elif q.type == 'mc_single' %}
-            {% for opt in q.options|as_list %}
-              <label class="label cursor-pointer justify-start gap-2">
-                <input type="radio" class="radio" name="q_{{ q.id }}" value="{{ opt|option_value }}" />
-                <span>{{ opt|option_label }}</span>
-              </label>
-            {% endfor %}
-          {% elif q.type == 'mc_multi' %}
-            {% for opt in q.options|as_list %}
-              <label class="label cursor-pointer justify-start gap-2">
-                <input type="checkbox" class="checkbox" name="q_{{ q.id }}" value="{{ opt|option_value }}" />
-                <span>{{ opt|option_label }}</span>
-              </label>
-            {% endfor %}
-          {% elif q.type == 'dropdown' %}
-            <select class="select select-bordered" name="q_{{ q.id }}">
-              {% for opt in q.options|as_list %}
-              <option value="{{ opt|option_value }}">{{ opt|option_label }}</option>
-              {% endfor %}
-            </select>
-          {% elif q.type == 'yesno' %}
-            <select class="select select-bordered" name="q_{{ q.id }}">
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
-          {% elif q.type == 'likert' %}
-            {% with q.options.0 as meta %}
-              {% if meta and meta.type == 'number-scale' %}
-                <div class="flex items-center gap-4">
-                  {% if meta.left %}<span class="text-sm opacity-70 min-w-16 text-right">{{ meta.left }}</span>{% endif %}
-                  <div class="flex-1">
-                    <input type="range" class="range range-primary w-full" min="{{ meta.min|default:1 }}" max="{{ meta.max|default:5 }}" step="1" name="q_{{ q.id }}" />
-                    <div class="flex justify-between text-[11px] opacity-70 mt-1">
-                      <span>{{ meta.min|default:1 }}</span>
-                      <span>{{ meta.max|default:5 }}</span>
-                    </div>
-                  </div>
-                  {% if meta.right %}<span class="text-sm opacity-70 min-w-16">{{ meta.right }}</span>{% endif %}
-                </div>
-              {% else %}
-                {% for opt in q.options|as_list %}
-                  <label class="label cursor-pointer justify-start gap-2">
-                    <input type="radio" class="radio" name="q_{{ q.id }}" value="{{ opt|option_value }}" />
-                    <span>{{ opt|option_label }}</span>
-                  </label>
-                {% endfor %}
-              {% endif %}
-            {% endwith %}
-          {% elif q.type == 'orderable' %}
-              <ol class="orderable-list list-decimal pl-5" data-name="q_{{ q.id }}">
-                {% for opt in q.options|as_list %}
-                  <li class="flex items-center gap-2 py-1">
-                    <button type="button" class="drag-handle inline-flex items-center justify-center w-7 h-7 mr-1 rounded-md text-primary border border-primary/30 hover:bg-primary/20 shrink-0 cursor-move" style="background-color: color-mix(in oklch, var(--p) 12%, transparent);" aria-label="Drag to reorder" title="Drag to reorder">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 48 48" fill="currentColor" aria-hidden="true" focusable="false">
-                        <title>drag-arrow</title>
-                        <g id="Layer_2" data-name="Layer 2">
-                          <g id="invisible_box" data-name="invisible box">
-                            <rect width="48" height="48" fill="none"/>
-                          </g>
-                          <g id="icons_Q2" data-name="icons Q2">
-                            <path d="M45.4,22.6l-5.9-6a2.1,2.1,0,0,0-2.7-.2,1.9,1.9,0,0,0-.2,3L39.2,22H26V8.8l2.6,2.6a1.9,1.9,0,0,0,3-.2,2.1,2.1,0,0,0-.2-2.7l-6-5.9a1.9,1.9,0,0,0-2.8,0l-6,5.9a2.1,2.1,0,0,0-.2,2.7,1.9,1.9,0,0,0,3,.2L22,8.8V22H8.8l2.6-2.6a1.9,1.9,0,0,0-.2-3,2.1,2.1,0,0,0-2.7.2l-5.9,6a1.9,1.9,0,0,0,0,2.8l5.9,6a2.1,2.1,0,0,0,2.7.2,1.9,1.9,0,0,0,.2-3L8.8,26H22V39.2l-2.6-2.6a1.9,1.9,0,0,0-3,.2,2.1,2.1,0,0,0,.2,2.7l6,5.9a1.9,1.9,0,0,0,2.8,0l6-5.9a2.1,2.1,0,0,0,.2-2.7,1.9,1.9,0,0,0-3-.2L26,39.2V26H39.2l-2.6,2.6a1.9,1.9,0,0,0,.2,3,2.1,2.1,0,0,0,2.7-.2l5.9-6A1.9,1.9,0,0,0,45.4,22.6Z"/>
-                          </g>
-                        </g>
-                      </svg>
-                    </button>
-                    <span class="flex-1">{{ opt|option_label }}</span>
-                    <input type="hidden" name="q_{{ q.id }}" value="{{ opt|option_value }}" />
-                  </li>
-                {% endfor %}
-              </ol>
-          {% elif q.type == 'template_patient' %}
-            <div class="space-y-2">
-              <p class="text-sm opacity-70 -mb-1">These responses are encrypted and only visible to the person entering them.</p>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {% for field in q.options.fields %}
-                  {% if field.selected %}
-                    <label class="input input-bordered input-sm flex items-center gap-1.5">
-                      <input class="grow min-w-0 bg-transparent outline-none border-0" name="q_{{ q.id }}_{{ field.key }}" placeholder="{{ field.label }}" />
-                      <svg class="!w-4 !h-4 opacity-50 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                        <g stroke-linejoin="round" stroke-linecap="round" stroke-width="2.5" fill="none" stroke="currentColor">
-                          <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path>
-                          <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
-                        </g>
-                      </svg>
-                    </label>
-                  {% endif %}
-                {% endfor %}
-                {% if q.options.include_imd %}
+        {% elif q.type == 'template_patient' %}
+          <div class="space-y-2">
+            <p class="text-sm opacity-70 -mb-1">These responses are encrypted and only visible to the person entering them.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {% for field in q.options.fields %}
+                {% if field.selected %}
                   <label class="input input-bordered input-sm flex items-center gap-1.5">
-                    <input class="grow min-w-0 bg-transparent outline-none border-0" placeholder="Index of Multiple Deprivation" disabled />
+                    <input class="grow min-w-0 bg-transparent outline-none border-0" name="q_{{ q.id }}_{{ field.key }}" placeholder="{{ field.label }}" />
                     <svg class="!w-4 !h-4 opacity-50 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                       <g stroke-linejoin="round" stroke-linecap="round" stroke-width="2.5" fill="none" stroke="currentColor">
                         <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path>
@@ -277,30 +171,60 @@
                     </svg>
                   </label>
                 {% endif %}
-              </div>
+              {% endfor %}
+              {% if q.options.include_imd %}
+                <label class="input input-bordered input-sm flex items-center gap-1.5">
+                  <input class="grow min-w-0 bg-transparent outline-none border-0" placeholder="Index of Multiple Deprivation" disabled />
+                  <svg class="!w-4 !h-4 opacity-50 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <g stroke-linejoin="round" stroke-linecap="round" stroke-width="2.5" fill="none" stroke="currentColor">
+                      <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path>
+                      <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                    </g>
+                  </svg>
+                </label>
+              {% endif %}
             </div>
-          {% elif q.type == 'template_professional' %}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {% for field in q.options.fields %}
-                {% if field.selected %}
-                  <div class="space-y-1">
+          </div>
+        {% elif q.type == 'template_professional' %}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for field in q.options.fields %}
+              {% if field.selected %}
+                <div class="space-y-1" data-professional-field="{{ field.key }}">
+                  {% if professional_field_datasets|dict_get:field.key %}
+                    {# Field has a dataset mapping - use dropdown #}
+                    <label class="label">
+                      <span class="label-text">{{ field.label }}</span>
+                    </label>
+                    <select
+                      class="select select-bordered select-sm w-full"
+                      name="q_{{ q.id }}_{{ field.key }}"
+                      data-dataset-field="{{ field.key }}"
+                      data-dataset-key="{{ professional_field_datasets|dict_get:field.key }}">
+                      <option value="">-- Select {{ field.label }} --</option>
+                      <option value="__loading__" disabled>Loading options...</option>
+                    </select>
+                  {% else %}
+                    {# Regular text input #}
                     <label class="input input-bordered input-sm flex items-center gap-1.5">
                       <input class="grow min-w-0 bg-transparent outline-none border-0" name="q_{{ q.id }}_{{ field.key }}" placeholder="{{ field.label }}" />
                     </label>
-                    {% if field.allow_ods and field.ods_enabled %}
-                      <label class="input input-bordered input-sm flex items-center gap-1.5">
-                        <input class="grow min-w-0 bg-transparent outline-none border-0" name="q_{{ q.id }}_{{ field.key }}_ods" placeholder="{{ field.label }} ODS code" />
-                      </label>
-                    {% endif %}
-                  </div>
-                {% endif %}
-              {% endfor %}
-            </div>
-          {% else %}
-            <input class="input input-bordered w-full" type="text" name="q_{{ q.id }}" />
-          {% endif %}
-        </div>
-      </div>
+                  {% endif %}
+                  {% if field.allow_ods and field.ods_enabled %}
+                    <label class="input input-bordered input-sm flex items-center gap-1.5">
+                      <input class="grow min-w-0 bg-transparent outline-none border-0" name="q_{{ q.id }}_{{ field.key }}_ods" placeholder="{{ field.label }} ODS code" />
+                    </label>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <input class="input input-bordered w-full" type="text" name="q_{{ q.id }}" />
+        {% endif %}
+    </div>
+    {# Close the group card if this is the last question of the group #}
+    {% if q.group_end %}
+      </div></div>
     {% endif %}
   {% endfor %}
 
@@ -326,10 +250,26 @@
     <div class="divider">Professional details</div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       {% for key in professional_fields %}
-        <div class="space-y-1">
-          <label class="input input-bordered input-sm flex items-center gap-1.5">
-            <input class="grow min-w-0 bg-transparent outline-none border-0" name="prof_{{ key }}" placeholder="{{ professional_defs|dict_get:key }}" />
-          </label>
+        <div class="space-y-1" data-professional-field="{{ key }}">
+          {% if professional_field_datasets|dict_get:key %}
+            {# Field has a dataset mapping - use dropdown #}
+            <label class="label">
+              <span class="label-text">{{ professional_defs|dict_get:key }}</span>
+            </label>
+            <select
+              class="select select-bordered select-sm w-full"
+              name="prof_{{ key }}"
+              data-dataset-field="{{ key }}"
+              data-dataset-key="{{ professional_field_datasets|dict_get:key }}">
+              <option value="">-- Select {{ professional_defs|dict_get:key }} --</option>
+              <option value="__loading__" disabled>Loading options...</option>
+            </select>
+          {% else %}
+            {# Regular text input #}
+            <label class="input input-bordered input-sm flex items-center gap-1.5">
+              <input class="grow min-w-0 bg-transparent outline-none border-0" name="prof_{{ key }}" placeholder="{{ professional_defs|dict_get:key }}" />
+            </label>
+          {% endif %}
           {% if professional_ods|dict_get:key %}
           <label class="input input-bordered input-sm flex items-center gap-1.5">
             <input class="grow min-w-0 bg-transparent outline-none border-0" name="prof_{{ key }}_ods" placeholder="{{ professional_defs|dict_get:key }} ODS code" />
@@ -350,8 +290,14 @@
   <button class="btn btn-primary" type="submit">Submit</button>
 </form>
 
+<!-- DEBUG: Total questions = {{ questions|length }} -->
+{% for q in questions %}
+  <!-- DEBUG: Question {{ forloop.counter }}: type={{ q.type }}, text={{ q.text|truncatechars:50 }} -->
+{% endfor %}
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script src="{% static 'js/orderable.js' %}"></script>
+{# Load professional fields script if we have group-level OR question-level professional details #}
+<script src="{% static 'js/professional-fields.js' %}"></script>
 
 {% endblock %}
