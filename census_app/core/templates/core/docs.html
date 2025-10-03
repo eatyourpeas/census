@@ -3,15 +3,22 @@
 {% block content %}
 <div class="grid grid-cols-12 gap-6">
   <aside class="col-span-12 lg:col-span-3">
-    <div class="card bg-base-100 shadow">
+    <div class="card bg-base-100 shadow sticky top-4">
       <div class="card-body">
         <h2 class="card-title">Documentation</h2>
         <ul class="menu menu-sm">
-          <li class="menu-title">Pages</li>
-          {% for item in pages %}
-            <li>
-              <a class="{% if active_slug == item.slug %}active{% endif %}" href="{% url 'core:docs_page' slug=item.slug %}">{{ item.title }}</a>
+          {% for category in pages %}
+            <li class="menu-title mt-2">
+              {% if category.icon %}{{ category.icon }} {% endif %}{{ category.title }}
             </li>
+            {% for page in category.pages %}
+              <li>
+                <a class="{% if active_slug == page.slug %}active{% endif %}"
+                   href="{% url 'core:docs_page' slug=page.slug %}">
+                  {{ page.title }}
+                </a>
+              </li>
+            {% endfor %}
           {% endfor %}
         </ul>
       </div>

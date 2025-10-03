@@ -184,35 +184,182 @@ def _resolve_repo_root() -> Path:
 REPO_ROOT = _resolve_repo_root()
 DOCS_DIR = REPO_ROOT / "docs"
 
-DOC_PAGES = {
-    "index": "README.md",
-    "getting-started": "getting-started.md",
-    "getting-started-api": "getting-started-api.md",
-    "authentication-and-permissions": "authentication-and-permissions.md",
-    "api": "api.md",
-    "branding-and-theme-settings": "branding-and-theme-settings.md",
-    "themes": "themes.md",
-    "surveys": "surveys.md",
-    "import": "import.md",
-    "publish-and-collection": "publish-and-collection.md",
-    "user-management": "user-management.md",
-    "collections": "collections.md",
-    "groups-view": "groups-view.md",
-    "releases": "releases.md",
-    # Wire up repository root CONTRIBUTING.md into the in-app docs
-    "contributing": REPO_ROOT / "CONTRIBUTING.md",
-}
-
 
 def _doc_title(slug: str) -> str:
-    # Convert slug to Title Case words (e.g., "getting-started" -> "Getting Started")
+    """Convert slug to Title Case words (e.g., 'getting-started' -> 'Getting Started')."""
     return " ".join(part.capitalize() for part in slug.replace("_", "-").split("-"))
 
 
+# Category definitions for organizing documentation
+# Each category can have an optional icon and display order
+DOC_CATEGORIES = {
+    "getting-started": {
+        "title": "Getting Started",
+        "order": 1,
+        "icon": "📚",
+    },
+    "features": {
+        "title": "Features",
+        "order": 2,
+        "icon": "✨",
+    },
+    "configuration": {
+        "title": "Configuration",
+        "order": 3,
+        "icon": "⚙️",
+    },
+    "api": {
+        "title": "API & Development",
+        "order": 4,
+        "icon": "🔧",
+    },
+    "advanced": {
+        "title": "Advanced Topics",
+        "order": 5,
+        "icon": "🚀",
+    },
+    "other": {
+        "title": "Other",
+        "order": 99,
+        "icon": "📄",
+    },
+}
+
+# Manual overrides for specific files (optional)
+# If a file isn't listed here, it will be auto-discovered
+# Format: "slug": {"file": "filename.md", "category": "category-key", "title": "Custom Title"}
+DOC_PAGE_OVERRIDES = {
+    "index": {"file": "README.md", "category": None},  # Special: index page
+    "contributing": {"file": REPO_ROOT / "CONTRIBUTING.md", "category": "other"},
+}
+
+
+def _discover_doc_pages():
+    """
+    Auto-discover all markdown files in docs/ directory and organize by category.
+
+    Returns a dict mapping slug -> file path, and a categorized structure for navigation.
+    """
+    pages = {}
+    categorized = {cat: [] for cat in DOC_CATEGORIES.keys()}
+
+    # First, add manual overrides
+    for slug, config in DOC_PAGE_OVERRIDES.items():
+        file_path = config["file"]
+        if isinstance(file_path, str):
+            file_path = DOCS_DIR / file_path
+        pages[slug] = file_path
+
+        # Add to category if specified
+        category = config.get("category")
+        if category and category in categorized:
+            categorized[category].append({
+                "slug": slug,
+                "title": config.get("title") or _doc_title(slug),
+                "file": file_path,
+            })
+
+    # Auto-discover markdown files in docs/
+    if DOCS_DIR.exists():
+        for md_file in sorted(DOCS_DIR.glob("*.md")):
+            # Skip README.md as it's the index
+            if md_file.name == "README.md":
+                continue
+
+            # Generate slug from filename
+            slug = md_file.stem
+
+            # Skip if already manually configured
+            if slug in pages:
+                continue
+
+            # Determine category by filename patterns
+            category = _infer_category(slug)
+
+            # Extract title from file (first H1) or use slug
+            title = _extract_title_from_file(md_file) or _doc_title(slug)
+
+            pages[slug] = md_file
+            categorized[category].append({
+                "slug": slug,
+                "title": title,
+                "file": md_file,
+            })
+
+    return pages, categorized
+
+
+def _infer_category(slug: str) -> str:
+    """Infer category from slug/filename patterns."""
+    slug_lower = slug.lower()
+
+    # Getting Started
+    if any(x in slug_lower for x in ["getting-started", "quickstart", "setup"]):
+        return "getting-started"
+
+    # Features
+    if any(x in slug_lower for x in ["surveys", "collections", "groups", "import", "publish"]):
+        return "features"
+
+    # Configuration
+    if any(x in slug_lower for x in ["branding", "theme", "user-management", "prefilled-datasets-setup"]):
+        return "configuration"
+
+    # API & Development
+    if any(x in slug_lower for x in ["api", "authentication", "adding-", "development"]):
+        return "api"
+
+    # Advanced
+    if any(x in slug_lower for x in ["advanced", "custom", "extend"]):
+        return "advanced"
+
+    # Default
+    return "other"
+
+
+def _extract_title_from_file(file_path: Path) -> str | None:
+    """Extract title from first # heading in markdown file."""
+    try:
+        content = file_path.read_text(encoding="utf-8")
+        for line in content.split("\n"):
+            line = line.strip()
+            if line.startswith("# "):
+                return line[2:].strip()
+    except Exception:
+        pass
+    return None
+
+
+# Build the pages dict and categorized structure
+DOC_PAGES, DOC_CATEGORIES_WITH_PAGES = _discover_doc_pages()
+
+
 def _nav_pages():
-    return [
-        {"slug": s, "title": _doc_title(s)} for s in DOC_PAGES.keys() if s != "index"
-    ]
+    """
+    Return categorized navigation structure for documentation.
+
+    Returns a list of categories with their pages.
+    """
+    nav = []
+
+    for cat_key, pages_list in DOC_CATEGORIES_WITH_PAGES.items():
+        if not pages_list:  # Skip empty categories
+            continue
+
+        cat_info = DOC_CATEGORIES.get(cat_key, {"title": cat_key.title(), "order": 99})
+
+        nav.append({
+            "key": cat_key,
+            "title": cat_info.get("title", cat_key.title()),
+            "icon": cat_info.get("icon", ""),
+            "order": cat_info.get("order", 99),
+            "pages": sorted(pages_list, key=lambda p: p["title"]),
+        })
+
+    # Sort categories by order
+    nav.sort(key=lambda c: c["order"])
+
+    return nav
 
 
 def docs_index(request):
@@ -232,14 +379,16 @@ def docs_index(request):
 
 
 def docs_page(request, slug: str):
-    """Render a specific documentation page by slug mapped to a whitelisted file."""
+    """Render a specific documentation page by slug."""
     if slug not in DOC_PAGES:
         raise Http404("Page not found")
-    # Allow values in DOC_PAGES to be either relative paths under docs/ or absolute paths
-    mapped = DOC_PAGES[slug]
-    file_path = (DOCS_DIR / mapped) if isinstance(mapped, (str,)) else Path(mapped)
+
+    # DOC_PAGES values are already Path objects from _discover_doc_pages
+    file_path = DOC_PAGES[slug]
+
     if not file_path.exists():
         raise Http404("Page not found")
+
     html = mdlib.markdown(
         file_path.read_text(encoding="utf-8"),
         extensions=["fenced_code", "tables", "toc"],
