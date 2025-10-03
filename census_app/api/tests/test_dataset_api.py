@@ -141,7 +141,7 @@ def test_list_datasets_requires_authentication(client):
 @pytest.mark.django_db
 def test_get_dataset_requires_authentication(client):
     """Anonymous users cannot get dataset details."""
-    resp = client.get("/api/datasets/hospitals_england/")
+    resp = client.get("/api/datasets/hospitals_england_wales/")
     assert resp.status_code in (401, 403)
 
 
@@ -165,7 +165,7 @@ def test_get_dataset_authenticated_allowed(client, authenticated_user):
         mock_response.json.return_value = get_mock_hospital_response()
         mock_get.return_value = mock_response
 
-        resp = client.get("/api/datasets/hospitals_england/", **hdrs)
+        resp = client.get("/api/datasets/hospitals_england_wales/", **hdrs)
         assert resp.status_code == 200
 
 
@@ -210,11 +210,11 @@ def test_get_dataset_returns_options(client, authenticated_user):
         mock_response.json.return_value = get_mock_hospital_response()
         mock_get.return_value = mock_response
 
-        resp = client.get("/api/datasets/hospitals_england/", **hdrs)
+        resp = client.get("/api/datasets/hospitals_england_wales/", **hdrs)
 
         assert resp.status_code == 200
         data = resp.json()
-        assert data["dataset_key"] == "hospitals_england"
+        assert data["dataset_key"] == "hospitals_england_wales"
         assert "options" in data
         assert len(data["options"]) == 3
         # Verify format: "NAME (CODE)"
@@ -265,7 +265,7 @@ def test_get_dataset_external_api_failure_returns_502(client, authenticated_user
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_get.side_effect = requests.RequestException("Connection timeout")
 
-        resp = client.get("/api/datasets/hospitals_wales/", **hdrs)
+        resp = client.get("/api/datasets/hospitals_england_wales/", **hdrs)
 
         assert resp.status_code == 502
         data = resp.json()
@@ -302,7 +302,7 @@ def test_get_dataset_non_string_options_returns_502(client, authenticated_user):
         mock_response.json.return_value = {"options": [123, 456, "valid"]}
         mock_get.return_value = mock_response
 
-        resp = client.get("/api/datasets/hospitals_england/", **hdrs)
+        resp = client.get("/api/datasets/hospitals_england_wales/", **hdrs)
 
         assert resp.status_code == 502
         data = resp.json()
@@ -351,7 +351,7 @@ def test_get_dataset_cache_key_isolation(client, authenticated_user):
         mock_get.return_value = mock_response
 
         # Fetch two different datasets
-        client.get("/api/datasets/hospitals_england/", **hdrs)
+        client.get("/api/datasets/hospitals_england_wales/", **hdrs)
         client.get("/api/datasets/nhs_trusts/", **hdrs)
 
         # Should have made 2 separate API calls
@@ -377,13 +377,13 @@ def test_get_dataset_cache_survives_authentication_changes(client, django_user_m
 
         # User 1 fetches dataset
         hdrs1 = auth_hdr(client, "user1", "pass1")
-        resp1 = client.get("/api/datasets/hospitals_wales/", **hdrs1)
+        resp1 = client.get("/api/datasets/hospitals_england_wales/", **hdrs1)
         assert resp1.status_code == 200
         assert mock_get.call_count == 1
 
         # User 2 fetches same dataset - should use cache
         hdrs2 = auth_hdr(client, "user2", "pass2")
-        resp2 = client.get("/api/datasets/hospitals_wales/", **hdrs2)
+        resp2 = client.get("/api/datasets/hospitals_england_wales/", **hdrs2)
         assert resp2.status_code == 200
         assert mock_get.call_count == 1  # No additional call
 
@@ -442,7 +442,7 @@ def test_external_api_receives_auth_header_when_configured(
         mock_response.json.return_value = {"options": ["A"]}
         mock_get.return_value = mock_response
 
-        client.get("/api/datasets/hospitals_england/", **hdrs)
+        client.get("/api/datasets/hospitals_england_wales/", **hdrs)
 
         # Verify the call was made with auth header
         mock_get.assert_called_once()
@@ -508,13 +508,13 @@ def test_get_dataset_response_structure(client, authenticated_user):
         mock_response.json.return_value = get_mock_hospital_response()
         mock_get.return_value = mock_response
 
-        resp = client.get("/api/datasets/hospitals_england/", **hdrs)
+        resp = client.get("/api/datasets/hospitals_england_wales/", **hdrs)
 
         data = resp.json()
         assert isinstance(data, dict)
         assert "dataset_key" in data
         assert "options" in data
-        assert data["dataset_key"] == "hospitals_england"
+        assert data["dataset_key"] == "hospitals_england_wales"
         assert isinstance(data["options"], list)
         assert all(isinstance(opt, str) for opt in data["options"])
 
@@ -546,7 +546,7 @@ def test_org_admin_can_access_datasets(client, django_user_model):
         assert resp.status_code == 200
 
         # Get specific dataset
-        resp = client.get("/api/datasets/hospitals_england/", **hdrs)
+        resp = client.get("/api/datasets/hospitals_england_wales/", **hdrs)
         assert resp.status_code == 200
 
 
@@ -573,7 +573,7 @@ def test_org_creator_can_access_datasets(client, django_user_model):
         assert resp.status_code == 200
 
         # Get specific dataset
-        resp = client.get("/api/datasets/hospitals_england/", **hdrs)
+        resp = client.get("/api/datasets/hospitals_england_wales/", **hdrs)
         assert resp.status_code == 200
 
 
@@ -600,7 +600,7 @@ def test_org_viewer_can_access_datasets(client, django_user_model):
         assert resp.status_code == 200
 
         # Get specific dataset
-        resp = client.get("/api/datasets/hospitals_england/", **hdrs)
+        resp = client.get("/api/datasets/hospitals_england_wales/", **hdrs)
         assert resp.status_code == 200
 
 
@@ -629,5 +629,5 @@ def test_user_without_org_membership_can_access_datasets(client, django_user_mod
         assert resp.status_code == 200
 
         # Get specific dataset
-        resp = client.get("/api/datasets/hospitals_england/", **hdrs)
+        resp = client.get("/api/datasets/hospitals_england_wales/", **hdrs)
         assert resp.status_code == 200
