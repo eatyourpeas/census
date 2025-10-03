@@ -131,13 +131,6 @@ STATICFILES_DIRS = [BASE_DIR / "census_app" / "static"]
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_MAX_AGE = 31536000 if not DEBUG else 0
 
-# Ensure STATIC_ROOT exists to avoid runtime warnings (esp. in tests)
-try:
-    STATIC_ROOT.mkdir(parents=True, exist_ok=True)  # type: ignore[attr-defined]
-except Exception:
-    # In some environments STATIC_ROOT may be a string; fallback
-    os.makedirs(STATIC_ROOT, exist_ok=True)  # type: ignore[arg-type]
-
 # Media uploads (used for admin-uploaded icons if configured)
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
