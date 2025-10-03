@@ -207,6 +207,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
@@ -238,3 +239,9 @@ else:
     except Exception:
         EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "no-reply@example.com"
+
+# External Dataset API Configuration
+EXTERNAL_DATASET_API_URL = os.environ.get(
+    "EXTERNAL_DATASET_API_URL", "https://api.rcpch.ac.uk"
+)
+EXTERNAL_DATASET_API_KEY = os.environ.get("EXTERNAL_DATASET_API_KEY", "")

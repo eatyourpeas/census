@@ -280,6 +280,29 @@
       }
     }
 
+    // Restore prefilled dataset selection if present
+    if (payload.type === "dropdown" && payload.prefilled_dataset) {
+      const prefilledCheckbox = form.querySelector(
+        'input[name="use_prefilled_options"]'
+      );
+      const prefilledDataset = form.querySelector(
+        'select[name="prefilled_dataset"]'
+      );
+
+      if (prefilledCheckbox && prefilledDataset) {
+        prefilledCheckbox.checked = true;
+        prefilledCheckbox.dispatchEvent(new Event("change", { bubbles: true }));
+
+        // Set the dataset value
+        prefilledDataset.value = payload.prefilled_dataset;
+
+        // Store the dataset key on the textarea for later save
+        if (optionsField) {
+          optionsField.dataset.prefilledDataset = payload.prefilled_dataset;
+        }
+      }
+    }
+
     if (payload.type === "text") {
       const fmt = payload.text_format || payload.textFormat || "free";
       const fmtInput = form.querySelector(
@@ -644,6 +667,14 @@
       ? likertSection.querySelector('[data-likert="number"]')
       : null;
 
+    // Prefilled dataset controls
+    const prefilledToggle = form.querySelector("[data-prefilled-toggle]");
+    const prefilledSection = form.querySelector("[data-prefilled-section]");
+    const prefilledContainer = form.querySelector("[data-prefilled-container]");
+    const prefilledDataset = form.querySelector("[data-prefilled-dataset]");
+    const loadDatasetBtn = form.querySelector("[data-load-dataset]");
+    const optionsTextarea = form.querySelector('textarea[name="options"]');
+
     function refresh() {
       const checked = form.querySelector('input[name="type"]:checked');
       const type = checked ? checked.value : null;
@@ -655,11 +686,27 @@
         type === "dropdown" ||
         type === "orderable" ||
         type === "image";
+      const isDropdown = type === "dropdown";
       const isLikert = type === "likert";
 
       if (textSection) textSection.classList.toggle("hidden", !isText);
       if (optsSection) optsSection.classList.toggle("hidden", !isMC);
       if (likertSection) likertSection.classList.toggle("hidden", !isLikert);
+
+      // Only show prefilled options for dropdown type
+      if (prefilledContainer) {
+        prefilledContainer.classList.toggle("hidden", !isDropdown);
+      }
+      // Reset prefilled checkbox if switching away from dropdown
+      if (!isDropdown && prefilledToggle && prefilledToggle.checked) {
+        prefilledToggle.checked = false;
+        if (prefilledSection) {
+          prefilledSection.classList.add("hidden");
+        }
+        if (prefilledDataset) {
+          prefilledDataset.value = "";
+        }
+      }
 
       if (isLikert && likertSection) {
         const modeChecked = form.querySelector(
@@ -670,6 +717,79 @@
           likertCat.classList.toggle("hidden", mode !== "categories");
         if (likertNum) likertNum.classList.toggle("hidden", mode !== "number");
       }
+    }
+
+    // Prefilled dataset toggle handler
+    if (prefilledToggle && prefilledSection) {
+      prefilledToggle.addEventListener("change", function () {
+        const isChecked = prefilledToggle.checked;
+        prefilledSection.classList.toggle("hidden", !isChecked);
+        if (!isChecked && prefilledDataset) {
+          prefilledDataset.value = "";
+        }
+      });
+    }
+
+    // Load dataset button handler
+    if (loadDatasetBtn && prefilledDataset && optionsTextarea) {
+      loadDatasetBtn.addEventListener("click", async function () {
+        const datasetKey = prefilledDataset.value;
+        if (!datasetKey) {
+          if (typeof window.showToast === "function") {
+            window.showToast("Please select a dataset first", "error");
+          } else {
+            alert("Please select a dataset first");
+          }
+          return;
+        }
+
+        // Show loading state with spinner
+        loadDatasetBtn.disabled = true;
+        const originalContent = loadDatasetBtn.innerHTML;
+        loadDatasetBtn.innerHTML =
+          '<span class="loading loading-spinner loading-xs"></span> Loading...';
+
+        try {
+          const response = await fetch(`/api/datasets/${datasetKey}/`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrfToken(),
+            },
+            credentials: "same-origin",
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to load dataset: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          if (data.options && Array.isArray(data.options)) {
+            optionsTextarea.value = data.options.join("\n");
+            // Store the dataset key as a data attribute for later retrieval
+            optionsTextarea.dataset.prefilledDataset = datasetKey;
+            if (typeof window.showToast === "function") {
+              window.showToast(
+                `Loaded ${data.options.length} options`,
+                "success"
+              );
+            }
+          } else {
+            throw new Error("Invalid response format");
+          }
+        } catch (error) {
+          console.error("Error loading dataset:", error);
+          if (typeof window.showToast === "function") {
+            window.showToast("Failed to load dataset options", "error");
+          } else {
+            alert("Failed to load dataset options: " + error.message);
+          }
+        } finally {
+          // Restore button state
+          loadDatasetBtn.disabled = false;
+          loadDatasetBtn.innerHTML = originalContent;
+        }
+      });
     }
 
     // Expose refresh so we can call it after external resets

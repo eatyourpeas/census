@@ -22,6 +22,8 @@ services:
       SECRET_KEY: change-me-in-env
       ALLOWED_HOSTS: "*"
       DEBUG: "True"
+      EXTERNAL_DATASET_API_URL: ${EXTERNAL_DATASET_API_URL:-https://api.rcpch.ac.uk}
+      EXTERNAL_DATASET_API_KEY: ${EXTERNAL_DATASET_API_KEY:-}
     ports:
       - "8000:8000"
     depends_on:

@@ -142,11 +142,11 @@
       </div>
       <div>
         <label class="label">{% trans "Start at" %}</label>
-        <input class="input input-bordered w-full" name="start_at" type="datetime-local" value="{{ survey.start_at|date:'Y-m-d\\TH:i' }}" />
+        <input class="input input-bordered w-full" name="start_at" type="datetime-local" value="{% if survey.start_at %}{{ survey.start_at|date:'Y-m-d\\TH:i' }}{% endif %}" />
       </div>
       <div>
         <label class="label">{% trans "End at" %}</label>
-        <input class="input input-bordered w-full" name="end_at" type="datetime-local" value="{{ survey.end_at|date:'Y-m-d\\TH:i' }}" />
+        <input class="input input-bordered w-full" name="end_at" type="datetime-local" value="{% if survey.end_at %}{{ survey.end_at|date:'Y-m-d\\TH:i' }}{% endif %}" />
       </div>
       <div class="md:col-span-3">
         <label class="cursor-pointer flex items-center gap-2">

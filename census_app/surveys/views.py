@@ -31,6 +31,7 @@ from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
 
 from .color import hex_to_oklch
+from .external_datasets import get_available_datasets
 from .markdown_import import BulkParseError, parse_bulk_markdown_with_collections
 from .models import (
     AuditLog,
@@ -111,6 +112,15 @@ PROFESSIONAL_ODS_FIELDS = {
     "employing_health_board",
     "integrated_care_board",
     "gp_surgery",
+}
+
+# Map professional fields to external dataset keys (for prefilled dropdowns)
+PROFESSIONAL_FIELD_TO_DATASET = {
+    "employing_trust": "nhs_trusts",
+    "employing_health_board": "welsh_lhbs",
+    "integrated_care_board": "integrated_care_boards",
+    "nhs_england_region": "nhs_england_regions",
+    "gp_surgery": "hospitals_england_wales",  # GP surgeries could use hospitals dataset
 }
 
 PATIENT_TEMPLATE_DEFAULT_FIELDS = [
@@ -687,6 +697,7 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
         "professional_fields": professional_fields,
         "professional_defs": PROFESSIONAL_FIELD_DEFS,
         "professional_ods": professional_ods,
+        "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
     }
     if any(
         v for k, v in brand_overrides.items() if k != "primary_hex"
@@ -770,6 +781,7 @@ def survey_preview(request: HttpRequest, slug: str) -> HttpResponse:
         "professional_fields": professional_fields,
         "professional_defs": PROFESSIONAL_FIELD_DEFS,
         "professional_ods": professional_ods,
+        "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
     }
     if any(
         v for k, v in brand_overrides.items() if k != "primary_hex"
@@ -983,6 +995,17 @@ def _parse_builder_question_form(data: QueryDict) -> dict[str, Any]:
     }:
         raw = data.get("options", "")
         options = [line.strip() for line in raw.splitlines() if line.strip()]
+
+        # Check if this is a prefilled dataset (only for dropdown type)
+        prefilled_dataset = (data.get("prefilled_dataset") or "").strip()
+        if qtype == SurveyQuestion.Types.DROPDOWN and prefilled_dataset and options:
+            # Store prefilled metadata alongside the options
+            # This allows us to restore the dataset selection when editing
+            options = {
+                "type": "prefilled",
+                "dataset_key": prefilled_dataset,
+                "values": options,
+            }
     elif qtype == SurveyQuestion.Types.LIKERT:
         likert_mode = (data.get("likert_mode") or "categories").strip()
         if likert_mode == "number":
@@ -1173,7 +1196,19 @@ def _serialize_question_for_builder(
         SurveyQuestion.Types.IMAGE_CHOICE,
     }:
         values: list[str] = []
-        if isinstance(options, list):
+        prefilled_dataset: str | None = None
+
+        # Check if options is a prefilled dataset dict
+        if isinstance(options, dict) and options.get("type") == "prefilled":
+            prefilled_dataset = options.get("dataset_key")
+            option_values = options.get("values", [])
+            if isinstance(option_values, list):
+                for opt in option_values:
+                    if isinstance(opt, str):
+                        val = opt.strip()
+                        if val:
+                            values.append(val)
+        elif isinstance(options, list):
             for opt in options:
                 if isinstance(opt, str):
                     val = opt.strip()
@@ -1183,7 +1218,10 @@ def _serialize_question_for_builder(
                     candidate = opt.get("label") or opt.get("value")
                     if candidate:
                         values.append(str(candidate).strip())
+
         payload["options"] = values
+        if prefilled_dataset:
+            payload["prefilled_dataset"] = prefilled_dataset
     elif question.type == SurveyQuestion.Types.LIKERT:
         if (
             isinstance(options, list)
@@ -1706,6 +1744,7 @@ def _handle_participant_submission(
         "professional_fields": professional_fields,
         "professional_defs": PROFESSIONAL_FIELD_DEFS,
         "professional_ods": professional_ods,
+        "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
     }
     return render(request, "surveys/detail.html", ctx)
 
@@ -2524,6 +2563,8 @@ def group_builder(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
         "professional_ods": professional_ods,
         "professional_ods_on": professional_ods_on,
         "professional_ods_pairs": professional_ods_pairs,
+        "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
+        "available_datasets": get_available_datasets(),
     }
     if any(brand_overrides.values()):
         ctx["brand"] = {
@@ -2643,6 +2684,7 @@ def builder_professional_update(request: HttpRequest, slug: str) -> HttpResponse
             "professional_ods": professional_ods,
             "professional_ods_on": professional_ods_on,
             "professional_ods_pairs": professional_ods_pairs,
+            "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
         },
     )
 

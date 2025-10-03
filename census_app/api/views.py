@@ -11,6 +11,11 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
+from census_app.surveys.external_datasets import (
+    DatasetFetchError,
+    fetch_dataset,
+    get_available_datasets,
+)
 from census_app.surveys.models import (
     AuditLog,
     Organization,
@@ -628,6 +633,37 @@ class ScopedUserViewSet(viewsets.ViewSet):
 @permission_classes([permissions.AllowAny])
 def healthcheck(request):
     return Response({"status": "ok"})
+
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def list_datasets(request):
+    """List available prefilled datasets for dropdowns."""
+    datasets = get_available_datasets()
+    return Response(
+        {"datasets": [{"key": key, "name": name} for key, name in datasets.items()]}
+    )
+
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def get_dataset(request, dataset_key):
+    """
+    Fetch options for a specific dataset from external API.
+
+    Returns cached data when available to minimize external API calls.
+    Requires authentication to prevent abuse.
+    """
+    try:
+        options = fetch_dataset(dataset_key)
+        return Response({"dataset_key": dataset_key, "options": options})
+    except DatasetFetchError as e:
+        # Check if it's a validation error (invalid key) vs external API error
+        error_msg = str(e)
+        if "Unknown dataset key" in error_msg:
+            return Response({"error": error_msg}, status=400)
+        # External API failures return 502 Bad Gateway
+        return Response({"error": error_msg}, status=502)
 
 
 @csp_exempt
