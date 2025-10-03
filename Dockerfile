@@ -29,6 +29,8 @@ RUN poetry install --only main --no-interaction --no-ansi
 RUN npm run build:css
 
 RUN adduser --disabled-login --gecos "" appuser
+RUN mkdir -p /app/staticfiles /app/media && \
+    chown -R appuser:appuser /app/staticfiles /app/media
 USER appuser
 
 ENV DJANGO_SETTINGS_MODULE=census_app.settings
