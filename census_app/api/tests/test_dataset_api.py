@@ -11,8 +11,9 @@ Permission Model:
   any authenticated user might need when building surveys
 - The actual survey editing is protected by survey-level permissions
 """
+
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -20,10 +21,7 @@ import pytest
 import requests
 from rest_framework.test import APIClient
 
-from census_app.surveys.external_datasets import (
-    DatasetFetchError,
-    AVAILABLE_DATASETS,
-)
+from census_app.surveys.external_datasets import AVAILABLE_DATASETS
 from census_app.surveys.models import Organization, OrganizationMembership
 
 User = get_user_model()
@@ -93,9 +91,6 @@ def get_mock_lhb_response():
             ],
         },
     ]
-
-
-
 
 
 def auth_hdr(client, username: str, password: str) -> dict:
@@ -364,13 +359,15 @@ def test_get_dataset_cache_key_isolation(client, authenticated_user):
 
 
 @pytest.mark.django_db
-def test_get_dataset_cache_survives_authentication_changes(
-    client, django_user_model
-):
+def test_get_dataset_cache_survives_authentication_changes(client, django_user_model):
     """Cached data is shared across users."""
     # Create two users
-    user1 = django_user_model.objects.create_user(username="user1", password="pass1")
-    user2 = django_user_model.objects.create_user(username="user2", password="pass2")
+    user1 = django_user_model.objects.create_user(
+        username="user1", password="pass1"
+    )  # noqa: F841
+    user2 = django_user_model.objects.create_user(
+        username="user2", password="pass2"
+    )  # noqa: F841
 
     with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
         mock_response = MagicMock()
@@ -557,9 +554,7 @@ def test_org_admin_can_access_datasets(client, django_user_model):
 def test_org_creator_can_access_datasets(client, django_user_model):
     """Organization creators can access datasets."""
     admin = django_user_model.objects.create_user(username="admin", password="pass")
-    creator = django_user_model.objects.create_user(
-        username="creator", password="pass"
-    )
+    creator = django_user_model.objects.create_user(username="creator", password="pass")
     org = Organization.objects.create(name="Test Org", owner=admin)
     OrganizationMembership.objects.create(
         organization=org, user=creator, role=OrganizationMembership.Role.CREATOR
@@ -617,7 +612,9 @@ def test_user_without_org_membership_can_access_datasets(client, django_user_mod
     user might need. The restriction happens at the survey editing level, not
     at the dataset access level.
     """
-    user = django_user_model.objects.create_user(username="user", password="pass")
+    user = django_user_model.objects.create_user(
+        username="user", password="pass"
+    )  # noqa: F841
 
     hdrs = auth_hdr(client, "user", "pass")
 
