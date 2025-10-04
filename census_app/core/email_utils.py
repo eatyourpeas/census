@@ -208,11 +208,15 @@ def send_welcome_email(user) -> bool:
     """
     from census_app.core.models import UserEmailPreferences
 
-    logger.info(f"Attempting to send welcome email to {user.email} (username: {user.username})")
+    logger.info(
+        f"Attempting to send welcome email to {user.email} (username: {user.username})"
+    )
 
     prefs = UserEmailPreferences.get_or_create_for_user(user)
     if not prefs.send_welcome_email:
-        logger.info(f"Welcome email skipped for {user.username} (user preference disabled)")
+        logger.info(
+            f"Welcome email skipped for {user.username} (user preference disabled)"
+        )
         return False
 
     branding = get_platform_branding()
@@ -244,7 +248,9 @@ def send_password_change_email(user) -> bool:
     """
     from census_app.core.models import UserEmailPreferences
 
-    logger.info(f"Attempting to send password change email to {user.email} (username: {user.username})")
+    logger.info(
+        f"Attempting to send password change email to {user.email} (username: {user.username})"
+    )
 
     prefs = UserEmailPreferences.get_or_create_for_user(user)
     if not prefs.send_password_change_email:
