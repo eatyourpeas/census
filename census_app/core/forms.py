@@ -2,6 +2,8 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 
+from .models import UserEmailPreferences
+
 User = get_user_model()
 
 
@@ -29,6 +31,53 @@ class SignupForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
+
+class UserEmailPreferencesForm(forms.ModelForm):
+    """Form for managing user email notification preferences."""
+
+    class Meta:
+        model = UserEmailPreferences
+        fields = [
+            "send_welcome_email",
+            "send_password_change_email",
+            "send_survey_created_email",
+            "send_survey_deleted_email",
+            "send_survey_published_email",
+            "send_team_invitation_email",
+            "send_survey_invitation_email",
+            "notify_on_error",
+            "notify_on_critical",
+        ]
+        widgets = {
+            "send_welcome_email": forms.CheckboxInput(
+                attrs={"class": "checkbox checkbox-primary"}
+            ),
+            "send_password_change_email": forms.CheckboxInput(
+                attrs={"class": "checkbox checkbox-primary"}
+            ),
+            "send_survey_created_email": forms.CheckboxInput(
+                attrs={"class": "checkbox checkbox-primary"}
+            ),
+            "send_survey_deleted_email": forms.CheckboxInput(
+                attrs={"class": "checkbox checkbox-primary"}
+            ),
+            "send_survey_published_email": forms.CheckboxInput(
+                attrs={"class": "checkbox checkbox-primary"}
+            ),
+            "send_team_invitation_email": forms.CheckboxInput(
+                attrs={"class": "checkbox checkbox-primary"}
+            ),
+            "send_survey_invitation_email": forms.CheckboxInput(
+                attrs={"class": "checkbox checkbox-primary"}
+            ),
+            "notify_on_error": forms.CheckboxInput(
+                attrs={"class": "checkbox checkbox-primary"}
+            ),
+            "notify_on_critical": forms.CheckboxInput(
+                attrs={"class": "checkbox checkbox-primary"}
+            ),
+        }
 
 
 ## Removed BrandedPasswordResetForm in favor of Django's default behavior for

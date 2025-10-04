@@ -223,15 +223,30 @@ SIMPLE_JWT = {
 # Use in-memory backend during tests to enable assertions against mail.outbox
 if os.environ.get("PYTEST_CURRENT_TEST"):
     EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+elif DEBUG:
+    # In development (DEBUG=True), print emails to console
+    EMAIL_BACKEND = env(
+        "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+    )
 else:
-    # Default to console backend for local dev unless overridden by env
-    try:
-        EMAIL_BACKEND = env(
-            "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
-        )
-    except Exception:
-        EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = "no-reply@example.com"
+    # In production (DEBUG=False), use SMTP (Mailgun or other provider)
+    EMAIL_BACKEND = env(
+        "EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend"
+    )
+
+# Email configuration
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@example.com")
+SERVER_EMAIL = env("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
+
+# SMTP settings for production (Mailgun)
+EMAIL_HOST = env("EMAIL_HOST", default="smtp.mailgun.org")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+
+# Email timeout
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
 
 # External Dataset API Configuration
 EXTERNAL_DATASET_API_URL = os.environ.get(

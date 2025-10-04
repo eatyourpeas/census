@@ -1,4 +1,7 @@
 from django.db import models
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class SiteBranding(models.Model):
@@ -32,3 +35,76 @@ class SiteBranding(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"Site Branding (theme={self.default_theme})"
+
+
+class UserEmailPreferences(models.Model):
+    """User preferences for email notifications.
+
+    Each user has one preferences object (created on demand).
+    Controls granularity of email notifications for various system events.
+    """
+
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="email_preferences"
+    )
+
+    # Account-related emails (always sent regardless of preferences for security)
+    send_welcome_email = models.BooleanField(
+        default=True,
+        help_text="Send welcome email when account is created (recommended)",
+    )
+    send_password_change_email = models.BooleanField(
+        default=True,
+        help_text="Send notification when password is changed (security feature)",
+    )
+
+    # Survey-related emails (optional)
+    send_survey_created_email = models.BooleanField(
+        default=False,
+        help_text="Send notification when you create a new survey",
+    )
+    send_survey_deleted_email = models.BooleanField(
+        default=False,
+        help_text="Send notification when you delete a survey",
+    )
+    send_survey_published_email = models.BooleanField(
+        default=False,
+        help_text="Send notification when a survey is published",
+    )
+
+    # Organization/team emails
+    send_team_invitation_email = models.BooleanField(
+        default=True,
+        help_text="Send notification when you're invited to an organization",
+    )
+    send_survey_invitation_email = models.BooleanField(
+        default=True,
+        help_text="Send notification when you're added to a survey team",
+    )
+
+    # Future: logging-related notifications (for integration with logging system)
+    # These will be used when logging/signals feature is implemented
+    notify_on_error = models.BooleanField(
+        default=True,
+        help_text="Send email notifications for system errors affecting your surveys",
+    )
+    notify_on_critical = models.BooleanField(
+        default=True,
+        help_text="Send email notifications for critical issues",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User Email Preference"
+        verbose_name_plural = "User Email Preferences"
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"Email Preferences for {self.user.username}"
+
+    @classmethod
+    def get_or_create_for_user(cls, user):
+        """Get or create email preferences for a user with defaults."""
+        preferences, created = cls.objects.get_or_create(user=user)
+        return preferences

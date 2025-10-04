@@ -96,6 +96,118 @@
     </div>
   </div>
 
+  {% if email_prefs_form %}
+  <div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+      <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+        {% include "components/icons/envelope.html" with classes="w-5 h-5 text-base-content" %}
+        <span>Email Notification Preferences</span>
+      </h2>
+      <p class="opacity-80">Control which email notifications you receive. Note: Security-related emails (like password changes) are always sent for your account protection.</p>
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_email_prefs" />
+        <div class="space-y-4">
+          <div class="divider text-sm opacity-70">Account Notifications</div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_welcome_email }}
+              <span class="label-text">
+                <strong>Welcome emails</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_welcome_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_password_change_email }}
+              <span class="label-text">
+                <strong>Password change notifications</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_password_change_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+
+          <div class="divider text-sm opacity-70">Survey Notifications</div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_survey_created_email }}
+              <span class="label-text">
+                <strong>Survey created confirmations</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_survey_created_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_survey_deleted_email }}
+              <span class="label-text">
+                <strong>Survey deletion confirmations</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_survey_deleted_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_survey_published_email }}
+              <span class="label-text">
+                <strong>Survey published notifications</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_survey_published_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+
+          <div class="divider text-sm opacity-70">Team & Collaboration</div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_team_invitation_email }}
+              <span class="label-text">
+                <strong>Team invitations</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_team_invitation_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_survey_invitation_email }}
+              <span class="label-text">
+                <strong>Survey invitations</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_survey_invitation_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+
+          <div class="divider text-sm opacity-70">System Notifications (Future)</div>
+          <div class="alert alert-info text-sm">
+            <span>These settings will be used when logging and error notification features are implemented.</span>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.notify_on_error }}
+              <span class="label-text">
+                <strong>Error notifications</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.notify_on_error.help_text }}</span>
+              </span>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.notify_on_critical }}
+              <span class="label-text">
+                <strong>Critical alerts</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.notify_on_critical.help_text }}</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="mt-6">
+          <button type="submit" class="btn btn-primary">Save Email Preferences</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
   {% if request.user.is_superuser %}
   <div class="card bg-base-100 shadow mb-6">
     <div class="card-body">

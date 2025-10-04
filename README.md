@@ -89,6 +89,7 @@ See docs:
 - docs/user-management.md
 - docs/themes.md
 - docs/groups-view.md
+- docs/email-notifications.md
 - CONTRIBUTING.md
 
 
