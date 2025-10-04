@@ -33,7 +33,12 @@ dist/
 .docker/
 
 # Data
-data/# Byte-compiled / optimized / DLL files
+data/
+
+# ggshield
+.cache_ggshield
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
 *$py.class
