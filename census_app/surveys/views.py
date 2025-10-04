@@ -1482,6 +1482,80 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
+def survey_delete(request: HttpRequest, slug: str) -> HttpResponse:
+    """
+    Delete a survey with confirmation.
+
+    GET: Show confirmation page
+    POST: Delete survey if name confirmation matches
+
+    Only owner or org admin can delete surveys.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+
+    if request.method == "GET":
+        # Show confirmation page
+        return render(
+            request,
+            "surveys/delete_confirm.html",
+            {"survey": survey},
+        )
+
+    # POST: Process deletion with confirmation
+    confirm_name = request.POST.get("confirm_name", "").strip()
+
+    if not confirm_name:
+        messages.error(request, "Please enter the survey name to confirm deletion.")
+        return render(
+            request,
+            "surveys/delete_confirm.html",
+            {"survey": survey, "error": "confirmation_required"},
+            status=400,
+        )
+
+    if confirm_name != survey.name:
+        messages.error(
+            request,
+            f"Survey name does not match. Please type '{survey.name}' exactly to confirm deletion.",
+        )
+        return render(
+            request,
+            "surveys/delete_confirm.html",
+            {"survey": survey, "error": "name_mismatch", "confirm_name": confirm_name},
+            status=400,
+        )
+
+    # Log deletion before deleting
+    survey_name = survey.name
+    survey_slug = survey.slug
+    organization = survey.organization
+
+    # Delete survey (cascades to questions, responses, etc.)
+    survey.delete()
+
+    # Create audit log
+    AuditLog.objects.create(
+        actor=request.user,
+        scope=AuditLog.Scope.SURVEY,
+        survey=None,  # Survey is deleted
+        organization=organization,
+        action=AuditLog.Action.REMOVE,
+        target_user=request.user,
+        metadata={
+            "survey_name": survey_name,
+            "survey_slug": survey_slug,
+        },
+    )
+
+    messages.success(request, f"Survey '{survey_name}' has been permanently deleted.")
+
+    # Redirect to surveys list or home
+    return redirect("core:home")
+
+
+@login_required
 @require_http_methods(["POST"])
 def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
