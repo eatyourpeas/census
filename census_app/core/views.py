@@ -19,12 +19,13 @@ from census_app.surveys.models import (
     SurveyResponse,
 )
 
-from .forms import SignupForm
+from .forms import SignupForm, UserEmailPreferencesForm
 
 try:
-    from .models import SiteBranding
+    from .models import SiteBranding, UserEmailPreferences
 except ImportError:
     SiteBranding = None
+    UserEmailPreferences = None
 
 try:
     from .theme_utils import normalize_daisyui_builder_css
@@ -49,6 +50,19 @@ def healthz(request):
 @login_required
 def profile(request):
     sb = None
+    # Handle email preferences form submission
+    if request.method == "POST" and request.POST.get("action") == "update_email_prefs":
+        if UserEmailPreferences is not None:
+            prefs = UserEmailPreferences.get_or_create_for_user(request.user)
+            form = UserEmailPreferencesForm(request.POST, instance=prefs)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Email preferences updated successfully.")
+            else:
+                messages.error(
+                    request, "There was an error updating your email preferences."
+                )
+        return redirect("core:profile")
     if request.method == "POST" and request.POST.get("action") == "upgrade_to_org":
         # Create a new organisation owned by this user, and make them ADMIN
         with transaction.atomic():
@@ -126,7 +140,21 @@ def profile(request):
         "responses_submitted": SurveyResponse.objects.filter(submitted_by=user).count(),
         "tokens_created": SurveyAccessToken.objects.filter(created_by=user).count(),
     }
-    return render(request, "core/profile.html", {"sb": sb, "stats": stats, "org": org})
+    # Prepare email preferences form
+    email_prefs_form = None
+    if UserEmailPreferences is not None:
+        prefs = UserEmailPreferences.get_or_create_for_user(user)
+        email_prefs_form = UserEmailPreferencesForm(instance=prefs)
+    return render(
+        request,
+        "core/profile.html",
+        {
+            "sb": sb,
+            "stats": stats,
+            "org": org,
+            "email_prefs_form": email_prefs_form,
+        },
+    )
 
 
 def signup(request):
@@ -138,6 +166,19 @@ def signup(request):
             # login() requires an explicit backend unless the user was authenticated via authenticate().
             # Since we just created the user, log them in using the default ModelBackend.
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+
+            # Send welcome email
+            try:
+                from .email_utils import send_welcome_email
+
+                send_welcome_email(user)
+            except Exception as e:
+                # Don't block signup if email fails
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to send welcome email to {user.username}: {e}")
+
             account_type = request.POST.get("account_type")
             if account_type == "org":
                 with transaction.atomic():
@@ -311,7 +352,14 @@ def _infer_category(slug: str) -> str:
     # Configuration
     if any(
         x in slug_lower
-        for x in ["branding", "theme", "user-management", "prefilled-datasets-setup"]
+        for x in [
+            "branding",
+            "theme",
+            "user-management",
+            "prefilled-datasets-setup",
+            "email",
+            "notifications",
+        ]
     ):
         return "configuration"
 

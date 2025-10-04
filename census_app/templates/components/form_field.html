@@ -15,7 +15,7 @@
 
   Note: For checkbox/radio groups, use bespoke markup or pass classes explicitly. {% endcomment %}
 
-<label class="form-control">
+<label class="form-control w-full min-w-0">
   {% if label %}
     <span class="label"><span class="label-text">{{ label }}</span></span>
   {% endif %}
@@ -25,20 +25,20 @@
   {% else %}
     {% with t=field|field_type %}
       {% if t == "textarea" %}
-        {{ field|add_classes:"textarea textarea-bordered w-full" }}
+        {{ field|add_classes:"textarea textarea-bordered w-full min-w-0" }}
       {% elif t == "select" %}
-        {{ field|add_classes:"select select-bordered w-full" }}
+        {{ field|add_classes:"select select-bordered w-full min-w-0" }}
       {% else %}
-        {{ field|add_classes:"input input-bordered w-full" }}
+        {{ field|add_classes:"input input-bordered w-full min-w-0" }}
       {% endif %}
     {% endwith %}
   {% endif %}
 
   {% if help %}
-    <div class="label"><span class="label-text-alt">{{ help }}</span></div>
+    <div class="label w-full"><span class="label-text-alt break-words whitespace-normal">{{ help }}</span></div>
   {% endif %}
 
   {% if field.errors %}
-    <div class="text-error text-sm">{{ field.errors|join:", " }}</div>
+    <div class="text-error text-sm break-words whitespace-normal w-full">{{ field.errors|join:", " }}</div>
   {% endif %}
 </label>
