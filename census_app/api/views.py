@@ -133,6 +133,28 @@ class SurveyViewSet(viewsets.ModelViewSet):
         # Attach to serializer context for response augmentation
         self._created_key = key
 
+    def perform_destroy(self, instance):
+        """Delete survey with audit logging."""
+        survey_name = instance.name
+        survey_slug = instance.slug
+        organization = instance.organization
+
+        instance.delete()
+
+        # Log deletion
+        AuditLog.objects.create(
+            actor=self.request.user,
+            scope=AuditLog.Scope.SURVEY,
+            survey=None,  # Survey is deleted
+            organization=organization,
+            action=AuditLog.Action.REMOVE,
+            target_user=self.request.user,
+            metadata={
+                "survey_name": survey_name,
+                "survey_slug": survey_slug,
+            },
+        )
+
     @action(
         detail=True,
         methods=["post"],

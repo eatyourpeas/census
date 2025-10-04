@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="card bg-base-100 shadow-xl border-2 border-error">
+        <div class="card-body">
+            <h2 class="card-title text-error">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Delete Survey
+            </h2>
+
+            <div class="divider"></div>
+
+            <div class="alert alert-error">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    <h3 class="font-bold">Warning: This action cannot be undone!</h3>
+                    <p class="text-sm">You are about to permanently delete the survey:</p>
+                    <p class="font-mono text-sm mt-2 font-bold">{{ survey.name }}</p>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <p class="text-base-content/80 mb-4">
+                    Deleting this survey will permanently remove:
+                </p>
+                <ul class="list-disc list-inside space-y-2 text-base-content/70 ml-4">
+                    <li>All survey data and responses</li>
+                    <li>All associated groups and questions</li>
+                    <li>All collection and publication records</li>
+                    <li>All access permissions and tokens</li>
+                </ul>
+            </div>
+
+            <form method="post" class="mt-6">
+                {% csrf_token %}
+
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text font-semibold">
+                            To confirm deletion, please type the survey name exactly as shown above:
+                        </span>
+                    </label>
+                    <input
+                        type="text"
+                        name="confirm_name"
+                        placeholder="Type survey name here"
+                        class="input input-bordered w-full {% if error %}input-error{% endif %}"
+                        value="{{ confirm_name|default:'' }}"
+                        autocomplete="off"
+                        required
+                    />
+                    {% if error %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">
+                                {% if error == "confirmation_required" %}
+                                    You must type the survey name to confirm deletion.
+                                {% elif error == "name_mismatch" %}
+                                    The name you entered does not match. Please type exactly: <strong>{{ survey.name }}</strong>
+                                {% endif %}
+                            </span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="card-actions justify-end mt-6 gap-2">
+                    <a href="{% url 'surveys:dashboard' survey.slug %}" class="btn btn-ghost">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete Survey Permanently
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

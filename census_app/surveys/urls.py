@@ -42,6 +42,7 @@ urlpatterns = [
     path("<slug:slug>/thank-you/", views.survey_thank_you, name="thank_you"),
     path("<slug:slug>/", views.survey_detail, name="detail"),
     path("<slug:slug>/dashboard/", views.survey_dashboard, name="dashboard"),
+    path("<slug:slug>/delete/", views.survey_delete, name="delete"),
     path(
         "<slug:slug>/dashboard/publish",
         views.survey_publish_update,
