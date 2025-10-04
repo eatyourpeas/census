@@ -157,7 +157,10 @@ class TestSurveyDeletionAPI:
 
         # Create survey owned by creator
         survey = Survey.objects.create(
-            owner=creator, organization=org, name="Creator Survey", slug="creator-survey"
+            owner=creator,
+            organization=org,
+            name="Creator Survey",
+            slug="creator-survey",
         )
 
         url = f"/api/surveys/{survey.pk}/"
