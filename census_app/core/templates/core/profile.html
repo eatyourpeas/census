@@ -32,39 +32,114 @@
         {% include "components/icons/users.html" with classes="w-5 h-5 text-base-content" %}
         <span>Your badges</span>
       </h2>
-      <div class="flex flex-wrap gap-2 items-center">
+      <div class="flex flex-wrap gap-3 items-center mt-3">
         {% if stats.is_superuser %}
-          <span class="badge badge-primary">Superuser</span>
+          <div class="tooltip" data-tip="You have full administrative access to the platform">
+            <div class="indicator">
+              <div class="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/bolt.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
         {% endif %}
         {% if stats.is_staff and not stats.is_superuser %}
-          <span class="badge badge-secondary">Staff</span>
+          <div class="tooltip" data-tip="You have staff-level access to the platform">
+            <div class="indicator">
+              <div class="bg-secondary text-secondary-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/users.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
         {% endif %}
         {% if stats.orgs_owned %}
-          <span class="badge badge-outline">Owns {{ stats.orgs_owned }} org{{ stats.orgs_owned|pluralize }}</span>
+          <div class="tooltip" data-tip="You own {{ stats.orgs_owned }} organization{{ stats.orgs_owned|pluralize }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-primary text-xs">{{ stats.orgs_owned }}</span>
+              <div class="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/building.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
         {% endif %}
         {% if stats.org_admin_count %}
-          <span class="badge badge-accent">Org admin × {{ stats.org_admin_count }}</span>
+          <div class="tooltip" data-tip="You are an administrator in {{ stats.org_admin_count }} organization{{ stats.org_admin_count|pluralize }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-accent text-xs">{{ stats.org_admin_count }}</span>
+              <div class="bg-accent text-accent-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/building.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
         {% endif %}
         {% if stats.org_memberships %}
-          <span class="badge badge-ghost">Member of {{ stats.org_memberships }} org{{ stats.org_memberships|pluralize }}</span>
+          <div class="tooltip" data-tip="You are a member of {{ stats.org_memberships }} organization{{ stats.org_memberships|pluralize }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-neutral text-xs">{{ stats.org_memberships }}</span>
+              <div class="bg-neutral text-neutral-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/building.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
         {% endif %}
         {% if stats.surveys_owned %}
-          <span class="badge badge-neutral">Owns {{ stats.surveys_owned }} survey{{ stats.surveys_owned|pluralize }}</span>
+          <div class="tooltip" data-tip="You own {{ stats.surveys_owned }} survey{{ stats.surveys_owned|pluralize }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-primary text-xs">{{ stats.surveys_owned }}</span>
+              <div class="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
         {% endif %}
         {% if stats.survey_creator_count %}
-          <span class="badge badge-info">Creator on {{ stats.survey_creator_count }} survey{{ stats.survey_creator_count|pluralize }}</span>
+          <div class="tooltip" data-tip="You are a creator on {{ stats.survey_creator_count }} survey{{ stats.survey_creator_count|pluralize }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-info text-xs">{{ stats.survey_creator_count }}</span>
+              <div class="bg-info text-info-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
         {% endif %}
         {% if stats.survey_viewer_count %}
-          <span class="badge">Viewer on {{ stats.survey_viewer_count }} survey{{ stats.survey_viewer_count|pluralize }}</span>
+          <div class="tooltip" data-tip="You can view {{ stats.survey_viewer_count }} survey{{ stats.survey_viewer_count|pluralize }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-neutral text-xs">{{ stats.survey_viewer_count }}</span>
+              <div class="bg-neutral text-neutral-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
         {% endif %}
         {% if stats.groups_owned %}
-          <span class="badge badge-success">{{ stats.groups_owned }} group{{ stats.groups_owned|pluralize }} authored</span>
+          <div class="tooltip" data-tip="You have authored {{ stats.groups_owned }} question group{{ stats.groups_owned|pluralize }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-success text-xs">{{ stats.groups_owned }}</span>
+              <div class="bg-success text-success-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/documents.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
         {% endif %}
         {% if stats.responses_submitted %}
-          <span class="badge badge-warning">{{ stats.responses_submitted }} response{{ stats.responses_submitted|pluralize }} submitted</span>
+          <div class="tooltip" data-tip="You have submitted {{ stats.responses_submitted }} response{{ stats.responses_submitted|pluralize }} to surveys">
+            <div class="indicator">
+              <span class="indicator-item badge badge-warning text-xs">{{ stats.responses_submitted }}</span>
+              <div class="bg-warning text-warning-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
         {% endif %}
         {% if stats.tokens_created %}
-          <span class="badge badge-error">{{ stats.tokens_created }} invite token{{ stats.tokens_created|pluralize }} created</span>
+          <div class="tooltip" data-tip="You have created {{ stats.tokens_created }} invitation token{{ stats.tokens_created|pluralize }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-error text-xs">{{ stats.tokens_created }}</span>
+              <div class="bg-error text-error-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/envelope.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
         {% endif %}
       </div>
     </div>
