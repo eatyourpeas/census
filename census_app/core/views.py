@@ -170,10 +170,12 @@ def signup(request):
             # Send welcome email
             try:
                 from .email_utils import send_welcome_email
+
                 send_welcome_email(user)
             except Exception as e:
                 # Don't block signup if email fails
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.error(f"Failed to send welcome email to {user.username}: {e}")
 

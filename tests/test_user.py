@@ -199,9 +199,10 @@ def test_user_cannot_upgrade_to_admin_by_creating_org_with_existing_name(client)
     ).exists()
 
     # Original owner should still only be admin of their own org
-    assert OrganizationMembership.objects.filter(
-        user=user1, organization=org1
-    ).count() == 1
+    assert (
+        OrganizationMembership.objects.filter(user=user1, organization=org1).count()
+        == 1
+    )
     assert not OrganizationMembership.objects.filter(
         user=user1, organization=attacker_org
     ).exists()

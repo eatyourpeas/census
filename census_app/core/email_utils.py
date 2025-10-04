@@ -9,11 +9,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-import markdown
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+import markdown
 
 logger = logging.getLogger(__name__)
 
