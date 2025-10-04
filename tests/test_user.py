@@ -4,11 +4,13 @@ import pytest
 
 from census_app.surveys.models import Organization, OrganizationMembership
 
+TEST_PASSWORD = "ComplexTestPassword123!"
+
 
 @pytest.mark.django_db
 def test_signup_as_org_creates_org_and_shows_on_profile(client):
     email = "orgowner@example.com"
-    password = "Passw0rd!Passw0rd!"
+    password = TEST_PASSWORD
 
     # Submit signup form choosing an organisation account
     resp = client.post(
@@ -49,7 +51,7 @@ def test_signup_as_org_creates_org_and_shows_on_profile(client):
 def test_signup_as_simple_user(client):
     """Test that signing up as a simple user doesn't create an organization."""
     email = "simpleuser@example.com"
-    password = "Passw0rd!Passw0rd!"
+    password = TEST_PASSWORD
 
     resp = client.post(
         reverse("core:signup"),
@@ -79,7 +81,7 @@ def test_multiple_users_can_create_orgs_with_same_name(client):
     This is allowed because organizations are scoped by owner, not globally unique.
     Each user owns their own separate organization instance.
     """
-    password = "Passw0rd!Passw0rd!"
+    password = TEST_PASSWORD
     org_name = "Acme Health"
 
     # First user creates an org
@@ -150,7 +152,7 @@ def test_user_cannot_upgrade_to_admin_by_creating_org_with_existing_name(client)
     Security test: A user cannot gain admin access to someone else's organization
     by creating a new organization with the same name. Each org is separate.
     """
-    password = "Passw0rd!Passw0rd!"
+    password = TEST_PASSWORD
     org_name = "Existing Corp"
 
     User = get_user_model()
@@ -209,7 +211,7 @@ def test_user_cannot_upgrade_to_admin_by_creating_org_with_existing_name(client)
 def test_signup_with_duplicate_email_fails(client):
     """Test that signing up with an email that already exists fails."""
     email = "existing@example.com"
-    password = "Passw0rd!Passw0rd!"
+    password = TEST_PASSWORD
 
     User = get_user_model()
     User.objects.create_user(username=email, email=email, password=password)
@@ -237,7 +239,7 @@ def test_signup_with_duplicate_email_fails(client):
 def test_org_name_defaults_to_username_when_empty(client):
     """Test that organization name defaults to username when not provided."""
     email = "testuser@example.com"
-    password = "Passw0rd!Passw0rd!"
+    password = TEST_PASSWORD
 
     resp = client.post(
         reverse("core:signup"),
