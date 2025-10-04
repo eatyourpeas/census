@@ -148,7 +148,15 @@ def send_branded_email(
             email_context,
         )
     except Exception as e:
-        logger.error(f"Failed to render email template: {e}")
+        logger.error(
+            f"Failed to render email template: {e}",
+            exc_info=True,
+            extra={
+                "recipient": to_email,
+                "subject": subject,
+                "template": "emails/base_email.html",
+            },
+        )
         # Fallback to simple HTML
         html_message = f"""
         <html>
@@ -176,10 +184,20 @@ def send_branded_email(
         )
         email.attach_alternative(html_message, "text/html")
         email.send()
-        logger.info(f"Email sent to {to_email}: {subject}")
+        logger.info(f"Email sent successfully to {to_email}: {subject}")
         return True
     except Exception as e:
-        logger.error(f"Failed to send email to {to_email}: {e}")
+        logger.error(
+            f"Failed to send email to {to_email}: {subject}",
+            exc_info=True,
+            extra={
+                "recipient": to_email,
+                "subject": subject,
+                "error_type": type(e).__name__,
+                "from_email": from_email or settings.DEFAULT_FROM_EMAIL,
+                "email_backend": settings.EMAIL_BACKEND,
+            },
+        )
         return False
 
 
@@ -190,9 +208,15 @@ def send_welcome_email(user) -> bool:
     """
     from census_app.core.models import UserEmailPreferences
 
+    logger.info(
+        f"Attempting to send welcome email to {user.email} (username: {user.username})"
+    )
+
     prefs = UserEmailPreferences.get_or_create_for_user(user)
     if not prefs.send_welcome_email:
-        logger.info(f"Welcome email skipped for {user.username} (user preference)")
+        logger.info(
+            f"Welcome email skipped for {user.username} (user preference disabled)"
+        )
         return False
 
     branding = get_platform_branding()
@@ -224,10 +248,14 @@ def send_password_change_email(user) -> bool:
     """
     from census_app.core.models import UserEmailPreferences
 
+    logger.info(
+        f"Attempting to send password change email to {user.email} (username: {user.username})"
+    )
+
     prefs = UserEmailPreferences.get_or_create_for_user(user)
     if not prefs.send_password_change_email:
         logger.info(
-            f"Password change email skipped for {user.username} (user preference)"
+            f"Password change email skipped for {user.username} (user preference disabled)"
         )
         return False
 
@@ -259,10 +287,14 @@ def send_survey_created_email(user, survey) -> bool:
     """
     from census_app.core.models import UserEmailPreferences
 
+    logger.info(
+        f"Attempting to send survey created email to {user.email} for survey: {survey.name} ({survey.slug})"
+    )
+
     prefs = UserEmailPreferences.get_or_create_for_user(user)
     if not prefs.send_survey_created_email:
         logger.info(
-            f"Survey created email skipped for {user.username} (user preference)"
+            f"Survey created email skipped for {user.username} (user preference disabled)"
         )
         return False
 
@@ -296,10 +328,14 @@ def send_survey_deleted_email(user, survey_name: str, survey_slug: str) -> bool:
     """
     from census_app.core.models import UserEmailPreferences
 
+    logger.info(
+        f"Attempting to send survey deleted email to {user.email} for survey: {survey_name} ({survey_slug})"
+    )
+
     prefs = UserEmailPreferences.get_or_create_for_user(user)
     if not prefs.send_survey_deleted_email:
         logger.info(
-            f"Survey deleted email skipped for {user.username} (user preference)"
+            f"Survey deleted email skipped for {user.username} (user preference disabled)"
         )
         return False
 
