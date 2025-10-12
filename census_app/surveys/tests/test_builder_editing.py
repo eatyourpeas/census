@@ -84,7 +84,10 @@ def test_question_edit_splits_multiple_choice_options(client):
     assert html.count("alert alert-success") == 1
     question.refresh_from_db()
     assert question.required is True
-    assert question.options == [{"label": "Red", "value": "Red"}, {"label": "Blue", "value": "Blue"}]
+    assert question.options == [
+        {"label": "Red", "value": "Red"},
+        {"label": "Blue", "value": "Blue"},
+    ]
 
 
 @pytest.mark.django_db
