@@ -11,8 +11,8 @@ Tests cover:
 
 import json
 
-import pytest
 from django.contrib.auth import get_user_model
+import pytest
 
 from census_app.surveys.models import Survey, SurveyQuestion
 

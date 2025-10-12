@@ -8,9 +8,9 @@ like follow-up text inputs.
 
 from __future__ import annotations
 
-import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
+import pytest
 
 from census_app.surveys.models import QuestionGroup, Survey, SurveyQuestion
 

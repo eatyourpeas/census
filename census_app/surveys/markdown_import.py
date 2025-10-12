@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
-import unicodedata
 from typing import Any, Dict, List
+import unicodedata
 
 
 class BulkParseError(Exception):
