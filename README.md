@@ -148,7 +148,9 @@ Security posture:
 - Rate limiting on form posts (django-ratelimit)
 - CSP headers (django-csp) and static via WhiteNoise
 - Sensitive demographics encrypted per-survey using AES-GCM with derived keys
-- API uses JWT (Bearer) auth; include Authorization header in requests.
+- API uses JWT (Bearer) auth; include Authorization header in requests
+- Per-survey encryption keys with zero-knowledge architecture
+- See [Patient Data Encryption](docs/patient-data-encryption.md) for detailed security documentation
 
 ## Tests
 
