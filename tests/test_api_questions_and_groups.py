@@ -62,12 +62,13 @@ class TestAPIQuestionsAndGroups:
         assert q.text == "What is your name?"
         assert q.type == "text"
 
-    def test_seed_number_question(self, client):
-        """Test seeding a number input question."""
+    def test_seed_text_with_number_format(self, client):
+        """Test seeding a text question (number format not a separate type)."""
         user, survey, headers = self.setup_basic_survey(client)
         url = f"/api/surveys/{survey.id}/seed/"
 
-        payload = [{"text": "What is your age?", "type": "number", "order": 1}]
+        # Note: "number" is not a valid type - use "text" instead
+        payload = [{"text": "What is your age?", "type": "text", "order": 1}]
 
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
@@ -78,7 +79,7 @@ class TestAPIQuestionsAndGroups:
 
         # Verify in database
         q = SurveyQuestion.objects.get(survey=survey)
-        assert q.type == "number"
+        assert q.type == "text"
 
     def test_seed_mc_single_simple_format(self, client):
         """Test multiple choice (single) with simple string array options."""
@@ -468,7 +469,7 @@ class TestAPIQuestionsAndGroups:
 
         payload = [
             {"text": "Name?", "type": "text", "order": 1},
-            {"text": "Age?", "type": "number", "order": 2},
+            {"text": "Age?", "type": "text", "order": 2},
             {
                 "text": "Color?",
                 "type": "mc_single",
@@ -590,7 +591,7 @@ class TestAPIQuestionsAndGroups:
             },
             {
                 "text": "Age",
-                "type": "number",
+                "type": "text",
                 "group_name": "Demographics",
                 "order": 2,
             },
@@ -674,7 +675,7 @@ class TestAPIQuestionsAndGroups:
     # === Error Handling Tests ===
 
     def test_seed_invalid_question_type(self, client):
-        """Test seeding with invalid question type (API accepts it)."""
+        """Test seeding with invalid question type returns validation error."""
         user, survey, headers = self.setup_basic_survey(client)
         url = f"/api/surveys/{survey.id}/seed/"
 
@@ -683,17 +684,22 @@ class TestAPIQuestionsAndGroups:
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
         )
-        # Note: The API currently doesn't validate question types, it accepts them
-        assert resp.status_code == 200
+        # Should return 400 error with helpful message
+        assert resp.status_code == 400
         data = resp.json()
-        assert data["created"] == 1
+        assert "errors" in data
+        assert len(data["errors"]) == 1
+        error = data["errors"][0]
+        assert error["field"] == "type"
+        assert error["value"] == "invalid_type"
+        assert "valid_types" in error
+        assert "text" in error["valid_types"]  # Should list valid types
         
-        # The invalid type is stored as-is
-        q = SurveyQuestion.objects.get(survey=survey)
-        assert q.type == "invalid_type"
+        # No questions should be created
+        assert SurveyQuestion.objects.filter(survey=survey).count() == 0
 
     def test_seed_missing_required_field(self, client):
-        """Test seeding without 'text' field uses default."""
+        """Test seeding without 'text' field shows warning but succeeds."""
         user, survey, headers = self.setup_basic_survey(client)
         url = f"/api/surveys/{survey.id}/seed/"
 
@@ -702,10 +708,13 @@ class TestAPIQuestionsAndGroups:
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
         )
-        # The API uses "Untitled" as default for missing text
+        # The API uses "Untitled" as default for missing text and returns warning
         assert resp.status_code == 200
         data = resp.json()
         assert data["created"] == 1
+        assert "warnings" in data
+        assert len(data["warnings"]) == 1
+        assert data["warnings"][0]["field"] == "text"
         
         q = SurveyQuestion.objects.get(survey=survey)
         assert q.text == "Untitled"
@@ -734,7 +743,7 @@ class TestAPIQuestionsAndGroups:
         # Comprehensive survey with various question types
         payload = [
             {"text": "Full name", "type": "text", "required": True, "order": 1},
-            {"text": "Age", "type": "number", "order": 2},
+            {"text": "Age", "type": "text", "order": 2},
             {
                 "text": "Satisfaction",
                 "type": "likert",
@@ -798,9 +807,9 @@ class TestAPIQuestionsAndGroups:
         assert q1.type == "text"
         assert q1.required is True
 
-        # Check number question
+        # Check text question (age)
         q2 = questions[1]
-        assert q2.type == "number"
+        assert q2.type == "text"
 
         # Check Likert
         q3 = questions[2]
@@ -823,3 +832,257 @@ class TestAPIQuestionsAndGroups:
             opt for opt in q5.options if isinstance(opt, dict) and opt.get("value") == "yes"
         )
         assert yes_option["followup_text"]["enabled"] is True
+
+
+# === Validation Tests ===
+
+
+@pytest.mark.django_db
+class TestAPIValidation:
+    """Test API validation for question seeding."""
+
+    @pytest.fixture
+    def setup_basic_survey(self, client):
+        """Create a basic survey for testing."""
+        user = User.objects.create_user(username="testuser", password=TEST_PASSWORD)
+        survey = Survey.objects.create(owner=user, name="Test Survey", slug="test-validation")
+        
+        # Get JWT token
+        resp = client.post(
+            "/api/token",
+            data=json.dumps({"username": "testuser", "password": TEST_PASSWORD}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200, resp.content
+        token = resp.json()["access"]
+        headers = {"HTTP_AUTHORIZATION": f"Bearer {token}"}
+
+        return user, survey, headers
+
+    def test_validation_missing_question_type(self, setup_basic_survey, client):
+        """Test validation when question type is missing."""
+        user, survey, headers = setup_basic_survey
+        url = f"/api/surveys/{survey.id}/seed/"
+
+        payload = [{"text": "Question without type", "order": 1}]
+
+        resp = client.post(
+            url, data=json.dumps(payload), content_type="application/json", **headers
+        )
+        
+        assert resp.status_code == 400
+        data = resp.json()
+        assert "errors" in data
+        assert len(data["errors"]) == 1
+        error = data["errors"][0]
+        assert error["field"] == "type"
+        assert "required" in error["message"].lower()
+        assert "valid_types" in error
+        
+        # No questions should be created
+        assert SurveyQuestion.objects.filter(survey=survey).count() == 0
+
+    def test_validation_invalid_question_type(self, setup_basic_survey, client):
+        """Test validation rejects invalid question types."""
+        user, survey, headers = setup_basic_survey
+        url = f"/api/surveys/{survey.id}/seed/"
+
+        payload = [
+            {"text": "Invalid type 1", "type": "radio", "order": 1},
+            {"text": "Invalid type 2", "type": "checkbox", "order": 2},
+        ]
+
+        resp = client.post(
+            url, data=json.dumps(payload), content_type="application/json", **headers
+        )
+        
+        assert resp.status_code == 400
+        data = resp.json()
+        assert "errors" in data
+        assert len(data["errors"]) == 2
+        
+        # Check both errors mention valid types
+        for error in data["errors"]:
+            assert error["field"] == "type"
+            assert "Invalid question type" in error["message"]
+            assert "valid_types" in error
+            assert "text" in error["valid_types"]
+            assert "mc_single" in error["valid_types"]
+        
+        # No questions should be created
+        assert SurveyQuestion.objects.filter(survey=survey).count() == 0
+
+    def test_validation_all_valid_types_accepted(self, setup_basic_survey, client):
+        """Test that all valid question types are accepted."""
+        user, survey, headers = setup_basic_survey
+        url = f"/api/surveys/{survey.id}/seed/"
+
+        # Test all valid types from SurveyQuestion.Types
+        payload = [
+            {"text": "Text question", "type": "text", "order": 1},
+            {"text": "MC Single", "type": "mc_single", "options": ["A", "B"], "order": 2},
+            {"text": "MC Multi", "type": "mc_multi", "options": ["X", "Y"], "order": 3},
+            {"text": "Dropdown", "type": "dropdown", "options": ["One", "Two"], "order": 4},
+            {"text": "Yes/No", "type": "yesno", "options": ["Yes", "No"], "order": 5},
+            {"text": "Likert", "type": "likert", "options": ["1", "2", "3"], "order": 6},
+            {"text": "Orderable", "type": "orderable", "options": ["First", "Second"], "order": 7},
+            {"text": "Image", "type": "image", "options": [], "order": 8},
+            {"text": "Patient Template", "type": "template_patient", "order": 9},
+            {"text": "Professional Template", "type": "template_professional", "order": 10},
+        ]
+
+        resp = client.post(
+            url, data=json.dumps(payload), content_type="application/json", **headers
+        )
+        
+        # Should succeed - all types are valid
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["created"] == 10
+        
+        # Verify all questions created
+        assert SurveyQuestion.objects.filter(survey=survey).count() == 10
+
+    def test_validation_warning_missing_text(self, setup_basic_survey, client):
+        """Test warning when question text is missing."""
+        user, survey, headers = setup_basic_survey
+        url = f"/api/surveys/{survey.id}/seed/"
+
+        payload = [{"type": "text", "order": 1}]
+
+        resp = client.post(
+            url, data=json.dumps(payload), content_type="application/json", **headers
+        )
+        
+        # Should succeed but with warning
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["created"] == 1
+        assert "warnings" in data
+        assert len(data["warnings"]) == 1
+        warning = data["warnings"][0]
+        assert warning["field"] == "text"
+        assert warning["severity"] == "warning"
+        
+        # Question created with default text
+        q = SurveyQuestion.objects.get(survey=survey)
+        assert q.text == "Untitled"
+
+    def test_validation_warning_missing_options(self, setup_basic_survey, client):
+        """Test warning when options are missing for types that need them."""
+        user, survey, headers = setup_basic_survey
+        url = f"/api/surveys/{survey.id}/seed/"
+
+        payload = [
+            {"text": "MC without options", "type": "mc_single", "order": 1},
+            {"text": "Dropdown without options", "type": "dropdown", "order": 2},
+        ]
+
+        resp = client.post(
+            url, data=json.dumps(payload), content_type="application/json", **headers
+        )
+        
+        # Should succeed but with warnings
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["created"] == 2
+        assert "warnings" in data
+        assert len(data["warnings"]) == 2
+        
+        for warning in data["warnings"]:
+            assert warning["field"] == "options"
+            assert warning["severity"] == "warning"
+            assert "requires" in warning["message"]
+
+    def test_validation_mixed_errors_and_warnings(self, setup_basic_survey, client):
+        """Test that critical errors prevent creation even with warnings."""
+        user, survey, headers = setup_basic_survey
+        url = f"/api/surveys/{survey.id}/seed/"
+
+        payload = [
+            {"type": "text", "order": 1},  # Missing text (warning)
+            {"text": "Invalid", "type": "invalid_type", "order": 2},  # Invalid type (error)
+            {"text": "Good question", "type": "text", "order": 3},  # Valid
+        ]
+
+        resp = client.post(
+            url, data=json.dumps(payload), content_type="application/json", **headers
+        )
+        
+        # Should fail due to critical error
+        assert resp.status_code == 400
+        data = resp.json()
+        assert "errors" in data
+        assert "warnings" in data
+        
+        # Should have 1 error and 1 warning
+        critical_errors = [e for e in data["errors"] if e.get("severity") != "warning"]
+        assert len(critical_errors) == 1
+        assert critical_errors[0]["field"] == "type"
+        
+        warnings = data["warnings"]
+        assert len(warnings) == 1
+        assert warnings[0]["field"] == "text"
+        
+        # No questions should be created when there are critical errors
+        assert SurveyQuestion.objects.filter(survey=survey).count() == 0
+
+    def test_validation_helpful_error_messages(self, setup_basic_survey, client):
+        """Test that error messages are helpful and include valid options."""
+        user, survey, headers = setup_basic_survey
+        url = f"/api/surveys/{survey.id}/seed/"
+
+        payload = [{"text": "Question", "type": "select", "order": 1}]
+
+        resp = client.post(
+            url, data=json.dumps(payload), content_type="application/json", **headers
+        )
+        
+        assert resp.status_code == 400
+        data = resp.json()
+        error = data["errors"][0]
+        
+        # Error should be descriptive
+        assert "Invalid question type 'select'" in error["message"]
+        assert "Must be one of:" in error["message"]
+        
+        # Should include all valid types
+        valid_types = error["valid_types"]
+        assert "text" in valid_types
+        assert "mc_single" in valid_types
+        assert "mc_multi" in valid_types
+        assert "dropdown" in valid_types
+        assert "yesno" in valid_types
+        assert "likert" in valid_types
+        assert "orderable" in valid_types
+        assert "image" in valid_types
+        
+        # Should include index for debugging
+        assert error["index"] == 0
+
+    def test_validation_multiple_questions_with_errors(self, setup_basic_survey, client):
+        """Test validation provides index for each error."""
+        user, survey, headers = setup_basic_survey
+        url = f"/api/surveys/{survey.id}/seed/"
+
+        payload = [
+            {"text": "Q1", "type": "text", "order": 1},  # Valid
+            {"text": "Q2", "type": "bad_type", "order": 2},  # Error at index 1
+            {"text": "Q3", "type": "text", "order": 3},  # Valid
+            {"text": "Q4", "type": "another_bad", "order": 4},  # Error at index 3
+        ]
+
+        resp = client.post(
+            url, data=json.dumps(payload), content_type="application/json", **headers
+        )
+        
+        assert resp.status_code == 400
+        data = resp.json()
+        errors = data["errors"]
+        assert len(errors) == 2
+        
+        # Check indices are correct
+        assert errors[0]["index"] == 1
+        assert errors[0]["value"] == "bad_type"
+        assert errors[1]["index"] == 3
+        assert errors[1]["value"] == "another_bad"
