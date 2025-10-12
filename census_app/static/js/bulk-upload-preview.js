@@ -60,13 +60,29 @@
   const extractTitleAndId = (rawTitle, fallbackId, registry) => {
     let title = rawTitle || "";
     let explicitId;
+    let isRequired = false;
+    
+    // Check for required indicator (trailing asterisk)
+    // Handle both "Title*" and "Title* {id}" formats
+    if (title.endsWith("*") || (title.includes("{") && title.split("{")[0].trim().endsWith("*"))) {
+      isRequired = true;
+      // Strip asterisk from before the ID if present
+      if (title.includes("{") && title.split("{")[0].trim().endsWith("*")) {
+        const parts = title.split("{");
+        parts[0] = parts[0].trim().slice(0, -1).trim();
+        title = parts.join("{");
+      } else {
+        title = title.slice(0, -1).trim();
+      }
+    }
+    
     const match = title.match(/\{([^{}]+)\}\s*$/);
     if (match) {
       explicitId = match[1].trim();
       title = title.slice(0, match.index).trim();
     }
     const id = allocateId(explicitId, fallbackId, registry);
-    return { title: title.trim(), id, explicitId };
+    return { title: title.trim(), id, explicitId, isRequired };
   };
 
   const createIdToken = (text, variant) => {
@@ -228,7 +244,7 @@
           groups.push(currentGroup);
         }
 
-        const { title, id: questionId } = extractTitleAndId(
+        const { title, id: questionId, isRequired } = extractTitleAndId(
           rawTitle,
           `${currentGroup.id}-${currentGroup.questions.length + 1}`,
           questionIds
@@ -239,6 +255,7 @@
           description: "",
           type: "",
           branches: [],
+          isRequired: isRequired || false,
         };
 
         for (let j = i + 1; j < normalized.length; j += 1) {
@@ -389,6 +406,14 @@
           const questionTitle = document.createElement("span");
           questionTitle.className = "font-medium text-sm text-base-content";
           questionTitle.textContent = `${index + 1}. ${question.title}`;
+          
+          // Add red asterisk if question is required
+          if (question.isRequired) {
+            const asterisk = document.createElement("span");
+            asterisk.className = "text-error";
+            asterisk.textContent = "*";
+            questionTitle.appendChild(asterisk);
+          }
 
           questionWrap.appendChild(questionBadge);
           questionWrap.appendChild(questionTitle);

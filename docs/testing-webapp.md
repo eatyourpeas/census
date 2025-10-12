@@ -16,6 +16,7 @@ Webapp tests are organized by app:
   - `test_permissions.py` - Access control and permissions
   - `test_groups_reorder.py` - Question group reordering
   - `test_anonymous_access.py` - Anonymous user behavior
+  - `/test_followup_import.py` - Bulk markdown import with follow-ups and required fields (10 tests)
   - And more...
 - `/census_app/core/tests/` - Core app tests
 - `/tests/` - General integration tests
@@ -472,6 +473,217 @@ def test_whitespace_trimmed_from_options(self, client):
     assert question.options[2]["label"] == "Option 3"
 ```
 
+## Testing Bulk Markdown Import
+
+The bulk import feature allows users to create surveys from markdown. Tests verify that the markdown parser correctly handles group and question syntax, follow-up questions, required fields, IDs, and collections.
+
+### Bulk Import Test Files
+
+- `/test_followup_import.py` - Comprehensive markdown import tests (10 tests)
+
+### Running Bulk Import Tests
+
+```bash
+# Run all bulk import tests
+docker compose exec web pytest test_followup_import.py -v
+
+# Run specific test
+docker compose exec web pytest test_followup_import.py::test_followup_import_parses_successfully
+```
+
+### Test Fixtures
+
+The test suite uses markdown fixtures to simulate real-world survey markdown:
+
+```python
+@pytest.fixture
+def test_markdown():
+    """Sample markdown with follow-up questions across different question types."""
+    return """
+# Employment Survey {employment}
+Questions about employment status
+
+## Employment status* {employment-status}
+What is your current employment status?
+(mc_single)
+- Employed full-time
+- Employed part-time
+  + Please specify your hours per week
+- Self-employed
+  + What type of business?
+"""
+```
+
+### Testing Markdown Parsing
+
+#### Basic Parse Success
+
+```python
+def test_followup_import_parses_successfully(test_markdown):
+    """Test that markdown with follow-ups parses without errors."""
+    parsed = parse_bulk_markdown_with_collections(test_markdown)
+    
+    assert parsed is not None
+    assert "groups" in parsed
+    assert len(parsed["groups"]) == 1
+```
+
+#### Group Structure
+
+```python
+def test_followup_import_creates_correct_group_structure(test_markdown):
+    """Test that groups are created with correct metadata."""
+    parsed = parse_bulk_markdown_with_collections(test_markdown)
+    
+    groups = parsed.get("groups", [])
+    assert len(groups) == 1
+    
+    employment_group = groups[0]
+    assert employment_group["title"] == "Employment Survey"
+    assert employment_group["ref"] == "employment"
+    assert employment_group["description"] == "Questions about employment status"
+```
+
+#### Question with Follow-ups
+
+```python
+def test_followup_mc_single_option_structure(test_markdown):
+    """Test that mc_single options with follow-ups have correct structure."""
+    parsed = parse_bulk_markdown_with_collections(test_markdown)
+    
+    employment_group = parsed["groups"][0]
+    employment_q = employment_group["questions"][0]
+    
+    # Check question metadata
+    assert employment_q["title"] == "Employment status"
+    assert employment_q["ref"] == "employment-status"
+    assert employment_q["type"] == "mc_single"
+    assert employment_q["required"] is True  # Asterisk notation
+    
+    # Check options with follow-ups
+    options = employment_q["options"]
+    assert len(options) == 6
+    
+    # Option with follow-up
+    part_time = options[1]
+    assert part_time["label"] == "Employed part-time"
+    assert part_time.get("followup_text") is not None
+    assert part_time["followup_text"]["enabled"] is True
+    assert part_time["followup_text"]["label"] == "Please specify your hours per week"
+    
+    # Option without follow-up
+    full_time = options[0]
+    assert full_time["label"] == "Employed full-time"
+    assert full_time.get("followup_text") is None
+```
+
+### Testing Required Fields
+
+```python
+def test_required_field_parsing(test_markdown_required):
+    """Test that asterisks in question titles are parsed as required flag."""
+    parsed = parse_bulk_markdown_with_collections(test_markdown_required)
+    
+    questions = parsed["groups"][0]["questions"]
+    
+    # Question with asterisk: "## Full name* {contact-name}"
+    name_q = questions[0]
+    assert name_q["title"] == "Full name"  # Asterisk stripped
+    assert name_q["required"] is True
+    
+    # Question without asterisk
+    phone_q = questions[2]
+    assert phone_q["title"] == "Phone number"
+    assert phone_q["required"] is False
+```
+
+### Testing Required + Follow-up Combined
+
+```python
+def test_required_with_followup_combined(test_markdown):
+    """Test that required fields work correctly with follow-up questions."""
+    parsed = parse_bulk_markdown_with_collections(test_markdown)
+    
+    employment_q = parsed["groups"][0]["questions"][0]
+    
+    # Should be both required and have follow-ups
+    assert employment_q["required"] is True
+    assert employment_q["options"][1]["followup_text"]["enabled"] is True
+```
+
+### Testing Asterisk with ID
+
+```python
+def test_required_asterisk_with_id(test_markdown):
+    """Test asterisk notation before curly brace IDs."""
+    parsed = parse_bulk_markdown_with_collections(test_markdown)
+    
+    # Format: "## Employment status* {employment-status}"
+    question = parsed["groups"][0]["questions"][0]
+    
+    assert question["title"] == "Employment status"  # Asterisk stripped
+    assert question["ref"] == "employment-status"  # ID preserved
+    assert question["required"] is True  # Flag set
+```
+
+### Testing Different Question Types with Follow-ups
+
+The test suite covers follow-ups on multiple question types:
+
+- **mc_single** (single choice) - Follow-up text inputs on specific options
+- **mc_multi** (multiple choice) - Follow-ups on selected options
+- **dropdown** - Follow-ups on dropdown selections
+- **yesno** - Follow-ups on yes/no answers
+
+```python
+def test_followup_mc_multi_option_structure(test_markdown):
+    """Test mc_multi options with follow-ups."""
+    parsed = parse_bulk_markdown_with_collections(test_markdown)
+    
+    skills_q = parsed["groups"][0]["questions"][1]
+    assert skills_q["type"] == "mc_multi"
+    
+    python_option = skills_q["options"][0]
+    assert python_option["label"] == "Python"
+    assert python_option["followup_text"]["label"] == "Years of experience?"
+```
+
+### Testing Data Structure API Compatibility
+
+```python
+def test_followup_data_structure_matches_api_format(test_markdown):
+    """Test that parsed data matches expected API format."""
+    parsed = parse_bulk_markdown_with_collections(test_markdown)
+    
+    question = parsed["groups"][0]["questions"][0]
+    option_with_followup = question["options"][1]
+    
+    # Should match webapp format: {enabled: bool, label: str}
+    assert "followup_text" in option_with_followup
+    assert isinstance(option_with_followup["followup_text"], dict)
+    assert "enabled" in option_with_followup["followup_text"]
+    assert "label" in option_with_followup["followup_text"]
+    assert option_with_followup["followup_text"]["enabled"] is True
+```
+
+### Key Test Patterns for Bulk Import
+
+1. **Parse Validation**: Verify markdown parses without errors
+2. **Structure Verification**: Check groups, questions, and options are created correctly
+3. **Metadata Preservation**: Ensure IDs, titles, descriptions are extracted properly
+4. **Feature Flags**: Test required fields (asterisk), follow-ups (indented +), types
+5. **Format Compatibility**: Ensure parsed data matches expected structure for database creation
+6. **Edge Cases**: Test asterisk before/after IDs, multiple follow-ups, missing types
+
+### Reference Implementation
+
+For complete test examples, see `/test_followup_import.py` which includes:
+
+- 2 comprehensive markdown fixtures
+- 10 tests covering parsing, structure, follow-ups, and required fields
+- Tests for all major question types with follow-up support
+- Validation of data format compatibility with the webapp
+
 ## Testing Question Ordering
 
 ```python
@@ -696,3 +908,4 @@ For comprehensive examples, see:
 - `census_app/surveys/tests/test_permissions.py` - Permission patterns
 - `census_app/surveys/tests/test_groups_reorder.py` - HTMX interactions and reordering
 - `census_app/surveys/tests/test_anonymous_access.py` - Anonymous user handling
+- `/test_followup_import.py` - Bulk markdown import with follow-ups and required fields (10 tests)

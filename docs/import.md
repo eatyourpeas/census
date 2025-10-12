@@ -166,6 +166,44 @@ Notes:
 - The target in curly braces can reference a group ID (jump to that group) or a question ID (jump directly to the question).
 - IDs are normalised to lowercase slugs; ensure each ID is unique across all groups and questions.
 
+## Error handling and validation
+
+The bulk import system provides comprehensive error detection and reporting at two levels:
+
+### Live preview (immediate feedback)
+
+As you type your Markdown in the import form, the **live structure preview** on the right side of the page parses your content in real-time and displays:
+
+- The hierarchical structure of groups and questions
+- Extracted IDs with color-coded badges (groups in purple, questions in teal)
+- Question types and branching rules
+- Repeat collection indicators
+- **Required field markers** (red asterisks)
+- **Warnings** for issues like questions appearing before group headings
+
+This live preview uses the same parsing logic as the backend, so you'll catch most formatting issues—incorrect notation, missing indentation, malformed branching rules, etc.—**before you even submit the form**. The preview updates instantly as you edit, making it easy to iterate and fix problems.
+
+### Backend validation (on submit)
+
+When you click "Create survey", the backend parser performs a complete validation pass and will reject the import if any errors are found. The system checks for:
+
+- **Empty markdown**: The document must contain at least one group and question
+- **Questions before groups**: Questions must be declared inside a group (after a `#` heading)
+- **Missing question types**: Every question must have a type declaration in parentheses
+- **Invalid branch syntax**: Branching rules must include `when`, a valid operator, and a target ID in curly braces
+- **Invalid operators**: Only recognised operators (equals, contains, greater_than, etc.) are allowed
+- **Missing branch targets**: Branch rules must reference a valid group or question ID
+- **Empty target IDs**: IDs in curly braces cannot be empty
+- **Collection syntax errors**: REPEAT markers and nested collections must follow correct indentation patterns
+
+If validation fails, the import form redisplays with:
+
+- Your original Markdown content preserved in the textarea
+- A **prominent error alert** at the top of the page describing exactly what went wrong and which line number (when applicable)
+- The live preview still active so you can see the structure
+
+This two-layer validation approach ensures that formatting and syntax errors are caught early (in the live preview) while data integrity issues are prevented by the backend before any database changes occur.
+
 ## Workflow tips
 
 1. Draft the structure in Markdown using a familiar editor or export from a specification document.
