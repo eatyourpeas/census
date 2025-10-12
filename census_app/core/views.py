@@ -1,13 +1,14 @@
 from pathlib import Path
 
+import markdown as mdlib
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login, views as auth_views
+from django.contrib.auth import login
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
-import markdown as mdlib
 
 from census_app.surveys.models import (
     Organization,
@@ -254,9 +255,14 @@ DOC_CATEGORIES = {
         "order": 4,
         "icon": "🔧",
     },
+    "testing": {
+        "title": "Testing",
+        "order": 5,
+        "icon": "🧪",
+    },
     "advanced": {
         "title": "Advanced Topics",
-        "order": 5,
+        "order": 6,
         "icon": "🚀",
     },
     "other": {
@@ -368,6 +374,10 @@ def _infer_category(slug: str) -> str:
         x in slug_lower for x in ["api", "authentication", "adding-", "development"]
     ):
         return "api"
+
+    # Testing
+    if any(x in slug_lower for x in ["testing", "test-"]):
+        return "testing"
 
     # Advanced
     if any(x in slug_lower for x in ["advanced", "custom", "extend"]):
