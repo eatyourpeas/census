@@ -61,10 +61,13 @@
     let title = rawTitle || "";
     let explicitId;
     let isRequired = false;
-    
+
     // Check for required indicator (trailing asterisk)
     // Handle both "Title*" and "Title* {id}" formats
-    if (title.endsWith("*") || (title.includes("{") && title.split("{")[0].trim().endsWith("*"))) {
+    if (
+      title.endsWith("*") ||
+      (title.includes("{") && title.split("{")[0].trim().endsWith("*"))
+    ) {
       isRequired = true;
       // Strip asterisk from before the ID if present
       if (title.includes("{") && title.split("{")[0].trim().endsWith("*")) {
@@ -75,7 +78,7 @@
         title = title.slice(0, -1).trim();
       }
     }
-    
+
     const match = title.match(/\{([^{}]+)\}\s*$/);
     if (match) {
       explicitId = match[1].trim();
@@ -244,7 +247,11 @@
           groups.push(currentGroup);
         }
 
-        const { title, id: questionId, isRequired } = extractTitleAndId(
+        const {
+          title,
+          id: questionId,
+          isRequired,
+        } = extractTitleAndId(
           rawTitle,
           `${currentGroup.id}-${currentGroup.questions.length + 1}`,
           questionIds
@@ -406,7 +413,7 @@
           const questionTitle = document.createElement("span");
           questionTitle.className = "font-medium text-sm text-base-content";
           questionTitle.textContent = `${index + 1}. ${question.title}`;
-          
+
           // Add red asterisk if question is required
           if (question.isRequired) {
             const asterisk = document.createElement("span");
