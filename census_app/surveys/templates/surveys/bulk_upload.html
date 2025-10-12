@@ -61,6 +61,7 @@
         <ul class="list-disc pl-5 space-y-1 text-sm">
           <li><code># Group Title</code>, followed by a line for the group description</li>
           <li><code>## Question Title</code>, followed by a line for the question description</li>
+          <li>Add <code class="text-error">*</code> after the question title to mark it as required</li>
           <li><code>(type)</code> on the next line in parentheses</li>
           <li>If the type requires options, list each on a line starting with <code>-</code></li>
           <li>For options that should have follow-up text input, add an indented line starting with <code>+</code></li>
@@ -103,6 +104,23 @@
             <li>Works with <code>mc_single</code>, <code>mc_multi</code>, <code>dropdown</code>, <code>orderable</code>, and <code>yesno</code></li>
             <li>For <code>yesno</code>, provide exactly 2 options (Yes/No) with optional follow-ups</li>
             <li>Not all options need follow-ups—only add them where needed</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="font-semibold">Optional: Required questions</h3>
+          <p class="text-sm text-base-content/80">Mark a question as required by adding an asterisk <code class="text-error">*</code> after the question title (before the ID in curly braces if present).</p>
+          <pre class="mt-2 rounded bg-base-200/60 p-3 text-sm"><code>## Age<span class="text-error">*</span> {patient-age}
+Age in years
+(text number)
+
+## Email address<span class="text-error">*</span>
+(text)</code></pre>
+          <ul class="list-disc pl-5 space-y-1 text-sm">
+            <li>Required questions must be answered before the form can be submitted</li>
+            <li>The asterisk <code class="text-error">*</code> appears in red in the preview</li>
+            <li>Place the asterisk immediately after the question title text</li>
+            <li>Works with all question types</li>
           </ul>
         </div>
 

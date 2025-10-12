@@ -184,6 +184,25 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
                     f"Question declared before any group at line {i+1}"
                 )
             qtitle_raw = line[3:].strip()
+
+            # Check for required indicator (trailing asterisk)
+            # Note: Asterisk must come BEFORE any curly braces ID
+            # e.g., "Title* {id}" or "Title*"
+            is_required = False
+            if qtitle_raw.endswith("*") or (
+                "{" in qtitle_raw and qtitle_raw.split("{")[0].rstrip().endswith("*")
+            ):
+                is_required = True
+                # Strip asterisk from before the ID if present
+                if "{" in qtitle_raw and qtitle_raw.split("{")[0].rstrip().endswith(
+                    "*"
+                ):
+                    parts = qtitle_raw.split("{")
+                    parts[0] = parts[0].rstrip()[:-1].rstrip()
+                    qtitle_raw = "{".join(parts)
+                else:
+                    qtitle_raw = qtitle_raw[:-1].strip()
+
             qtitle, qref = _extract_title_and_ref(
                 qtitle_raw,
                 f"{current_group['ref']}-{len(current_group['questions']) + 1}",
@@ -216,6 +235,7 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
                 "kv": {},
                 "ref": qref,
                 "branches": [],
+                "required": is_required,
             }
             current_group["questions"].append(current_question)
         else:

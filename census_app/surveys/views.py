@@ -3600,7 +3600,7 @@ def bulk_upload(request: HttpRequest, slug: str) -> HttpResponse:
                             text=q["title"],
                             type=q["final_type"],
                             options=q["final_options"],
-                            required=False,
+                            required=q.get("required", False),
                             order=next_order,
                         )
                         next_order += 1
@@ -3759,11 +3759,11 @@ def _bulk_upload_example_md() -> str:
         "REPEAT-5\n"
         "# Patient {patient}\n"
         "Basic info about respondents\n\n"
-        "## Age {patient-age}\n"
+        "## Age* {patient-age}\n"
         "Age in years\n"
         "(text number)\n\n"
         "? when greater_than 17 -> {follow-up}\n\n"
-        "## Gender {patient-gender}\n"
+        "## Gender* {patient-gender}\n"
         "Self-described gender\n"
         "(mc_single)\n"
         "- Female\n"
@@ -3774,7 +3774,7 @@ def _bulk_upload_example_md() -> str:
         "> REPEAT\n"
         "> # Visit {visit}\n"
         "> Details about each visit\n\n"
-        "> ## Date of visit {visit-date}\n"
+        "> ## Date of visit* {visit-date}\n"
         "> (text)\n\n"
         "> ## Reason for visit {visit-reason}\n"
         "> (mc_multi)\n"
@@ -3786,7 +3786,7 @@ def _bulk_upload_example_md() -> str:
         ">   + Please specify\n\n"
         "# Follow up {follow-up}\n"
         "Post-visit questions\n\n"
-        "## Overall satisfaction {follow-up-overall}\n"
+        "## Overall satisfaction* {follow-up-overall}\n"
         "Rate from 1 to 5\n"
         "(likert number)\n"
         "min: 1\n"

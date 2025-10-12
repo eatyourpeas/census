@@ -36,6 +36,7 @@ Spacing is flexible, but keep the relative order (heading → optional descripti
 - The next non-empty line that is not a type declaration becomes the question description.
 - Declare the question type on a dedicated line wrapped in parentheses: `(text)`, `(mc_single)`, etc.
 - Append a stable identifier with curly braces just like groups: `## Question {question-id}`.
+- **Mark a question as required** by adding an asterisk `*` after the question title (before the ID if present): `## Question title* {question-id}`.
 
 ### Supported question types
 
@@ -85,6 +86,32 @@ Spacing is flexible, but keep the relative order (heading → optional descripti
 - For `yesno` questions, you can optionally provide 2 options (for Yes and No) with follow-up labels
 - Not all options need follow-ups—only add them where additional context is needed
 - Follow-up responses are stored alongside the selected option in the survey response
+
+## Required questions
+
+Mark a question as required by adding an asterisk `*` immediately after the question title. Required questions must be answered before participants can submit the form.
+
+**Example:**
+
+```markdown
+## Age* {patient-age}
+Age in years
+(text number)
+
+## Email address*
+Please provide your email
+(text)
+
+## Consent to participate* {consent}
+(yesno)
+```
+
+**Guidelines:**
+
+- Place the asterisk directly after the question title, before any identifier in curly braces
+- Works with all question types
+- Required questions are validated on form submission
+- The asterisk will appear in red in the preview
 
 ## Preview Viewer
 
