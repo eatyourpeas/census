@@ -249,19 +249,24 @@ DOC_CATEGORIES = {
         "order": 3,
         "icon": "⚙️",
     },
+    "security": {
+        "title": "Security",
+        "order": 4,
+        "icon": "🔒",
+    },
     "api": {
         "title": "API & Development",
-        "order": 4,
+        "order": 5,
         "icon": "🔧",
     },
     "testing": {
         "title": "Testing",
-        "order": 5,
+        "order": 6,
         "icon": "🧪",
     },
     "advanced": {
         "title": "Advanced Topics",
-        "order": 6,
+        "order": 7,
         "icon": "🚀",
     },
     "other": {
@@ -368,10 +373,21 @@ def _infer_category(slug: str) -> str:
     ):
         return "configuration"
 
-    # API & Development
+    # Security
     if any(
-        x in slug_lower for x in ["api", "authentication", "adding-", "development"]
+        x in slug_lower
+        for x in [
+            "security",
+            "encryption",
+            "patient-data",
+            "authentication",
+            "permissions",
+        ]
     ):
+        return "security"
+
+    # API & Development
+    if any(x in slug_lower for x in ["api", "adding-", "development"]):
         return "api"
 
     # Testing

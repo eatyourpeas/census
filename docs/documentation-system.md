@@ -31,7 +31,8 @@ The system automatically categorizes documentation based on filename patterns:
 | **Getting Started** 📚 | `getting-started`, `quickstart`, `setup` | `getting-started.md`, `quickstart-guide.md` |
 | **Features** ✨ | `surveys`, `collections`, `groups`, `import`, `publish` | `surveys.md`, `collections.md` |
 | **Configuration** ⚙️ | `branding`, `theme`, `user-management`, `setup` | `branding-and-theme-settings.md` |
-| **API & Development** 🔧 | `api`, `authentication`, `adding-` | `api.md`, `adding-external-datasets.md` |
+| **Security** 🔒 | `security`, `encryption`, `patient-data`, `authentication`, `permissions` | `patient-data-encryption.md`, `authentication-and-permissions.md` |
+| **API & Development** 🔧 | `api`, `adding-`, `development` | `api.md`, `adding-external-datasets.md` |
 | **Advanced Topics** 🚀 | `advanced`, `custom`, `extend` | `advanced-config.md` |
 | **Other** 📄 | Everything else | `releases.md` |
 
@@ -146,10 +147,12 @@ Documentation
 ├── ⚙️ Configuration
 │   ├── Branding And Theme Settings
 │   └── User Management
-├── 🔧 API & Development
+├── � Security
+│   ├── Authentication And Permissions
+│   └── Patient Data Encryption
+├── �🔧 API & Development
 │   ├── Adding External Datasets
-│   ├── Api
-│   └── Authentication And Permissions
+│   └── Api
 └── 📄 Other
     └── Releases
 ```
