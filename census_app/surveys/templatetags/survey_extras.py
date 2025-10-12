@@ -191,3 +191,42 @@ def options_meta(value):
     except Exception:
         return {}
     return {}
+
+
+@register.filter(name="has_followup")
+def has_followup(question):
+    """Check if a question has follow-up text inputs configured.
+
+    Returns a list of tuples (option_label, followup_label) for display.
+    """
+    try:
+        if not hasattr(question, "type") or not hasattr(question, "options"):
+            return []
+
+        qtype = question.type
+        options = question.options
+
+        # Only these types support follow-up text
+        if qtype not in ("mc_single", "mc_multi", "dropdown", "orderable", "yesno"):
+            return []
+
+        followups = []
+
+        if isinstance(options, list):
+            for opt in options:
+                if isinstance(opt, dict):
+                    # Check for followup_text config
+                    if (
+                        "followup_text" in opt
+                        and isinstance(opt["followup_text"], dict)
+                        and opt["followup_text"].get("enabled")
+                    ):
+                        opt_label = option_label(opt)
+                        followup_label = opt["followup_text"].get(
+                            "label", "Please elaborate"
+                        )
+                        followups.append((opt_label, followup_label))
+
+        return followups
+    except Exception:
+        return []

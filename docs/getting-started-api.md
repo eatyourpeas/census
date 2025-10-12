@@ -59,6 +59,8 @@ curl -k -s -H "Authorization: Bearer $ACCESS" \
   https://localhost:8000/api/surveys/$SURVEY_ID/seed/
 ```
 
+For detailed documentation on question types, JSON structure, and advanced features like follow-up text inputs, see [Using the API](using-the-api.md).
+
 1. Update survey (owner or org ADMIN):
 
 ```sh

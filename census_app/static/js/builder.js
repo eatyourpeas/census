@@ -356,6 +356,59 @@
       }
     }
 
+    // Restore follow-up configuration for MC/Dropdown/Orderable questions
+    if (
+      payload.type === "mc_single" ||
+      payload.type === "mc_multi" ||
+      payload.type === "dropdown" ||
+      payload.type === "orderable"
+    ) {
+      if (
+        typeof form._populateFollowupOptions === "function" &&
+        payload.followup_config
+      ) {
+        // Convert followup_config object to expected format
+        const followupConfig = {};
+        for (const [key, value] of Object.entries(payload.followup_config)) {
+          followupConfig[parseInt(key)] = value;
+        }
+        form._populateFollowupOptions(optionsField.value, followupConfig);
+      } else if (typeof form._populateFollowupOptions === "function") {
+        form._populateFollowupOptions(optionsField.value, null);
+      }
+    }
+
+    // Restore follow-up configuration for Yes/No questions
+    if (payload.type === "yesno" && payload.yesno_followup_config) {
+      const config = payload.yesno_followup_config;
+
+      // Yes followup
+      const yesCheckbox = form.querySelector(
+        'input[name="yesno_yes_followup"]'
+      );
+      const yesLabel = form.querySelector(
+        'input[name="yesno_yes_followup_label"]'
+      );
+      if (yesCheckbox && config.yes) {
+        yesCheckbox.checked = config.yes.enabled || false;
+      }
+      if (yesLabel && config.yes) {
+        yesLabel.value = config.yes.label || "";
+      }
+
+      // No followup
+      const noCheckbox = form.querySelector('input[name="yesno_no_followup"]');
+      const noLabel = form.querySelector(
+        'input[name="yesno_no_followup_label"]'
+      );
+      if (noCheckbox && config.no) {
+        noCheckbox.checked = config.no.enabled || false;
+      }
+      if (noLabel && config.no) {
+        noLabel.value = config.no.label || "";
+      }
+    }
+
     const groupSelect = form.querySelector('select[name="group_id"]');
     if (groupSelect) {
       if (payload.group_id) {
@@ -660,6 +713,9 @@
     const textSection = form.querySelector('[data-section="text-options"]');
     const optsSection = form.querySelector('[data-section="options"]');
     const likertSection = form.querySelector('[data-section="likert"]');
+    const yesnoFollowupSection = form.querySelector(
+      '[data-section="yesno-followup"]'
+    );
     const likertCat = likertSection
       ? likertSection.querySelector('[data-likert="categories"]')
       : null;
@@ -675,6 +731,15 @@
     const loadDatasetBtn = form.querySelector("[data-load-dataset]");
     const optionsTextarea = form.querySelector('textarea[name="options"]');
 
+    // Follow-up controls
+    const followupContainer = form.querySelector(
+      "[data-options-followup-container]"
+    );
+    const followupList = form.querySelector("[data-followup-options-list]");
+    const refreshFollowupBtn = form.querySelector(
+      "[data-refresh-followup-options]"
+    );
+
     function refresh() {
       const checked = form.querySelector('input[name="type"]:checked');
       const type = checked ? checked.value : null;
@@ -688,10 +753,25 @@
         type === "image";
       const isDropdown = type === "dropdown";
       const isLikert = type === "likert";
+      const isYesNo = type === "yesno";
+
+      // Show/hide follow-up for mc/dropdown/orderable (not image or likert)
+      const showFollowup =
+        type === "mc_single" ||
+        type === "mc_multi" ||
+        type === "dropdown" ||
+        type === "orderable";
 
       if (textSection) textSection.classList.toggle("hidden", !isText);
       if (optsSection) optsSection.classList.toggle("hidden", !isMC);
       if (likertSection) likertSection.classList.toggle("hidden", !isLikert);
+      if (yesnoFollowupSection)
+        yesnoFollowupSection.classList.toggle("hidden", !isYesNo);
+
+      // Show/hide follow-up container within options section
+      if (followupContainer) {
+        followupContainer.classList.toggle("hidden", !showFollowup);
+      }
 
       // Only show prefilled options for dropdown type
       if (prefilledContainer) {
@@ -717,6 +797,55 @@
           likertCat.classList.toggle("hidden", mode !== "categories");
         if (likertNum) likertNum.classList.toggle("hidden", mode !== "number");
       }
+    }
+
+    // Function to populate follow-up options based on textarea content
+    function populateFollowupOptions(optionsText, followupConfig) {
+      if (!followupList) return;
+
+      const lines = (optionsText || "")
+        .split("\n")
+        .map((s) => s.trim())
+        .filter((s) => s);
+      if (lines.length === 0) {
+        followupList.innerHTML =
+          '<p class="text-xs opacity-60">Enter options above first</p>';
+        return;
+      }
+
+      const html = lines
+        .map((line, idx) => {
+          const isEnabled =
+            followupConfig &&
+            followupConfig[idx] &&
+            followupConfig[idx].enabled;
+          const label =
+            followupConfig && followupConfig[idx]
+              ? followupConfig[idx].label
+              : "Please elaborate";
+
+          return `
+          <div class="flex items-start gap-2 p-2 bg-base-100 rounded border border-base-300">
+            <input type="checkbox" class="checkbox checkbox-sm mt-1" name="option_${idx}_followup" id="option-${idx}-followup" ${
+            isEnabled ? "checked" : ""
+          } />
+            <div class="flex-1 min-w-0">
+              <label for="option-${idx}-followup" class="text-sm font-medium cursor-pointer block truncate" title="${line}">${line}</label>
+              <input type="text" name="option_${idx}_followup_label" class="input input-xs input-bordered w-full mt-1" placeholder="Follow-up label..." value="${label}" />
+            </div>
+          </div>
+        `;
+        })
+        .join("");
+
+      followupList.innerHTML = html;
+    }
+
+    // Refresh follow-up options button
+    if (refreshFollowupBtn && optionsTextarea) {
+      refreshFollowupBtn.addEventListener("click", function () {
+        populateFollowupOptions(optionsTextarea.value, null);
+      });
     }
 
     // Prefilled dataset toggle handler
@@ -768,6 +897,8 @@
             optionsTextarea.value = data.options.join("\n");
             // Store the dataset key as a data attribute for later retrieval
             optionsTextarea.dataset.prefilledDataset = datasetKey;
+            // Also refresh follow-up options
+            populateFollowupOptions(optionsTextarea.value, null);
             if (typeof window.showToast === "function") {
               window.showToast(
                 `Loaded ${data.options.length} options`,
@@ -792,8 +923,9 @@
       });
     }
 
-    // Expose refresh so we can call it after external resets
+    // Expose refresh and populate functions so we can call them externally
     form._refreshCreateToggles = refresh;
+    form._populateFollowupOptions = populateFollowupOptions;
 
     form.addEventListener("change", function (e) {
       if (
