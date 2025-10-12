@@ -1,18 +1,22 @@
+import os
+
 from django.urls import include, path
 from rest_framework.permissions import AllowAny
 from rest_framework.routers import DefaultRouter
 from rest_framework.schemas import get_schema_view
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-import os
 
 from . import views
+
 
 # Custom token views without throttling for tests
 class TestTokenObtainPairView(TokenObtainPairView):
     throttle_classes = []
 
+
 class TestTokenRefreshView(TokenRefreshView):
     throttle_classes = []
+
 
 # Use non-throttled views during tests
 if os.environ.get("PYTEST_CURRENT_TEST"):

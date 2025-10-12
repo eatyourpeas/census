@@ -1,5 +1,9 @@
 # Census
 
+![GitHub License](https://img.shields.io/github/license/eatyourpeas/census?style=for-the-badge&color=%23BF40BF)
+![Swagger Validator](https://img.shields.io/swagger/valid/3.0?specUrl=https%3A%2F%2Fcensus.eatyourpeas.dev%2Fapi%2Fschema&style=for-the-badge)
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/eatyourpeas/census?style=for-the-badge&color=%23BF40BF)
+
 Census is a survey platform for medical audit and research. It is secure with encrypted identifiers only visible to users entering the data.
 
 Try it out [here](https://census.eatyourpeas.dev)
