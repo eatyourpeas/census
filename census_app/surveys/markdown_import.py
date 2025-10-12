@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
 import unicodedata
+from typing import Any, Dict, List
 
 
 class BulkParseError(Exception):
@@ -225,6 +225,25 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
                     current_question["branches"].append(branch)
                 elif line.startswith("- "):
                     current_question["options"].append(line[2:].strip())
+                elif line.startswith("+ "):
+                    # Follow-up text for the most recent option
+                    if current_question["options"]:
+                        # Get the last option and mark it with follow-up metadata
+                        last_idx = len(current_question["options"]) - 1
+                        followup_label = line[2:].strip()
+                        # Store follow-up as tuple (option_text, followup_label)
+                        last_option = current_question["options"][last_idx]
+                        # If it's already a tuple, update it; otherwise create tuple
+                        if isinstance(last_option, tuple):
+                            current_question["options"][last_idx] = (
+                                last_option[0],
+                                followup_label,
+                            )
+                        else:
+                            current_question["options"][last_idx] = (
+                                last_option,
+                                followup_label,
+                            )
                 else:
                     m = re.match(
                         r"^(min|max|left|right)\s*:\s*(.*)$", line, re.IGNORECASE
@@ -239,6 +258,25 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
     group_lookup = {g["ref"]: g for g in groups}
     question_lookup = {q["ref"]: q for g in groups for q in g["questions"]}
 
+    def _convert_options_to_dicts(options_list):
+        """Convert option list (strings or tuples) to dict format with follow-up support."""
+        result = []
+        for opt in options_list:
+            if isinstance(opt, tuple):
+                # (option_text, followup_label)
+                opt_text, followup_label = opt
+                result.append(
+                    {
+                        "label": opt_text,
+                        "value": opt_text,
+                        "followup_text": {"enabled": True, "label": followup_label},
+                    }
+                )
+            else:
+                # Simple string option
+                result.append({"label": opt, "value": opt})
+        return result
+
     for g in groups:
         if not g["name"]:
             raise BulkParseError("A group is missing a title")
@@ -252,22 +290,34 @@ def parse_bulk_markdown(md_text: str) -> List[Dict[str, Any]]:
                 q["final_options"] = [{"type": "text", "format": "number"}]
             elif t in {"mc_single", "single", "radio"}:
                 q["final_type"] = "mc_single"
-                q["final_options"] = q["options"][:]
+                q["final_options"] = _convert_options_to_dicts(q["options"])
             elif t in {"mc_multi", "multi", "checkbox"}:
                 q["final_type"] = "mc_multi"
-                q["final_options"] = q["options"][:]
+                q["final_options"] = _convert_options_to_dicts(q["options"])
             elif t in {"dropdown", "select"}:
                 q["final_type"] = "dropdown"
-                q["final_options"] = q["options"][:]
+                q["final_options"] = _convert_options_to_dicts(q["options"])
             elif t in {"orderable", "rank", "ranking"}:
                 q["final_type"] = "orderable"
-                q["final_options"] = q["options"][:]
+                q["final_options"] = _convert_options_to_dicts(q["options"])
             elif t in {"yesno", "yes/no", "boolean"}:
                 q["final_type"] = "yesno"
-                q["final_options"] = []
+                # YesNo can also have follow-up text
+                yes_option: Dict[str, Any] = {"label": "Yes", "value": "yes"}
+                no_option: Dict[str, Any] = {"label": "No", "value": "no"}
+                # Check if options were provided for yes/no (unusual but supported)
+                if len(q["options"]) >= 1:
+                    opt = q["options"][0]
+                    if isinstance(opt, tuple):
+                        yes_option["followup_text"] = {"enabled": True, "label": opt[1]}
+                if len(q["options"]) >= 2:
+                    opt = q["options"][1]
+                    if isinstance(opt, tuple):
+                        no_option["followup_text"] = {"enabled": True, "label": opt[1]}
+                q["final_options"] = [yes_option, no_option]
             elif t in {"image", "image choice", "image-choice"}:
                 q["final_type"] = "image"
-                q["final_options"] = q["options"][:]
+                q["final_options"] = _convert_options_to_dicts(q["options"])
             elif t.startswith("likert"):
                 if "categories" in t:
                     if not q["options"]:

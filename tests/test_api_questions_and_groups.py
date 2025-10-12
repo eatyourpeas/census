@@ -8,10 +8,11 @@ Tests cover:
 - Option formats (simple string arrays vs rich object arrays)
 - Response data validation
 """
+
 import json
 
-from django.contrib.auth import get_user_model
 import pytest
+from django.contrib.auth import get_user_model
 
 from census_app.surveys.models import Survey, SurveyQuestion
 
@@ -154,9 +155,7 @@ class TestAPIQuestionsAndGroups:
         user, survey, headers = self.setup_basic_survey(client)
         url = f"/api/surveys/{survey.id}/seed/"
 
-        payload = [
-            {"text": "Do you have any concerns?", "type": "yesno", "order": 1}
-        ]
+        payload = [{"text": "Do you have any concerns?", "type": "yesno", "order": 1}]
 
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
@@ -319,8 +318,7 @@ class TestAPIQuestionsAndGroups:
         followup_count = sum(
             1
             for opt in q.options
-            if isinstance(opt, dict)
-            and opt.get("followup_text", {}).get("enabled")
+            if isinstance(opt, dict) and opt.get("followup_text", {}).get("enabled")
         )
         assert followup_count == 2
 
@@ -532,9 +530,7 @@ class TestAPIQuestionsAndGroups:
         user, survey, headers = self.setup_basic_survey(client)
         url = f"/api/surveys/{survey.id}/seed/"
 
-        payload = [
-            {"text": "Name?", "type": "text", "required": True, "order": 1}
-        ]
+        payload = [{"text": "Name?", "type": "text", "required": True, "order": 1}]
 
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
@@ -670,7 +666,10 @@ class TestAPIQuestionsAndGroups:
         # Verify no follow-up text configured
         for opt in q.options:
             if isinstance(opt, dict):
-                assert opt.get("followup_text") is None or opt.get("followup_text", {}).get("enabled") is False
+                assert (
+                    opt.get("followup_text") is None
+                    or opt.get("followup_text", {}).get("enabled") is False
+                )
 
     # === Error Handling Tests ===
 
@@ -694,7 +693,7 @@ class TestAPIQuestionsAndGroups:
         assert error["value"] == "invalid_type"
         assert "valid_types" in error
         assert "text" in error["valid_types"]  # Should list valid types
-        
+
         # No questions should be created
         assert SurveyQuestion.objects.filter(survey=survey).count() == 0
 
@@ -715,7 +714,7 @@ class TestAPIQuestionsAndGroups:
         assert "warnings" in data
         assert len(data["warnings"]) == 1
         assert data["warnings"][0]["field"] == "text"
-        
+
         q = SurveyQuestion.objects.get(survey=survey)
         assert q.text == "Untitled"
 
@@ -821,7 +820,9 @@ class TestAPIQuestionsAndGroups:
         q4 = questions[3]
         assert q4.type == "mc_single"
         other_option = next(
-            opt for opt in q4.options if isinstance(opt, dict) and opt.get("value") == "other"
+            opt
+            for opt in q4.options
+            if isinstance(opt, dict) and opt.get("value") == "other"
         )
         assert other_option["followup_text"]["enabled"] is True
 
@@ -829,7 +830,9 @@ class TestAPIQuestionsAndGroups:
         q5 = questions[4]
         assert q5.type == "yesno"
         yes_option = next(
-            opt for opt in q5.options if isinstance(opt, dict) and opt.get("value") == "yes"
+            opt
+            for opt in q5.options
+            if isinstance(opt, dict) and opt.get("value") == "yes"
         )
         assert yes_option["followup_text"]["enabled"] is True
 
@@ -845,8 +848,10 @@ class TestAPIValidation:
     def setup_basic_survey(self, client):
         """Create a basic survey for testing."""
         user = User.objects.create_user(username="testuser", password=TEST_PASSWORD)
-        survey = Survey.objects.create(owner=user, name="Test Survey", slug="test-validation")
-        
+        survey = Survey.objects.create(
+            owner=user, name="Test Survey", slug="test-validation"
+        )
+
         # Get JWT token
         resp = client.post(
             "/api/token",
@@ -869,7 +874,7 @@ class TestAPIValidation:
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
         )
-        
+
         assert resp.status_code == 400
         data = resp.json()
         assert "errors" in data
@@ -878,7 +883,7 @@ class TestAPIValidation:
         assert error["field"] == "type"
         assert "required" in error["message"].lower()
         assert "valid_types" in error
-        
+
         # No questions should be created
         assert SurveyQuestion.objects.filter(survey=survey).count() == 0
 
@@ -895,12 +900,12 @@ class TestAPIValidation:
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
         )
-        
+
         assert resp.status_code == 400
         data = resp.json()
         assert "errors" in data
         assert len(data["errors"]) == 2
-        
+
         # Check both errors mention valid types
         for error in data["errors"]:
             assert error["field"] == "type"
@@ -908,7 +913,7 @@ class TestAPIValidation:
             assert "valid_types" in error
             assert "text" in error["valid_types"]
             assert "mc_single" in error["valid_types"]
-        
+
         # No questions should be created
         assert SurveyQuestion.objects.filter(survey=survey).count() == 0
 
@@ -920,26 +925,50 @@ class TestAPIValidation:
         # Test all valid types from SurveyQuestion.Types
         payload = [
             {"text": "Text question", "type": "text", "order": 1},
-            {"text": "MC Single", "type": "mc_single", "options": ["A", "B"], "order": 2},
+            {
+                "text": "MC Single",
+                "type": "mc_single",
+                "options": ["A", "B"],
+                "order": 2,
+            },
             {"text": "MC Multi", "type": "mc_multi", "options": ["X", "Y"], "order": 3},
-            {"text": "Dropdown", "type": "dropdown", "options": ["One", "Two"], "order": 4},
+            {
+                "text": "Dropdown",
+                "type": "dropdown",
+                "options": ["One", "Two"],
+                "order": 4,
+            },
             {"text": "Yes/No", "type": "yesno", "options": ["Yes", "No"], "order": 5},
-            {"text": "Likert", "type": "likert", "options": ["1", "2", "3"], "order": 6},
-            {"text": "Orderable", "type": "orderable", "options": ["First", "Second"], "order": 7},
+            {
+                "text": "Likert",
+                "type": "likert",
+                "options": ["1", "2", "3"],
+                "order": 6,
+            },
+            {
+                "text": "Orderable",
+                "type": "orderable",
+                "options": ["First", "Second"],
+                "order": 7,
+            },
             {"text": "Image", "type": "image", "options": [], "order": 8},
             {"text": "Patient Template", "type": "template_patient", "order": 9},
-            {"text": "Professional Template", "type": "template_professional", "order": 10},
+            {
+                "text": "Professional Template",
+                "type": "template_professional",
+                "order": 10,
+            },
         ]
 
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
         )
-        
+
         # Should succeed - all types are valid
         assert resp.status_code == 200
         data = resp.json()
         assert data["created"] == 10
-        
+
         # Verify all questions created
         assert SurveyQuestion.objects.filter(survey=survey).count() == 10
 
@@ -953,7 +982,7 @@ class TestAPIValidation:
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
         )
-        
+
         # Should succeed but with warning
         assert resp.status_code == 200
         data = resp.json()
@@ -963,7 +992,7 @@ class TestAPIValidation:
         warning = data["warnings"][0]
         assert warning["field"] == "text"
         assert warning["severity"] == "warning"
-        
+
         # Question created with default text
         q = SurveyQuestion.objects.get(survey=survey)
         assert q.text == "Untitled"
@@ -981,14 +1010,14 @@ class TestAPIValidation:
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
         )
-        
+
         # Should succeed but with warnings
         assert resp.status_code == 200
         data = resp.json()
         assert data["created"] == 2
         assert "warnings" in data
         assert len(data["warnings"]) == 2
-        
+
         for warning in data["warnings"]:
             assert warning["field"] == "options"
             assert warning["severity"] == "warning"
@@ -1001,29 +1030,33 @@ class TestAPIValidation:
 
         payload = [
             {"type": "text", "order": 1},  # Missing text (warning)
-            {"text": "Invalid", "type": "invalid_type", "order": 2},  # Invalid type (error)
+            {
+                "text": "Invalid",
+                "type": "invalid_type",
+                "order": 2,
+            },  # Invalid type (error)
             {"text": "Good question", "type": "text", "order": 3},  # Valid
         ]
 
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
         )
-        
+
         # Should fail due to critical error
         assert resp.status_code == 400
         data = resp.json()
         assert "errors" in data
         assert "warnings" in data
-        
+
         # Should have 1 error and 1 warning
         critical_errors = [e for e in data["errors"] if e.get("severity") != "warning"]
         assert len(critical_errors) == 1
         assert critical_errors[0]["field"] == "type"
-        
+
         warnings = data["warnings"]
         assert len(warnings) == 1
         assert warnings[0]["field"] == "text"
-        
+
         # No questions should be created when there are critical errors
         assert SurveyQuestion.objects.filter(survey=survey).count() == 0
 
@@ -1037,15 +1070,15 @@ class TestAPIValidation:
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
         )
-        
+
         assert resp.status_code == 400
         data = resp.json()
         error = data["errors"][0]
-        
+
         # Error should be descriptive
         assert "Invalid question type 'select'" in error["message"]
         assert "Must be one of:" in error["message"]
-        
+
         # Should include all valid types
         valid_types = error["valid_types"]
         assert "text" in valid_types
@@ -1056,11 +1089,13 @@ class TestAPIValidation:
         assert "likert" in valid_types
         assert "orderable" in valid_types
         assert "image" in valid_types
-        
+
         # Should include index for debugging
         assert error["index"] == 0
 
-    def test_validation_multiple_questions_with_errors(self, setup_basic_survey, client):
+    def test_validation_multiple_questions_with_errors(
+        self, setup_basic_survey, client
+    ):
         """Test validation provides index for each error."""
         user, survey, headers = setup_basic_survey
         url = f"/api/surveys/{survey.id}/seed/"
@@ -1075,12 +1110,12 @@ class TestAPIValidation:
         resp = client.post(
             url, data=json.dumps(payload), content_type="application/json", **headers
         )
-        
+
         assert resp.status_code == 400
         data = resp.json()
         errors = data["errors"]
         assert len(errors) == 2
-        
+
         # Check indices are correct
         assert errors[0]["index"] == 1
         assert errors[0]["value"] == "bad_type"

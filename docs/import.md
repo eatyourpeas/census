@@ -55,10 +55,36 @@ Spacing is flexible, but keep the relative order (heading → optional descripti
 ### Options and Likert metadata
 
 - For option-based questions, supply each option on its own line starting with `-` (hyphen + space).
+- **Follow-up text inputs**: To add a follow-up text field for any option, add an indented line starting with `+` (plus + space) immediately after the option. The text after `+` becomes the label for the follow-up input field that appears when the participant selects that option.
 - For `likert number`, add key-value metadata lines after the type:
   - `min: 1`
   - `max: 5`
   - Optional `left:` and `right:` labels.
+
+**Example with follow-up text:**
+
+```markdown
+## Employment status
+(mc_single)
+- Employed full-time
+- Employed part-time
+  + Please specify your hours per week
+- Self-employed
+  + What type of business?
+- Unemployed
+  + Are you actively seeking employment?
+- Student
+- Retired
+```
+
+**Follow-up guidelines:**
+
+- Follow-up lines must start with `+` and be indented (at least 2 spaces or a tab)
+- The text after `+` becomes the label for the follow-up input field
+- Works with `mc_single`, `mc_multi`, `dropdown`, `orderable`, and `yesno` question types
+- For `yesno` questions, you can optionally provide 2 options (for Yes and No) with follow-up labels
+- Not all options need follow-ups—only add them where additional context is needed
+- Follow-up responses are stored alongside the selected option in the survey response
 
 ## Preview Viewer
 
