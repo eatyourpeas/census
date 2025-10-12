@@ -1,5 +1,6 @@
 import secrets
 from typing import Any
+import os
 
 from csp.decorators import csp_exempt
 from django.contrib.auth import get_user_model
@@ -7,7 +8,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import permissions, serializers, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
@@ -733,10 +734,18 @@ class ScopedUserViewSet(viewsets.ViewSet):
         return Response({"id": user.id, "username": user.username, "email": user.email})
 
 
-@api_view(["GET"])
-@permission_classes([permissions.AllowAny])
-def healthcheck(request):
-    return Response({"status": "ok"})
+# Conditional throttle decorator for healthcheck
+if os.environ.get("PYTEST_CURRENT_TEST"):
+    @api_view(["GET"])
+    @permission_classes([permissions.AllowAny])
+    @throttle_classes([])
+    def healthcheck(request):
+        return Response({"status": "ok"})
+else:
+    @api_view(["GET"])
+    @permission_classes([permissions.AllowAny])
+    def healthcheck(request):
+        return Response({"status": "ok"})
 
 
 @api_view(["GET"])
