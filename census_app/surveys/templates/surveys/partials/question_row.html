@@ -1,5 +1,6 @@
 {% with q.id|stringformat:"s" as qid %}
   {% with 'question-data-'|add:qid as payload_id %}
+{% load survey_extras %}
 <li id="question-row-{{ q.id }}" class="list-none w-full" data-qid="{{ q.id }}">
   <script id="{{ payload_id }}" type="application/json" data-question-payload hidden style="display:none">{{ q.builder_payload_json|default:"null"|safe }}</script>
   {% if row_message %}
@@ -18,13 +19,32 @@
           <div class="grow">
             <div class="font-medium">
               <span class="q-number text-sm opacity-70 mr-2 select-none">{{ forloop.counter }}</span>
-              {{ q.text }}
+              {{ q.text }}{% if q.required %}<span class="text-error ml-1">*</span>{% endif %}
             </div>
             {% if q.type == 'template_patient' or q.type == 'template_professional' %}
-              <div class="text-xs opacity-70">Template • {{ q.get_type_display }}{% if q.required %} • required{% endif %}</div>
+              <div class="text-xs opacity-70">Template • {{ q.get_type_display }}{% if q.required %} • <span class="text-error font-medium">(required)</span>{% endif %}</div>
             {% else %}
-              <div class="text-xs opacity-70">{{ q.get_type_display }}{% if q.group %} • Group: {{ q.group.name }}{% endif %}{% if q.required %} • required{% endif %}</div>
+              <div class="text-xs opacity-70">{{ q.get_type_display }}{% if q.group %} • Group: {{ q.group.name }}{% endif %}{% if q.required %} • <span class="text-error font-medium">(required)</span>{% endif %}</div>
             {% endif %}
+            {% with q|has_followup as followup_list %}
+              {% if followup_list %}
+                <div class="mt-2">
+                  <div class="inline-flex items-center gap-1.5 px-2 py-1 bg-info/10 text-info rounded text-xs font-medium">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="whitespace-nowrap">Has follow-up text</span>
+                  </div>
+                  <div class="ml-1 mt-1 space-y-0.5">
+                    {% for opt_label, followup_label in followup_list %}
+                      <div class="text-xs opacity-70">
+                        <span class="font-medium">{{ opt_label }}</span><sup class="text-info">*</sup> → "{{ followup_label }}"
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endif %}
+            {% endwith %}
             {% include 'surveys/partials/question_preview.html' %}
           </div>
           <div class="flex items-center gap-2 ml-auto pr-1">

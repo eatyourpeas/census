@@ -994,7 +994,25 @@ def _parse_builder_question_form(data: QueryDict) -> dict[str, Any]:
         SurveyQuestion.Types.IMAGE_CHOICE,
     }:
         raw = data.get("options", "")
-        options = [line.strip() for line in raw.splitlines() if line.strip()]
+        option_lines = [line.strip() for line in raw.splitlines() if line.strip()]
+
+        # Parse follow-up text configuration for each option
+        # Format: option_N_followup=on, option_N_followup_label="custom label"
+        options = []
+        for idx, opt_text in enumerate(option_lines):
+            opt_dict: dict[str, Any] = {"label": opt_text, "value": opt_text}
+
+            # Check if this option should have a follow-up text input
+            followup_key = f"option_{idx}_followup"
+            followup_label_key = f"option_{idx}_followup_label"
+
+            if data.get(followup_key) in {"on", "true", "1", "yes"}:
+                followup_label = (data.get(followup_label_key) or "").strip()
+                if not followup_label:
+                    followup_label = f"Please elaborate on '{opt_text}'"
+                opt_dict["followup_text"] = {"enabled": True, "label": followup_label}
+
+            options.append(opt_dict)
 
         # Check if this is a prefilled dataset (only for dropdown type)
         prefilled_dataset = (data.get("prefilled_dataset") or "").strip()
@@ -1006,6 +1024,19 @@ def _parse_builder_question_form(data: QueryDict) -> dict[str, Any]:
                 "dataset_key": prefilled_dataset,
                 "values": options,
             }
+    elif qtype == SurveyQuestion.Types.YESNO:
+        # For Yes/No questions, check if either option should have follow-up text
+        options = [{"label": "Yes", "value": "yes"}, {"label": "No", "value": "no"}]
+
+        for idx, opt in enumerate(options):
+            followup_key = f"yesno_{opt['value']}_followup"
+            followup_label_key = f"yesno_{opt['value']}_followup_label"
+
+            if data.get(followup_key) in {"on", "true", "1", "yes"}:
+                followup_label = (data.get(followup_label_key) or "").strip()
+                if not followup_label:
+                    followup_label = "Please elaborate"
+                opt["followup_text"] = {"enabled": True, "label": followup_label}
     elif qtype == SurveyQuestion.Types.LIKERT:
         likert_mode = (data.get("likert_mode") or "categories").strip()
         if likert_mode == "number":
@@ -1196,6 +1227,7 @@ def _serialize_question_for_builder(
         SurveyQuestion.Types.IMAGE_CHOICE,
     }:
         values: list[str] = []
+        option_followup_config: dict[str, dict[str, Any]] = {}
         prefilled_dataset: str | None = None
 
         # Check if options is a prefilled dataset dict
@@ -1203,13 +1235,26 @@ def _serialize_question_for_builder(
             prefilled_dataset = options.get("dataset_key")
             option_values = options.get("values", [])
             if isinstance(option_values, list):
-                for opt in option_values:
+                for idx, opt in enumerate(option_values):
                     if isinstance(opt, str):
                         val = opt.strip()
                         if val:
                             values.append(val)
+                    elif isinstance(opt, dict):
+                        label = opt.get("label", "").strip()
+                        if label:
+                            values.append(label)
+                        # Check for follow-up text configuration
+                        if opt.get("followup_text") and opt["followup_text"].get(
+                            "enabled"
+                        ):
+                            option_followup_config[str(idx)] = {
+                                "label": opt["followup_text"].get(
+                                    "label", "Please elaborate"
+                                )
+                            }
         elif isinstance(options, list):
-            for opt in options:
+            for idx, opt in enumerate(options):
                 if isinstance(opt, str):
                     val = opt.strip()
                     if val:
@@ -1218,10 +1263,38 @@ def _serialize_question_for_builder(
                     candidate = opt.get("label") or opt.get("value")
                     if candidate:
                         values.append(str(candidate).strip())
+                    # Check for follow-up text configuration
+                    if opt.get("followup_text") and opt["followup_text"].get("enabled"):
+                        option_followup_config[str(idx)] = {
+                            "label": opt["followup_text"].get(
+                                "label", "Please elaborate"
+                            )
+                        }
 
         payload["options"] = values
+        if option_followup_config:
+            payload["followup_config"] = option_followup_config
         if prefilled_dataset:
             payload["prefilled_dataset"] = prefilled_dataset
+    elif question.type == SurveyQuestion.Types.YESNO:
+        # For Yes/No questions, check for follow-up text config
+        yesno_followup_config: dict[str, dict[str, Any]] = {}
+        if isinstance(options, list):
+            for opt in options:
+                if isinstance(opt, dict):
+                    value = opt.get("value")
+                    if (
+                        value in ("yes", "no")
+                        and opt.get("followup_text")
+                        and opt["followup_text"].get("enabled")
+                    ):
+                        yesno_followup_config[value] = {
+                            "label": opt["followup_text"].get(
+                                "label", "Please elaborate"
+                            )
+                        }
+        if yesno_followup_config:
+            payload["yesno_followup_config"] = yesno_followup_config
     elif question.type == SurveyQuestion.Types.LIKERT:
         if (
             isinstance(options, list)
@@ -3527,7 +3600,7 @@ def bulk_upload(request: HttpRequest, slug: str) -> HttpResponse:
                             text=q["title"],
                             type=q["final_type"],
                             options=q["final_options"],
-                            required=False,
+                            required=q.get("required", False),
                             order=next_order,
                         )
                         next_order += 1
@@ -3686,25 +3759,34 @@ def _bulk_upload_example_md() -> str:
         "REPEAT-5\n"
         "# Patient {patient}\n"
         "Basic info about respondents\n\n"
-        "## Age {patient-age}\n"
+        "## Age* {patient-age}\n"
         "Age in years\n"
         "(text number)\n\n"
         "? when greater_than 17 -> {follow-up}\n\n"
-        "## Gender {patient-gender}\n"
+        "## Gender* {patient-gender}\n"
         "Self-described gender\n"
         "(mc_single)\n"
         "- Female\n"
         "- Male\n"
         "- Non-binary\n"
+        "  + Please specify\n"
         "- Prefer not to say\n\n"
         "> REPEAT\n"
         "> # Visit {visit}\n"
         "> Details about each visit\n\n"
-        "> ## Date of visit {visit-date}\n"
+        "> ## Date of visit* {visit-date}\n"
         "> (text)\n\n"
+        "> ## Reason for visit {visit-reason}\n"
+        "> (mc_multi)\n"
+        "> - Routine check-up\n"
+        "> - Acute illness\n"
+        ">   + Please describe symptoms\n"
+        "> - Follow-up appointment\n"
+        "> - Other\n"
+        ">   + Please specify\n\n"
         "# Follow up {follow-up}\n"
         "Post-visit questions\n\n"
-        "## Overall satisfaction {follow-up-overall}\n"
+        "## Overall satisfaction* {follow-up-overall}\n"
         "Rate from 1 to 5\n"
         "(likert number)\n"
         "min: 1\n"

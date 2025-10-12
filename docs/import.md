@@ -36,6 +36,7 @@ Spacing is flexible, but keep the relative order (heading → optional descripti
 - The next non-empty line that is not a type declaration becomes the question description.
 - Declare the question type on a dedicated line wrapped in parentheses: `(text)`, `(mc_single)`, etc.
 - Append a stable identifier with curly braces just like groups: `## Question {question-id}`.
+- **Mark a question as required** by adding an asterisk `*` after the question title (before the ID if present): `## Question title* {question-id}`.
 
 ### Supported question types
 
@@ -55,10 +56,62 @@ Spacing is flexible, but keep the relative order (heading → optional descripti
 ### Options and Likert metadata
 
 - For option-based questions, supply each option on its own line starting with `-` (hyphen + space).
+- **Follow-up text inputs**: To add a follow-up text field for any option, add an indented line starting with `+` (plus + space) immediately after the option. The text after `+` becomes the label for the follow-up input field that appears when the participant selects that option.
 - For `likert number`, add key-value metadata lines after the type:
   - `min: 1`
   - `max: 5`
   - Optional `left:` and `right:` labels.
+
+**Example with follow-up text:**
+
+```markdown
+## Employment status
+(mc_single)
+- Employed full-time
+- Employed part-time
+  + Please specify your hours per week
+- Self-employed
+  + What type of business?
+- Unemployed
+  + Are you actively seeking employment?
+- Student
+- Retired
+```
+
+**Follow-up guidelines:**
+
+- Follow-up lines must start with `+` and be indented (at least 2 spaces or a tab)
+- The text after `+` becomes the label for the follow-up input field
+- Works with `mc_single`, `mc_multi`, `dropdown`, `orderable`, and `yesno` question types
+- For `yesno` questions, you can optionally provide 2 options (for Yes and No) with follow-up labels
+- Not all options need follow-ups—only add them where additional context is needed
+- Follow-up responses are stored alongside the selected option in the survey response
+
+## Required questions
+
+Mark a question as required by adding an asterisk `*` immediately after the question title. Required questions must be answered before participants can submit the form.
+
+**Example:**
+
+```markdown
+## Age* {patient-age}
+Age in years
+(text number)
+
+## Email address*
+Please provide your email
+(text)
+
+## Consent to participate* {consent}
+(yesno)
+```
+
+**Guidelines:**
+
+- Place the asterisk directly after the question title, before any identifier in curly braces
+- Works with all question types
+- Required questions are validated on form submission
+- The asterisk will appear in red in the preview
 
 ## Preview Viewer
 
@@ -112,6 +165,44 @@ Notes:
 - Values may be quoted. Operators like `exists` do not take a value.
 - The target in curly braces can reference a group ID (jump to that group) or a question ID (jump directly to the question).
 - IDs are normalised to lowercase slugs; ensure each ID is unique across all groups and questions.
+
+## Error handling and validation
+
+The bulk import system provides comprehensive error detection and reporting at two levels:
+
+### Live preview (immediate feedback)
+
+As you type your Markdown in the import form, the **live structure preview** on the right side of the page parses your content in real-time and displays:
+
+- The hierarchical structure of groups and questions
+- Extracted IDs with color-coded badges (groups in purple, questions in teal)
+- Question types and branching rules
+- Repeat collection indicators
+- **Required field markers** (red asterisks)
+- **Warnings** for issues like questions appearing before group headings
+
+This live preview uses the same parsing logic as the backend, so you'll catch most formatting issues—incorrect notation, missing indentation, malformed branching rules, etc.—**before you even submit the form**. The preview updates instantly as you edit, making it easy to iterate and fix problems.
+
+### Backend validation (on submit)
+
+When you click "Create survey", the backend parser performs a complete validation pass and will reject the import if any errors are found. The system checks for:
+
+- **Empty markdown**: The document must contain at least one group and question
+- **Questions before groups**: Questions must be declared inside a group (after a `#` heading)
+- **Missing question types**: Every question must have a type declaration in parentheses
+- **Invalid branch syntax**: Branching rules must include `when`, a valid operator, and a target ID in curly braces
+- **Invalid operators**: Only recognised operators (equals, contains, greater_than, etc.) are allowed
+- **Missing branch targets**: Branch rules must reference a valid group or question ID
+- **Empty target IDs**: IDs in curly braces cannot be empty
+- **Collection syntax errors**: REPEAT markers and nested collections must follow correct indentation patterns
+
+If validation fails, the import form redisplays with:
+
+- Your original Markdown content preserved in the textarea
+- A **prominent error alert** at the top of the page describing exactly what went wrong and which line number (when applicable)
+- The live preview still active so you can see the structure
+
+This two-layer validation approach ensures that formatting and syntax errors are caught early (in the live preview) while data integrity issues are prevented by the backend before any database changes occur.
 
 ## Workflow tips
 

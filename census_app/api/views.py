@@ -1,3 +1,4 @@
+import os
 import secrets
 from typing import Any
 
@@ -7,7 +8,12 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import permissions, serializers, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import (
+    action,
+    api_view,
+    permission_classes,
+    throttle_classes,
+)
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
@@ -167,6 +173,81 @@ class SurveyViewSet(viewsets.ModelViewSet):
         created = 0
         # JSON schema: [{text, type, options=[], group_name, order}]
         items = payload if isinstance(payload, list) else payload.get("items", [])
+
+        # Valid question types from SurveyQuestion.Types
+        valid_types = [choice[0] for choice in SurveyQuestion.Types.choices]
+
+        # Validate all items first before creating any
+        errors = []
+        for idx, item in enumerate(items):
+            question_type = item.get("type")
+
+            # Check if type is provided
+            if not question_type:
+                errors.append(
+                    {
+                        "index": idx,
+                        "field": "type",
+                        "message": "Question type is required.",
+                        "valid_types": valid_types,
+                    }
+                )
+                continue
+
+            # Check if type is valid
+            if question_type not in valid_types:
+                errors.append(
+                    {
+                        "index": idx,
+                        "field": "type",
+                        "value": question_type,
+                        "message": f"Invalid question type '{question_type}'. Must be one of: {', '.join(valid_types)}",
+                        "valid_types": valid_types,
+                    }
+                )
+
+            # Check if text is provided (optional but recommended)
+            if not item.get("text"):
+                errors.append(
+                    {
+                        "index": idx,
+                        "field": "text",
+                        "message": "Question text is recommended (will default to 'Untitled' if omitted).",
+                        "severity": "warning",
+                    }
+                )
+
+            # Check if options are provided for types that require them
+            types_requiring_options = [
+                "mc_single",
+                "mc_multi",
+                "dropdown",
+                "orderable",
+                "yesno",
+                "likert",
+            ]
+            if question_type in types_requiring_options and not item.get("options"):
+                errors.append(
+                    {
+                        "index": idx,
+                        "field": "options",
+                        "message": f"Question type '{question_type}' requires an 'options' field.",
+                        "severity": "warning",
+                    }
+                )
+
+        # Return validation errors if any critical errors found
+        critical_errors = [e for e in errors if e.get("severity") != "warning"]
+        if critical_errors:
+            return Response(
+                {
+                    "errors": critical_errors,
+                    "warnings": [e for e in errors if e.get("severity") == "warning"],
+                },
+                status=400,
+            )
+
+        # Create questions
         for item in items:
             group = None
             gname = item.get("group_name")
@@ -184,7 +265,14 @@ class SurveyViewSet(viewsets.ModelViewSet):
                 order=int(item.get("order", 0)),
             )
             created += 1
-        return Response({"created": created})
+
+        # Return success with warnings if any
+        warnings = [e for e in errors if e.get("severity") == "warning"]
+        response_data = {"created": created}
+        if warnings:
+            response_data["warnings"] = warnings
+
+        return Response(response_data)
 
     def create(self, request, *args, **kwargs):
         resp = super().create(request, *args, **kwargs)
@@ -651,10 +739,21 @@ class ScopedUserViewSet(viewsets.ViewSet):
         return Response({"id": user.id, "username": user.username, "email": user.email})
 
 
-@api_view(["GET"])
-@permission_classes([permissions.AllowAny])
-def healthcheck(request):
-    return Response({"status": "ok"})
+# Conditional throttle decorator for healthcheck
+if os.environ.get("PYTEST_CURRENT_TEST"):
+
+    @api_view(["GET"])
+    @permission_classes([permissions.AllowAny])
+    @throttle_classes([])
+    def healthcheck(request):
+        return Response({"status": "ok"})
+
+else:
+
+    @api_view(["GET"])
+    @permission_classes([permissions.AllowAny])
+    def healthcheck(request):
+        return Response({"status": "ok"})
 
 
 @api_view(["GET"])

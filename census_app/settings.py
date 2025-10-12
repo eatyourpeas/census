@@ -219,6 +219,11 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": False,
 }
 
+# Disable throttling during tests to prevent rate limit errors
+if os.environ.get("PYTEST_CURRENT_TEST"):
+    REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []
+    RATELIMIT_ENABLE = False
+
 # Email backend
 # Use in-memory backend during tests to enable assertions against mail.outbox
 if os.environ.get("PYTEST_CURRENT_TEST"):

@@ -169,5 +169,7 @@ def test_bulk_upload_example_markdown_imports(client, django_user_model):
     assert response.status_code == 302
 
     survey.refresh_from_db()
-    assert survey.questions.count() == 5
+    assert (
+        survey.questions.count() == 6
+    )  # Updated from 5 to 6 after adding follow-up examples
     assert survey.question_groups.count() == 3

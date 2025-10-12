@@ -254,9 +254,14 @@ DOC_CATEGORIES = {
         "order": 4,
         "icon": "🔧",
     },
+    "testing": {
+        "title": "Testing",
+        "order": 5,
+        "icon": "🧪",
+    },
     "advanced": {
         "title": "Advanced Topics",
-        "order": 5,
+        "order": 6,
         "icon": "🚀",
     },
     "other": {
@@ -368,6 +373,10 @@ def _infer_category(slug: str) -> str:
         x in slug_lower for x in ["api", "authentication", "adding-", "development"]
     ):
         return "api"
+
+    # Testing
+    if any(x in slug_lower for x in ["testing", "test-"]):
+        return "testing"
 
     # Advanced
     if any(x in slug_lower for x in ["advanced", "custom", "extend"]):

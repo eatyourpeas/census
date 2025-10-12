@@ -74,29 +74,75 @@
           {% endwith %}
         {% elif q.type == 'mc_single' %}
           {% for opt in q.options|as_list %}
-            <label class="label cursor-pointer justify-start gap-2">
-              <input type="radio" class="radio" name="q_{{ q.id }}" value="{{ opt|option_value }}" />
-              <span>{{ opt|option_label }}</span>
-            </label>
+            {% with opt|option_value as opt_value %}
+            {% with opt|option_label as opt_label %}
+            <div class="space-y-2">
+              <label class="label cursor-pointer justify-start gap-2">
+                <input type="radio" class="radio" name="q_{{ q.id }}" value="{{ opt_value }}" data-followup-trigger="q_{{ q.id }}_{{ forloop.counter0 }}" />
+                <span>{{ opt_label }}</span>
+              </label>
+              {% if opt.followup_text and opt.followup_text.enabled %}
+                <div class="ml-7 hidden" data-followup-field="q_{{ q.id }}_{{ forloop.counter0 }}">
+                  <input type="text" class="input input-sm input-bordered w-full" name="q_{{ q.id }}_followup_{{ forloop.counter0 }}" placeholder="{{ opt.followup_text.label|default:'Please elaborate' }}" />
+                </div>
+              {% endif %}
+            </div>
+            {% endwith %}
+            {% endwith %}
           {% endfor %}
         {% elif q.type == 'mc_multi' %}
           {% for opt in q.options|as_list %}
-            <label class="label cursor-pointer justify-start gap-2">
-              <input type="checkbox" class="checkbox" name="q_{{ q.id }}" value="{{ opt|option_value }}" />
-              <span>{{ opt|option_label }}</span>
-            </label>
+            {% with opt|option_value as opt_value %}
+            {% with opt|option_label as opt_label %}
+            <div class="space-y-2">
+              <label class="label cursor-pointer justify-start gap-2">
+                <input type="checkbox" class="checkbox" name="q_{{ q.id }}" value="{{ opt_value }}" data-followup-trigger="q_{{ q.id }}_{{ forloop.counter0 }}" />
+                <span>{{ opt_label }}</span>
+              </label>
+              {% if opt.followup_text and opt.followup_text.enabled %}
+                <div class="ml-7 hidden" data-followup-field="q_{{ q.id }}_{{ forloop.counter0 }}">
+                  <input type="text" class="input input-sm input-bordered w-full" name="q_{{ q.id }}_followup_{{ forloop.counter0 }}" placeholder="{{ opt.followup_text.label|default:'Please elaborate' }}" />
+                </div>
+              {% endif %}
+            </div>
+            {% endwith %}
+            {% endwith %}
           {% endfor %}
         {% elif q.type == 'dropdown' %}
-          <select class="select select-bordered" name="q_{{ q.id }}">
+          <select class="select select-bordered" name="q_{{ q.id }}" data-followup-select="q_{{ q.id }}">
+            <option value="">-- Select --</option>
             {% for opt in q.options|as_list %}
-              <option value="{{ opt|option_value }}">{{ opt|option_label }}</option>
+              <option value="{{ opt|option_value }}" data-followup-target="q_{{ q.id }}_{{ forloop.counter0 }}">{{ opt|option_label }}</option>
             {% endfor %}
           </select>
+          {% for opt in q.options|as_list %}
+            {% if opt.followup_text and opt.followup_text.enabled %}
+              <div class="mt-2 hidden" data-followup-field="q_{{ q.id }}_{{ forloop.counter0 }}">
+                <input type="text" class="input input-sm input-bordered w-full" name="q_{{ q.id }}_followup_{{ forloop.counter0 }}" placeholder="{{ opt.followup_text.label|default:'Please elaborate' }}" />
+              </div>
+            {% endif %}
+          {% endfor %}
         {% elif q.type == 'yesno' %}
-          <select class="select select-bordered" name="q_{{ q.id }}">
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
+          <div class="space-y-2">
+            <select class="select select-bordered" name="q_{{ q.id }}" data-yesno-select="q_{{ q.id }}">
+              <option value="">-- Select --</option>
+              <option value="yes" data-followup-target="q_{{ q.id }}_yes">Yes</option>
+              <option value="no" data-followup-target="q_{{ q.id }}_no">No</option>
+            </select>
+            {% with q.options|as_list as yesno_opts %}
+              {% for opt in yesno_opts %}
+                {% if opt.value == "yes" and opt.followup_text and opt.followup_text.enabled %}
+                  <div class="mt-2 hidden" data-followup-field="q_{{ q.id }}_yes">
+                    <input type="text" class="input input-sm input-bordered w-full" name="q_{{ q.id }}_followup_yes" placeholder="{{ opt.followup_text.label|default:'Please elaborate' }}" />
+                  </div>
+                {% elif opt.value == "no" and opt.followup_text and opt.followup_text.enabled %}
+                  <div class="mt-2 hidden" data-followup-field="q_{{ q.id }}_no">
+                    <input type="text" class="input input-sm input-bordered w-full" name="q_{{ q.id }}_followup_no" placeholder="{{ opt.followup_text.label|default:'Please elaborate' }}" />
+                  </div>
+                {% endif %}
+              {% endfor %}
+            {% endwith %}
+          </div>
         {% elif q.type == 'likert' %}
           {% with q.options.0 as meta %}
             {% if meta and meta.type == 'number-scale' %}
@@ -299,5 +345,6 @@
 <script src="{% static 'js/orderable.js' %}"></script>
 {# Load professional fields script if we have group-level OR question-level professional details #}
 <script src="{% static 'js/professional-fields.js' %}"></script>
+<script src="{% static 'js/followup-fields.js' %}"></script>
 
 {% endblock %}

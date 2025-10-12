@@ -57,6 +57,33 @@ Some types use options metadata. Examples:
 
 You can preview questions in the builder, reorder them, and group them as needed.
 
+### Follow-up text inputs
+
+For certain question types, you can configure **follow-up text inputs** that appear conditionally based on the respondent's answer. This is useful when you need additional detail for specific options (e.g., "If you selected 'Other', please explain").
+
+**Supported question types:**
+
+- Multiple choice — single (`mc_single`)
+- Multiple choice — multiple (`mc_multi`)
+- Dropdown (`dropdown`)
+- Yes/No (`yesno`)
+- Orderable list (`orderable`)
+
+**How to configure follow-up inputs:**
+
+1. In the question builder, select a question of a supported type
+2. For each option where you want a follow-up text input, check the "Enable follow-up text" checkbox
+3. Enter a custom label for the follow-up input (e.g., "Please describe your concerns")
+4. Save the question
+
+**How it works for respondents:**
+
+When a respondent selects an option that has follow-up text enabled, a text input field appears with your custom label. The field is hidden if they select a different option. For multiple-choice questions with multiple selections, they can see follow-up fields for each selected option that has it enabled.
+
+**Visual indicator:**
+
+Questions with follow-up inputs configured will show a badge in the question card listing which options have follow-up text. This helps you quickly identify questions with this feature when managing your survey.
+
 ### Conditional branching
 
 Individual questions can define conditional logic that determines what a respondent sees next. Branching is configured per question from the “Logic” tab in the builder:
