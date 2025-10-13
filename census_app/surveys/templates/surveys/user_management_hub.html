@@ -37,7 +37,9 @@
           <div id="org-add-result" class="text-sm mt-2 opacity-80"></div>
         </div>
 
-        <h3 class="font-semibold">{% blocktrans count counter=members|length %}All users ({{ counter }}){% endblocktrans %}</h3>
+        <h3 class="font-semibold">
+          {% blocktrans count counter=members|length %}All users ({{ counter }}){% plural %}All users ({{ counter }}){% endblocktrans %}
+        </h3>
         <ul class="list-disc pl-5">
           {% for mem in members %}
             <li>{{ mem.user.username }} <span class="badge badge-ghost">{{ mem.role }}</span></li>

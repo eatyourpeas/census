@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-13 20:43+0000\n"
+"POT-Creation-Date: 2025-10-13 20:49+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1037,7 +1037,7 @@ msgstr ""
 #: census_app/surveys/templates/surveys/survey_users.html:9
 #: census_app/surveys/templates/surveys/survey_users.html:43
 #: census_app/surveys/templates/surveys/user_management_hub.html:28
-#: census_app/surveys/templates/surveys/user_management_hub.html:70
+#: census_app/surveys/templates/surveys/user_management_hub.html:72
 msgid "Role"
 msgstr ""
 
@@ -1084,14 +1084,14 @@ msgstr ""
 #: census_app/surveys/templates/surveys/org_users.html:43
 #: census_app/surveys/templates/surveys/survey_users.html:45
 #: census_app/surveys/templates/surveys/user_management_hub.html:31
-#: census_app/surveys/templates/surveys/user_management_hub.html:73
+#: census_app/surveys/templates/surveys/user_management_hub.html:75
 msgid "Creator"
 msgstr ""
 
 #: census_app/surveys/templates/surveys/org_users.html:44
 #: census_app/surveys/templates/surveys/survey_users.html:46
 #: census_app/surveys/templates/surveys/user_management_hub.html:30
-#: census_app/surveys/templates/surveys/user_management_hub.html:72
+#: census_app/surveys/templates/surveys/user_management_hub.html:74
 msgid "Viewer"
 msgstr ""
 
@@ -1204,7 +1204,7 @@ msgid "Organisation"
 msgstr ""
 
 #: census_app/surveys/templates/surveys/user_management_hub.html:24
-#: census_app/surveys/templates/surveys/user_management_hub.html:66
+#: census_app/surveys/templates/surveys/user_management_hub.html:68
 msgid "User email"
 msgstr ""
 
@@ -1212,28 +1212,32 @@ msgstr ""
 msgid "Add user to org"
 msgstr ""
 
-#: census_app/surveys/templates/surveys/user_management_hub.html:40
+#: census_app/surveys/templates/surveys/user_management_hub.html:41
 #, python-format
 msgid "All users (%(counter)s)"
-msgstr ""
+msgid_plural "All users (%(counter)s)"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
-#: census_app/surveys/templates/surveys/user_management_hub.html:45
+#: census_app/surveys/templates/surveys/user_management_hub.html:47
 msgid "No users yet"
 msgstr ""
 
-#: census_app/surveys/templates/surveys/user_management_hub.html:55
+#: census_app/surveys/templates/surveys/user_management_hub.html:57
 msgid "Users by survey"
 msgstr ""
 
-#: census_app/surveys/templates/surveys/user_management_hub.html:62
+#: census_app/surveys/templates/surveys/user_management_hub.html:64
 msgid "Survey slug"
 msgstr ""
 
-#: census_app/surveys/templates/surveys/user_management_hub.html:76
+#: census_app/surveys/templates/surveys/user_management_hub.html:78
 msgid "Add user to survey"
 msgstr ""
 
-#: census_app/surveys/templates/surveys/user_management_hub.html:85
+#: census_app/surveys/templates/surveys/user_management_hub.html:87
 #, python-format
 msgid "%(counter)s member"
 msgid_plural "%(counter)s members"
@@ -1242,11 +1246,11 @@ msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
 
-#: census_app/surveys/templates/surveys/user_management_hub.html:91
+#: census_app/surveys/templates/surveys/user_management_hub.html:93
 msgid "No members"
 msgstr ""
 
-#: census_app/surveys/templates/surveys/user_management_hub.html:96
+#: census_app/surveys/templates/surveys/user_management_hub.html:98
 msgid "No surveys yet"
 msgstr ""
 
