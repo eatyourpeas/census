@@ -34,7 +34,7 @@ The system automatically categorizes documentation based on filename patterns:
 | **Security** 🔒 | `security`, `encryption`, `patient-data`, `authentication`, `permissions` | `patient-data-encryption.md`, `authentication-and-permissions.md` |
 | **API & Development** 🔧 | `api`, `adding-`, `development` | `api.md`, `adding-external-datasets.md` |
 | **Testing** 🧪 | `testing`, `test-` | `testing-api.md`, `testing-webapp.md` |
-| **Internationalization** 🌍 | `i18n`, `internationalization`, `translation`, `locale` | `i18n.md`, `i18n-progress.md` |
+| **Internationalization** 🌍 | `i18n`, `internationalization`, `translation`, `locale` | `i18n.md` |
 | **Advanced Topics** 🚀 | `advanced`, `custom`, `extend` | `advanced-config.md` |
 | **Other** 📄 | Everything else | `releases.md` |
 
