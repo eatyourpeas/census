@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-13 19:17+0000\n"
+"POT-Creation-Date: 2025-10-13 19:45+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -497,4 +497,175 @@ msgstr ""
 
 #: census_app/templates/admin/login.html:38
 msgid "Forgotten your password or username?"
+msgstr ""
+
+#: census_app/templates/registration/login.html:3
+#: census_app/templates/registration/login.html:8
+msgid "Login"
+msgstr ""
+
+#: census_app/templates/registration/login.html:16
+#: census_app/templates/registration/signup.html:88
+msgid "Sign in"
+msgstr ""
+
+#: census_app/templates/registration/login.html:19
+msgid "Forgot password?"
+msgstr ""
+
+#: census_app/templates/registration/password_change_done.html:3
+#: census_app/templates/registration/password_reset_complete.html:8
+msgid "Password changed"
+msgstr ""
+
+#: census_app/templates/registration/password_change_done.html:8
+msgid "Password updated"
+msgstr ""
+
+#: census_app/templates/registration/password_change_done.html:9
+msgid "Your password has been changed successfully."
+msgstr ""
+
+#: census_app/templates/registration/password_change_done.html:10
+#: census_app/templates/registration/password_reset_done.html:11
+msgid "Back to login"
+msgstr ""
+
+#: census_app/templates/registration/password_change_form.html:3
+msgid "Change password"
+msgstr ""
+
+#: census_app/templates/registration/password_change_form.html:8
+msgid "Change your password"
+msgstr ""
+
+#: census_app/templates/registration/password_change_form.html:15
+msgid "Save new password"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_complete.html:3
+msgid "Password reset complete"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_complete.html:9
+msgid "Your password has been set. You can now log in with your new password."
+msgstr ""
+
+#: census_app/templates/registration/password_reset_complete.html:10
+msgid "Go to login"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_confirm.html:3
+#: census_app/templates/registration/password_reset_confirm.html:31
+msgid "Choose a new password"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_confirm.html:39
+#: census_app/templates/registration/password_reset_form.html:3
+msgid "Reset password"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_confirm.html:42
+msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+#: census_app/templates/registration/password_reset_confirm.html:43
+msgid "Request a new link"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_done.html:3
+msgid "Reset email sent"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_done.html:8
+msgid "Check your email"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_done.html:9
+msgid ""
+"If an account exists with that email, we've sent a password reset link. "
+"Please follow the instructions to choose a new password."
+msgstr ""
+
+#: census_app/templates/registration/password_reset_done.html:10
+msgid "In development, the reset email is printed to the console."
+msgstr ""
+
+#: census_app/templates/registration/password_reset_form.html:8
+msgid "Reset your password"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_form.html:9
+msgid "Enter the email address associated with your account."
+msgstr ""
+
+#: census_app/templates/registration/password_reset_form.html:16
+msgid "Send reset link"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:4
+msgid "Sign up"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:29
+msgid "Create your account"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:30
+msgid "Sign up to start creating surveys and collecting responses."
+msgstr ""
+
+#: census_app/templates/registration/signup.html:41
+msgid "Account Type"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:46
+msgid "Individual User"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:47
+msgid "Create surveys and manage your own responses"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:53
+msgid "Organisation Account"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:54
+msgid "Create an organisation to collaborate with a team"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:63
+msgid "Organisation Name"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:63
+msgid "(optional)"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:70
+msgid "e.g. Acme Health Research"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:74
+msgid "Leave blank to use default name"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:79
+msgid "Note:"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:79
+msgid ""
+"Organisation names don't need to be unique. Multiple organisations can have "
+"the same name—you'll only have access to your own organisation and any "
+"you're invited to join."
+msgstr ""
+
+#: census_app/templates/registration/signup.html:84
+msgid "Create account"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:88
+msgid "Already have an account?"
 msgstr ""
