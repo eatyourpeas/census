@@ -1,8 +1,9 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
+from django.conf import settings
 
-from .models import UserEmailPreferences
+from .models import UserEmailPreferences, UserLanguagePreference
 
 User = get_user_model()
 
@@ -77,6 +78,23 @@ class UserEmailPreferencesForm(forms.ModelForm):
             "notify_on_critical": forms.CheckboxInput(
                 attrs={"class": "checkbox checkbox-primary"}
             ),
+        }
+
+
+class UserLanguagePreferenceForm(forms.ModelForm):
+    """Form for managing user language preference."""
+
+    class Meta:
+        model = UserLanguagePreference
+        fields = ["language_code"]
+        widgets = {
+            "language_code": forms.Select(
+                attrs={"class": "select select-bordered w-full"},
+                choices=settings.LANGUAGES,
+            ),
+        }
+        labels = {
+            "language_code": "Preferred Language",
         }
 
 

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-13 20:33+0000\n"
+"POT-Creation-Date: 2025-10-13 20:43+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -208,25 +208,76 @@ msgid_plural "You have created %(tokens)s invitation tokens"
 msgstr[0] ""
 msgstr[1] ""
 
+#: census_app/core/templates/core/profile.html:154
+msgid "Language"
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:156
+msgid ""
+"Choose your preferred language. This affects all text in the application."
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:163
+msgid "Save Language Preference"
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:172
+msgid "Appearance"
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:174
+msgid ""
+"Choose your theme. This only affects your view and is saved in your browser."
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:176
+msgid "Theme"
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:179
+#: census_app/core/templates/core/profile.html:183
+msgid "System"
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:184
+msgid "Light"
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:185
+msgid "Dark"
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:189
+msgid "Enable JavaScript to change theme."
+msgstr ""
+
 #: census_app/core/views.py:61
-msgid "Email preferences updated successfully."
+msgid "Language preference updated successfully."
 msgstr ""
 
 #: census_app/core/views.py:64
+msgid "There was an error updating your language preference."
+msgstr ""
+
+#: census_app/core/views.py:74
+msgid "Email preferences updated successfully."
+msgstr ""
+
+#: census_app/core/views.py:77
 msgid "There was an error updating your email preferences."
 msgstr ""
 
-#: census_app/core/views.py:82
+#: census_app/core/views.py:95
 msgid ""
 "Organisation created. You are now an organisation admin and can host surveys "
 "and build a team."
 msgstr ""
 
-#: census_app/core/views.py:106
+#: census_app/core/views.py:119
 msgid "Project theme saved."
 msgstr ""
 
-#: census_app/core/views.py:197
+#: census_app/core/views.py:214
 msgid "Organisation created. You are an organisation admin."
 msgstr ""
 

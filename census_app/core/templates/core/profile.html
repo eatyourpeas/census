@@ -150,25 +150,43 @@
   <div class="card bg-base-100 shadow mb-6">
     <div class="card-body">
       <h2 class="card-title inline-flex items-center gap-2 text-base-content">
-        {% include "components/icons/bolt.html" with classes="w-5 h-5 text-base-content" %}
-        <span>Appearance</span>
+        {% include "components/icons/language.html" with classes="w-5 h-5 text-base-content" %}
+        <span>{% trans "Language" %}</span>
       </h2>
-      <p class="opacity-80">Choose your theme. This only affects your view and is saved in your browser.</p>
+      <p class="opacity-80">{% trans "Choose your preferred language. This affects all text in the application." %}</p>
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_language" />
+        <div class="form-control max-w-xs">
+          {{ language_form.language_code }}
+        </div>
+        <button type="submit" class="btn btn-primary mt-4">{% trans "Save Language Preference" %}</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+      <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+        {% include "components/icons/bolt.html" with classes="w-5 h-5 text-base-content" %}
+        <span>{% trans "Appearance" %}</span>
+      </h2>
+      <p class="opacity-80">{% trans "Choose your theme. This only affects your view and is saved in your browser." %}</p>
       <div class="form-control">
-        <span class="label"><span class="label-text">Theme</span></span>
+        <span class="label"><span class="label-text">{% trans "Theme" %}</span></span>
         <div class="dropdown">
           <div id="theme-dropdown-btn" tabindex="0" role="button" class="btn w-48 justify-between">
-            <span id="theme-current-label">System</span>
+            <span id="theme-current-label">{% trans "System" %}</span>
             <!-- caret handled by button styles -->
           </div>
           <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-10 w-48 p-2 shadow">
-            <li><button type="button" data-theme-choice="system">System</button></li>
-            <li><button type="button" data-theme-choice="census-light">Light</button></li>
-            <li><button type="button" data-theme-choice="census-dark">Dark</button></li>
+            <li><button type="button" data-theme-choice="system">{% trans "System" %}</button></li>
+            <li><button type="button" data-theme-choice="census-light">{% trans "Light" %}</button></li>
+            <li><button type="button" data-theme-choice="census-dark">{% trans "Dark" %}</button></li>
           </ul>
         </div>
         <noscript>
-          <div class="alert alert-warning mt-3">Enable JavaScript to change theme.</div>
+          <div class="alert alert-warning mt-3">{% trans "Enable JavaScript to change theme." %}</div>
         </noscript>
       </div>
     </div>

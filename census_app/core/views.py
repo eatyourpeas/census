@@ -20,7 +20,8 @@ from census_app.surveys.models import (
     SurveyResponse,
 )
 
-from .forms import SignupForm, UserEmailPreferencesForm
+from .forms import SignupForm, UserEmailPreferencesForm, UserLanguagePreferenceForm
+from .models import UserLanguagePreference
 
 try:
     from .models import SiteBranding, UserEmailPreferences
@@ -51,6 +52,18 @@ def healthz(request):
 @login_required
 def profile(request):
     sb = None
+    # Handle language preference form submission
+    if request.method == "POST" and request.POST.get("action") == "update_language":
+        lang_pref, _ = UserLanguagePreference.objects.get_or_create(user=request.user)
+        form = UserLanguagePreferenceForm(request.POST, instance=lang_pref)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Language preference updated successfully."))
+        else:
+            messages.error(
+                request, _("There was an error updating your language preference.")
+            )
+        return redirect("core:profile")
     # Handle email preferences form submission
     if request.method == "POST" and request.POST.get("action") == "update_email_prefs":
         if UserEmailPreferences is not None:
@@ -141,6 +154,9 @@ def profile(request):
         "responses_submitted": SurveyResponse.objects.filter(submitted_by=user).count(),
         "tokens_created": SurveyAccessToken.objects.filter(created_by=user).count(),
     }
+    # Prepare language preference form
+    lang_pref, _ = UserLanguagePreference.objects.get_or_create(user=user)
+    language_form = UserLanguagePreferenceForm(instance=lang_pref)
     # Prepare email preferences form
     email_prefs_form = None
     if UserEmailPreferences is not None:
@@ -153,6 +169,7 @@ def profile(request):
             "sb": sb,
             "stats": stats,
             "org": org,
+            "language_form": language_form,
             "email_prefs_form": email_prefs_form,
         },
     )
