@@ -86,15 +86,15 @@ class UserLanguagePreferenceForm(forms.ModelForm):
 
     class Meta:
         model = UserLanguagePreference
-        fields = ["language_code"]
+        fields = ["language"]
         widgets = {
-            "language_code": forms.Select(
+            "language": forms.Select(
                 attrs={"class": "select select-bordered w-full"},
                 choices=settings.LANGUAGES,
             ),
         }
         labels = {
-            "language_code": "Preferred Language",
+            "language": "Preferred Language",
         }
 
 
