@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
+from django.utils.translation import gettext as _
 import markdown as mdlib
 
 from census_app.surveys.models import (
@@ -57,10 +58,10 @@ def profile(request):
             form = UserEmailPreferencesForm(request.POST, instance=prefs)
             if form.is_valid():
                 form.save()
-                messages.success(request, "Email preferences updated successfully.")
+                messages.success(request, _("Email preferences updated successfully."))
             else:
                 messages.error(
-                    request, "There was an error updating your email preferences."
+                    request, _("There was an error updating your email preferences.")
                 )
         return redirect("core:profile")
     if request.method == "POST" and request.POST.get("action") == "upgrade_to_org":
@@ -78,7 +79,7 @@ def profile(request):
             )
         messages.success(
             request,
-            "Organisation created. You are now an organisation admin and can host surveys and build a team.",
+            _("Organisation created. You are now an organisation admin and can host surveys and build a team."),
         )
         return redirect("surveys:org_users", org_id=org.id)
     if request.method == "POST" and request.POST.get("action") == "update_branding":
@@ -102,7 +103,7 @@ def profile(request):
             sb.theme_light_css = normalize_daisyui_builder_css(raw_light)
             sb.theme_dark_css = normalize_daisyui_builder_css(raw_dark)
             sb.save()
-            messages.success(request, "Project theme saved.")
+            messages.success(request, _("Project theme saved."))
         return redirect("core:profile")
     if SiteBranding is not None and sb is None:
         try:
@@ -193,7 +194,7 @@ def signup(request):
                         role=OrganizationMembership.Role.ADMIN,
                     )
                 messages.success(
-                    request, "Organisation created. You are an organisation admin."
+                    request, _("Organisation created. You are an organisation admin.")
                 )
                 return redirect("surveys:org_users", org_id=org.id)
             return redirect("core:home")
@@ -264,9 +265,14 @@ DOC_CATEGORIES = {
         "order": 6,
         "icon": "🧪",
     },
+    "internationalization": {
+        "title": "Internationalization",
+        "order": 7,
+        "icon": "🌍",
+    },
     "advanced": {
         "title": "Advanced Topics",
-        "order": 7,
+        "order": 8,
         "icon": "🚀",
     },
     "other": {
@@ -393,6 +399,10 @@ def _infer_category(slug: str) -> str:
     # Testing
     if any(x in slug_lower for x in ["testing", "test-"]):
         return "testing"
+
+    # Internationalization
+    if any(x in slug_lower for x in ["i18n", "internationalization", "translation", "locale"]):
+        return "internationalization"
 
     # Advanced
     if any(x in slug_lower for x in ["advanced", "custom", "extend"]):

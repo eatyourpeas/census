@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
 
@@ -108,3 +109,38 @@ class UserEmailPreferences(models.Model):
         """Get or create email preferences for a user with defaults."""
         preferences, created = cls.objects.get_or_create(user=user)
         return preferences
+
+
+class UserLanguagePreference(models.Model):
+    """User language preference for interface localization.
+
+    Stores the user's preferred language for the application UI.
+    Used by custom middleware to set the active language.
+    """
+
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="language_preference"
+    )
+    language = models.CharField(
+        max_length=10,
+        choices=settings.LANGUAGES,
+        default=settings.LANGUAGE_CODE,
+        help_text="Preferred language for the application interface",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User Language Preference"
+        verbose_name_plural = "User Language Preferences"
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.user.username}: {self.get_language_display()}"
+
+    @classmethod
+    def get_or_create_for_user(cls, user):
+        """Get or create language preference for a user with default."""
+        preference, created = cls.objects.get_or_create(
+            user=user, defaults={"language": settings.LANGUAGE_CODE}
+        )
+        return preference
