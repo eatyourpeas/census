@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-13 19:45+0000\n"
+"POT-Creation-Date: 2025-10-13 19:53+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,98 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: census_app/core/templates/core/home.html:4
+msgid "Home"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:13
+msgid ""
+"This application is in development currently and should NOT be used for live "
+"surveys at the moment."
+msgstr ""
+
+#: census_app/core/templates/core/home.html:33
+msgid "Census"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:34
+msgid "Surveys for health care"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:71
+msgid "Go to Surveys"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:72
+#: census_app/core/templates/core/home.html:76
+msgid "Read documentation"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:74
+#: census_app/templates/registration/login.html:3
+#: census_app/templates/registration/login.html:8
+msgid "Login"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:75
+#: census_app/templates/registration/signup.html:4
+msgid "Sign up"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:92
+msgid "Build"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:94
+msgid ""
+"Drag-and-drop groups and questions, apply DaisyUI themes per survey, and "
+"control access with roles."
+msgstr ""
+
+#: census_app/core/templates/core/home.html:97
+msgid "Create a survey"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:99
+msgid "Login to start"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:109
+msgid "Distribute"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:111
+msgid ""
+"Invite your team, scope visibility by organisation and survey membership, "
+"and manage participation securely."
+msgstr ""
+
+#: census_app/core/templates/core/home.html:114
+msgid "Manage surveys"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:116
+msgid "Explore docs"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:126
+msgid "Analyze"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:128
+msgid ""
+"Monitor dashboards, export CSV, and audit changes. Everything runs on a "
+"secure SSR stack."
+msgstr ""
+
+#: census_app/core/templates/core/home.html:131
+msgid "View dashboards"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:133
+msgid "See capabilities"
+msgstr ""
 
 #: census_app/core/templates/core/profile.html:3
 msgid "Profile"
@@ -499,11 +591,6 @@ msgstr ""
 msgid "Forgotten your password or username?"
 msgstr ""
 
-#: census_app/templates/registration/login.html:3
-#: census_app/templates/registration/login.html:8
-msgid "Login"
-msgstr ""
-
 #: census_app/templates/registration/login.html:16
 #: census_app/templates/registration/signup.html:88
 msgid "Sign in"
@@ -601,10 +688,6 @@ msgstr ""
 
 #: census_app/templates/registration/password_reset_form.html:16
 msgid "Send reset link"
-msgstr ""
-
-#: census_app/templates/registration/signup.html:4
-msgid "Sign up"
 msgstr ""
 
 #: census_app/templates/registration/signup.html:29

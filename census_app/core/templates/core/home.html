@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Home - {{ brand.title }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Home" %} - {{ brand.title }}{% endblock %}
 {% block content %}
 
 <!-- center above hero alert -->
@@ -9,7 +10,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-6 w-6 shrink-0 stroke-current">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
-        <span>This application is in development currently and should NOT be used for live surveys at the moment.</span>
+        <span>{% trans "This application is in development currently and should NOT be used for live surveys at the moment." %}</span>
       </div>
     </div>
 
@@ -29,8 +30,8 @@
 
     <!-- Right: Title, subtitle, tech icons, CTAs -->
     <div class="w-full lg:flex-1 min-w-0 text-center lg:text-left lg:pl-8">
-      <h1 class="text-5xl md:text-6xl font-bold font-heading">Census</h1>
-      <p class="mt-3 text-xl md:text-2xl opacity-80">Surveys for health care</p>
+      <h1 class="text-5xl md:text-6xl font-bold font-heading">{% trans "Census" %}</h1>
+      <p class="mt-3 text-xl md:text-2xl opacity-80">{% trans "Surveys for health care" %}</p>
 
       <!-- Tech icons inside hero, below subtitle -->
       <div class="mt-4 flex flex-wrap items-center gap-4 justify-center lg:justify-start">
@@ -67,12 +68,12 @@
       </div>
       <div class="mt-8 flex flex-wrap items-center gap-3 justify-center lg:justify-start">
         {% if user.is_authenticated %}
-          <a class="btn btn-primary" href="/surveys/">Go to Surveys</a>
-          <a class="btn btn-ghost" href="{% url 'core:docs_index' %}">Read documentation</a>
+          <a class="btn btn-primary" href="/surveys/">{% trans "Go to Surveys" %}</a>
+          <a class="btn btn-ghost" href="{% url 'core:docs_index' %}">{% trans "Read documentation" %}</a>
         {% else %}
-          <a class="btn btn-primary" href="/accounts/login/">Login</a>
-          <a class="btn btn-ghost" href="/signup/">Sign up</a>
-          <a class="btn btn-ghost" href="{% url 'core:docs_index' %}">Read documentation</a>
+          <a class="btn btn-primary" href="/accounts/login/">{% trans "Login" %}</a>
+          <a class="btn btn-ghost" href="/signup/">{% trans "Sign up" %}</a>
+          <a class="btn btn-ghost" href="{% url 'core:docs_index' %}">{% trans "Read documentation" %}</a>
         {% endif %}
       </div>
     </div>
@@ -88,14 +89,14 @@
     <div class="card-body">
         <div class="flex items-center gap-3">
           <span class="text-base-content/80">{% include "components/icons/hammer_wrench.html" with classes="w-8 h-8" %}</span>
-          <h3 class="card-title text-base-content">Build</h3>
+          <h3 class="card-title text-base-content">{% trans "Build" %}</h3>
         </div>
-        <p>Drag-and-drop groups and questions, apply DaisyUI themes per survey, and control access with roles.</p>
+        <p>{% trans "Drag-and-drop groups and questions, apply DaisyUI themes per survey, and control access with roles." %}</p>
         <div class="card-actions justify-start mt-2">
           {% if user.is_authenticated %}
-            <a class="btn btn-sm btn-primary" href="{% url 'surveys:create' %}">Create a survey</a>
+            <a class="btn btn-sm btn-primary" href="{% url 'surveys:create' %}">{% trans "Create a survey" %}</a>
           {% else %}
-            <a class="btn btn-sm btn-primary" href="/accounts/login/">Login to start</a>
+            <a class="btn btn-sm btn-primary" href="/accounts/login/">{% trans "Login to start" %}</a>
           {% endif %}
         </div>
       </div>
@@ -105,14 +106,14 @@
     <div class="card-body">
         <div class="flex items-center gap-3">
           <span class="text-base-content/80">{% include "components/icons/documents.html" with classes="w-8 h-8" %}</span>
-          <h3 class="card-title text-base-content">Distribute</h3>
+          <h3 class="card-title text-base-content">{% trans "Distribute" %}</h3>
         </div>
-        <p>Invite your team, scope visibility by organisation and survey membership, and manage participation securely.</p>
+        <p>{% trans "Invite your team, scope visibility by organisation and survey membership, and manage participation securely." %}</p>
         <div class="card-actions justify-start mt-2">
           {% if user.is_authenticated %}
-            <a class="btn btn-sm btn-primary" href="/surveys/">Manage surveys</a>
+            <a class="btn btn-sm btn-primary" href="/surveys/">{% trans "Manage surveys" %}</a>
           {% else %}
-            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='surveys' %}">Explore docs</a>
+            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='surveys' %}">{% trans "Explore docs" %}</a>
           {% endif %}
         </div>
       </div>
@@ -122,14 +123,14 @@
     <div class="card-body">
         <div class="flex items-center gap-3">
           <span class="text-base-content/80">{% include "components/icons/document.html" with classes="w-8 h-8" %}</span>
-          <h3 class="card-title text-base-content">Analyze</h3>
+          <h3 class="card-title text-base-content">{% trans "Analyze" %}</h3>
         </div>
-        <p>Monitor dashboards, export CSV, and audit changes. Everything runs on a secure SSR stack.</p>
+        <p>{% trans "Monitor dashboards, export CSV, and audit changes. Everything runs on a secure SSR stack." %}</p>
         <div class="card-actions justify-start mt-2">
           {% if user.is_authenticated %}
-            <a class="btn btn-sm btn-primary" href="/surveys/">View dashboards</a>
+            <a class="btn btn-sm btn-primary" href="/surveys/">{% trans "View dashboards" %}</a>
           {% else %}
-            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='surveys' %}">See capabilities</a>
+            <a class="btn btn-sm btn-ghost" href="{% url 'core:docs_page' slug='surveys' %}">{% trans "See capabilities" %}</a>
           {% endif %}
         </div>
       </div>
