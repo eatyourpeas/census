@@ -20,43 +20,45 @@ msgstr ""
 
 #: census_app/core/templates/core/home.html:4
 msgid "Home"
-msgstr ""
+msgstr "Accueil"
 
 #: census_app/core/templates/core/home.html:13
 msgid ""
 "This application is in development currently and should NOT be used for live "
 "surveys at the moment."
 msgstr ""
+"Cette application est en cours de développement et ne doit PAS être utilisée "
+"pour des enquêtes réelles pour le moment."
 
 #: census_app/core/templates/core/home.html:33
 msgid "Census"
-msgstr ""
+msgstr "Census"
 
 #: census_app/core/templates/core/home.html:34
 msgid "Surveys for health care"
-msgstr ""
+msgstr "Enquêtes pour les soins de santé"
 
 #: census_app/core/templates/core/home.html:71
 msgid "Go to Surveys"
-msgstr ""
+msgstr "Aller aux enquêtes"
 
 #: census_app/core/templates/core/home.html:72
 #: census_app/core/templates/core/home.html:76
 msgid "Read documentation"
-msgstr ""
+msgstr "Lire la documentation"
 
 #: census_app/core/templates/core/home.html:74
 #: census_app/templates/base.html:69 census_app/templates/base.html:144
 #: census_app/templates/registration/login.html:3
 #: census_app/templates/registration/login.html:8
 msgid "Login"
-msgstr ""
+msgstr "Connexion"
 
 #: census_app/core/templates/core/home.html:75
 #: census_app/templates/base.html:70 census_app/templates/base.html:145
 #: census_app/templates/registration/signup.html:4
 msgid "Sign up"
-msgstr ""
+msgstr "S'inscrire"
 
 #: census_app/core/templates/core/home.html:92
 #: census_app/templates/base.html:193
@@ -116,25 +118,25 @@ msgstr ""
 #: census_app/core/templates/core/profile.html:3
 #: census_app/templates/base.html:127
 msgid "Profile"
-msgstr ""
+msgstr "Profil"
 
 #: census_app/core/templates/core/profile.html:18
 msgid "Your Profile"
-msgstr ""
+msgstr "Votre profil"
 
 #: census_app/core/templates/core/profile.html:20
 #, python-format
 msgid "Signed in as <strong>%(username)s</strong>"
-msgstr ""
+msgstr "Connecté en tant que <strong>%(username)s</strong>"
 
 #: census_app/core/templates/core/profile.html:24
 #, python-format
 msgid "Your organisation: %(org_name)s"
-msgstr ""
+msgstr "Votre organisation : %(org_name)s"
 
 #: census_app/core/templates/core/profile.html:34
 msgid "Your badges"
-msgstr ""
+msgstr "Vos badges"
 
 #: census_app/core/templates/core/profile.html:38
 msgid "You have full administrative access to the platform"
@@ -209,25 +211,27 @@ msgstr[1] ""
 
 #: census_app/core/templates/core/profile.html:154
 msgid "Language"
-msgstr ""
+msgstr "Langue"
 
 #: census_app/core/templates/core/profile.html:156
 msgid ""
 "Choose your preferred language. This affects all text in the application."
 msgstr ""
+"Choisissez votre langue préférée. Cela affecte tout le texte de l'application."
 
 #: census_app/core/templates/core/profile.html:163
 msgid "Save Language Preference"
-msgstr ""
+msgstr "Enregistrer la préférence de langue"
 
 #: census_app/core/templates/core/profile.html:172
 msgid "Appearance"
-msgstr ""
+msgstr "Apparence"
 
 #: census_app/core/templates/core/profile.html:174
 msgid ""
 "Choose your theme. This only affects your view and is saved in your browser."
 msgstr ""
+"Choisissez votre thème. Cela n'affecte que votre vue et est enregistré dans votre navigateur."
 
 #: census_app/core/templates/core/profile.html:176
 msgid "Theme"
@@ -627,7 +631,7 @@ msgstr ""
 #: census_app/surveys/templates/surveys/dashboard.html:31
 #: census_app/templates/base.html:62 census_app/templates/base.html:101
 msgid "Surveys"
-msgstr ""
+msgstr "Enquêtes"
 
 #: census_app/surveys/templates/surveys/dashboard.html:36
 #: census_app/surveys/templates/surveys/dashboard.html:121

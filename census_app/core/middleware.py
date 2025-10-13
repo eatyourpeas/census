@@ -2,6 +2,9 @@
 
 from django.utils import translation
 
+# Django's session key for storing language preference
+LANGUAGE_SESSION_KEY = "_language"
+
 
 class UserLanguageMiddleware:
     """Middleware to set language based on user's saved preference.
@@ -32,12 +35,16 @@ class UserLanguageMiddleware:
                 if preference and preference.language:
                     # Activate the user's preferred language
                     language = preference.language
+                    print(f"DEBUG Middleware: User {request.user.username} has language preference: {language}")
                     # Normalize language code (en-gb -> en-gb)
                     translation.activate(language)
                     request.LANGUAGE_CODE = language
                     # Also set in session so it persists across requests
                     if hasattr(request, 'session'):
-                        request.session[translation.LANGUAGE_SESSION_KEY] = language
+                        session_lang_before = request.session.get(LANGUAGE_SESSION_KEY)
+                        request.session[LANGUAGE_SESSION_KEY] = language
+                        request.session.modified = True
+                        print(f"DEBUG Middleware: Session language was: {session_lang_before}, now: {language}")
             except Exception:
                 # If anything goes wrong (e.g., table doesn't exist yet during migration),
                 # just continue without setting language preference

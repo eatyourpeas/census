@@ -11,6 +11,9 @@ from django.utils import translation
 from django.utils.translation import gettext as _
 import markdown as mdlib
 
+# Django's session key for storing language preference
+LANGUAGE_SESSION_KEY = "_language"
+
 from census_app.surveys.models import (
     Organization,
     OrganizationMembership,
@@ -55,16 +58,21 @@ def profile(request):
     sb = None
     # Handle language preference form submission
     if request.method == "POST" and request.POST.get("action") == "update_language":
-        lang_pref, _ = UserLanguagePreference.objects.get_or_create(user=request.user)
+        lang_pref, created = UserLanguagePreference.objects.get_or_create(user=request.user)
         form = UserLanguagePreferenceForm(request.POST, instance=lang_pref)
         if form.is_valid():
             saved_pref = form.save()
             # Immediately activate the new language and store in session
             translation.activate(saved_pref.language)
             request.LANGUAGE_CODE = saved_pref.language
-            request.session[translation.LANGUAGE_SESSION_KEY] = saved_pref.language
+            request.session[LANGUAGE_SESSION_KEY] = saved_pref.language
+            request.session.modified = True
+            print(f"DEBUG: Saved language: {saved_pref.language}")
+            print(f"DEBUG: Session key set to: {request.session.get(LANGUAGE_SESSION_KEY)}")
+            print(f"DEBUG: request.LANGUAGE_CODE: {request.LANGUAGE_CODE}")
             messages.success(request, _("Language preference updated successfully."))
         else:
+            print(f"DEBUG: Form errors: {form.errors}")
             messages.error(
                 request, _("There was an error updating your language preference.")
             )
@@ -104,7 +112,7 @@ def profile(request):
         if not request.user.is_superuser:
             return redirect("core:profile")
         if SiteBranding is not None:
-            sb, _ = SiteBranding.objects.get_or_create(pk=1)
+            sb, created = SiteBranding.objects.get_or_create(pk=1)
             sb.default_theme = request.POST.get("default_theme") or sb.default_theme
             sb.icon_url = (request.POST.get("icon_url") or "").strip()
             if request.FILES.get("icon_file"):
@@ -160,7 +168,7 @@ def profile(request):
         "tokens_created": SurveyAccessToken.objects.filter(created_by=user).count(),
     }
     # Prepare language preference form
-    lang_pref, _ = UserLanguagePreference.objects.get_or_create(user=user)
+    lang_pref, created = UserLanguagePreference.objects.get_or_create(user=user)
     language_form = UserLanguagePreferenceForm(instance=lang_pref)
     # Prepare email preferences form
     email_prefs_form = None
