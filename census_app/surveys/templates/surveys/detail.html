@@ -20,6 +20,7 @@
 {% endblock %}
 {% load survey_extras %}
 {% load static %}
+{% load i18n %}
 {% block title %}{{ survey.name }} - Census{% endblock %}
 {% block content %}
 <div class="card bg-primary image-full min-w-full shadow-sm">
@@ -110,7 +111,7 @@
           {% endfor %}
         {% elif q.type == 'dropdown' %}
           <select class="select select-bordered" name="q_{{ q.id }}" data-followup-select="q_{{ q.id }}">
-            <option value="">-- Select --</option>
+            <option value="">{% trans "-- Select --" %}</option>
             {% for opt in q.options|as_list %}
               <option value="{{ opt|option_value }}" data-followup-target="q_{{ q.id }}_{{ forloop.counter0 }}">{{ opt|option_label }}</option>
             {% endfor %}
@@ -125,9 +126,9 @@
         {% elif q.type == 'yesno' %}
           <div class="space-y-2">
             <select class="select select-bordered" name="q_{{ q.id }}" data-yesno-select="q_{{ q.id }}">
-              <option value="">-- Select --</option>
-              <option value="yes" data-followup-target="q_{{ q.id }}_yes">Yes</option>
-              <option value="no" data-followup-target="q_{{ q.id }}_no">No</option>
+              <option value="">{% trans "-- Select --" %}</option>
+              <option value="yes" data-followup-target="q_{{ q.id }}_yes">{% trans "Yes" %}</option>
+              <option value="no" data-followup-target="q_{{ q.id }}_no">{% trans "No" %}</option>
             </select>
             {% with q.options|as_list as yesno_opts %}
               {% for opt in yesno_opts %}
@@ -293,7 +294,7 @@
   {% endif %}
 
   {% if show_professional_details %}
-    <div class="divider">Professional details</div>
+    <div class="divider">{% trans "Professional details" %}</div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       {% for key in professional_fields %}
         <div class="space-y-1" data-professional-field="{{ key }}">
@@ -333,7 +334,7 @@
     <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
   {% endif %}
 
-  <button class="btn btn-primary" type="submit">Submit</button>
+  <button class="btn btn-primary" type="submit">{% trans "Submit" %}</button>
 </form>
 
 <!-- DEBUG: Total questions = {{ questions|length }} -->

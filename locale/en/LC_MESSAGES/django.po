@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-13 19:57+0000\n"
+"POT-Creation-Date: 2025-10-13 20:09+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -229,8 +229,42 @@ msgstr ""
 msgid "Organisation created. You are an organisation admin."
 msgstr ""
 
+#: census_app/surveys/templates/surveys/create.html:3
+msgid "Create Survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/create.html:8
+msgid "Create a new survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/create.html:14
+msgid "Name"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/create.html:15
+msgid "URL Name or 'Slug' (optional)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/create.html:15
+msgid "If left blank, a slug will be generated from the name."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/create.html:16
+msgid "Description"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/create.html:17
+#: census_app/surveys/templates/surveys/list.html:13
+msgid "Create survey"
+msgstr ""
+
 #: census_app/surveys/templates/surveys/dashboard.html:22
+#: census_app/surveys/templates/surveys/list.html:36
 msgid "Dashboard"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:28
+msgid "Keep track of survey status, number of responses and control styling."
 msgstr ""
 
 #: census_app/surveys/templates/surveys/dashboard.html:31
@@ -411,7 +445,29 @@ msgstr ""
 msgid "Delete Survey"
 msgstr ""
 
+#: census_app/surveys/templates/surveys/detail.html:114
+#: census_app/surveys/templates/surveys/detail.html:129
+msgid "-- Select --"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/detail.html:130
+msgid "Yes"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/detail.html:131
+msgid "No"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/detail.html:297
+msgid "Professional details"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/detail.html:337
+msgid "Submit"
+msgstr ""
+
 #: census_app/surveys/templates/surveys/groups.html:22
+#: census_app/surveys/templates/surveys/list.html:37
 msgid "Groups"
 msgstr ""
 
@@ -509,6 +565,23 @@ msgstr ""
 
 #: census_app/surveys/templates/surveys/groups.html:168
 msgid "Create"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/list.html:4
+#: census_app/surveys/templates/surveys/list.html:10
+msgid "Your Surveys"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/list.html:38
+msgid "Preview"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/list.html:39
+msgid "Import"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/list.html:47
+msgid "No surveys yet."
 msgstr ""
 
 #: census_app/surveys/templates/surveys/tokens.html:3
