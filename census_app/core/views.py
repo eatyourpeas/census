@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
+from django.utils import translation
 from django.utils.translation import gettext as _
 import markdown as mdlib
 
@@ -57,7 +58,11 @@ def profile(request):
         lang_pref, _ = UserLanguagePreference.objects.get_or_create(user=request.user)
         form = UserLanguagePreferenceForm(request.POST, instance=lang_pref)
         if form.is_valid():
-            form.save()
+            saved_pref = form.save()
+            # Immediately activate the new language and store in session
+            translation.activate(saved_pref.language)
+            request.LANGUAGE_CODE = saved_pref.language
+            request.session[translation.LANGUAGE_SESSION_KEY] = saved_pref.language
             messages.success(request, _("Language preference updated successfully."))
         else:
             messages.error(
