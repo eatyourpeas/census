@@ -1,16 +1,19 @@
 {% extends 'base.html' %}
-{% block title %}Unlock Survey - {{ survey.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Unlock Survey" %} - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose">
-  {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Unlock" %}
+  {% trans "Survey Dashboard" as crumb1_text %}
+  {% trans "Unlock" as crumb2_text %}
+  {% include 'components/breadcrumbs.html' with crumb1_label=crumb1_text crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label=crumb2_text %}
   %}
-  <h1>Unlock {{ survey.name }}</h1>
-  <p>Enter the one-time survey key to decrypt sensitive fields for this session.</p>
+  <h1>{% trans "Unlock" %} {{ survey.name }}</h1>
+  <p>{% trans "Enter the one-time survey key to decrypt sensitive fields for this session." %}</p>
 </div>
 <form method="post" class="mt-4 space-y-4">
   {% csrf_token %}
-  <input type="password" name="key" class="input input-bordered w-full max-w-md" placeholder="Survey key" />
-  <button class="btn btn-primary" type="submit">Unlock</button>
+  <input type="password" name="key" class="input input-bordered w-full max-w-md" placeholder="{% trans 'Survey key' %}" />
+  <button class="btn btn-primary" type="submit">{% trans "Unlock" %}</button>
 
 
 </form>

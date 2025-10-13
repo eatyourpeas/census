@@ -1,15 +1,19 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Manage Questions - {{ survey.name }} · {{ group.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Manage Questions" %} - {{ survey.name }} · {{ group.name }}{% endblock %}
 {% block content %}
 <div class="flex flex-col gap-6">
   <div class="prose">
-  {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Question Groups" crumb2_href="/surveys/"|add:survey.slug|add:"/groups/" crumb3_label="Manage Questions" %}
+  {% trans "Survey Dashboard" as crumb1_text %}
+  {% trans "Question Groups" as crumb2_text %}
+  {% trans "Manage Questions" as crumb3_text %}
+  {% include 'components/breadcrumbs.html' with crumb1_label=crumb1_text crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label=crumb2_text crumb2_href="/surveys/"|add:survey.slug|add:"/groups/" crumb3_label=crumb3_text %}
     <h1 class="inline-flex items-center gap-2 text-base-content">
       {% include "components/icons/documents.html" with classes="w-6 h-6 text-base-content" %}
-      <span>Manage Questions</span>
+      <span>{% trans "Manage Questions" %}</span>
     </h1>
-    <h2 class="mt-0 text-base-content/80">Question Group: {{ group.name }}</h2>
+    <h2 class="mt-0 text-base-content/80">{% trans "Question Group" %}: {{ group.name }}</h2>
     {% if group.description %}<p class="mt-0">{{ group.description }}</p>{% endif %}
   </div>
 
@@ -30,14 +34,14 @@
           <div class="card-body">
             <h2 class="card-title inline-flex items-center gap-2 text-base-content">
               {% include "components/icons/documents.html" with classes="w-5 h-5 text-base-content" %}
-              <span>Questions in this group</span>
+              <span>{% trans "Questions in this group" %}</span>
             </h2>
             <div id="questions-list">
               <ul id="questions-draggable" class="flex flex-col gap-3 w-full" data-reorder-url="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/reorder">
                 {% for q in questions %}
                   {% include 'surveys/partials/question_row.html' %}
                 {% empty %}
-                  <li class="p-4 opacity-70 bg-base-200 rounded-lg border border-dashed border-base-300 text-center">No questions in this group yet.</li>
+                  <li class="p-4 opacity-70 bg-base-200 rounded-lg border border-dashed border-base-300 text-center">{% trans "No questions in this group yet." %}</li>
                 {% endfor %}
               </ul>
             </div>

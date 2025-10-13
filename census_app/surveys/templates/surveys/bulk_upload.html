@@ -1,12 +1,15 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Import Questions - {{ survey.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Import Questions" %} - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="prose">
-  {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Import Questions" %}
+  {% trans "Survey Dashboard" as crumb1_text %}
+  {% trans "Import Questions" as crumb2_text %}
+  {% include 'components/breadcrumbs.html' with crumb1_label=crumb1_text crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label=crumb2_text %}
   <h1 class="inline-flex items-center gap-2">
     {% include "components/icons/document.html" with classes="w-6 h-6" %}
-    <span>Import questions: {{ survey.name }}</span>
+    <span>{% trans "Import questions" %}: {{ survey.name }}</span>
   </h1>
 </div>
 
@@ -18,21 +21,21 @@
   <div class="space-y-6">
     <form method="post" id="bulk-import-form">
       {% csrf_token %}
-      <label class="label">Markdown</label>
+      <label class="label">{% trans "Markdown" %}</label>
       <textarea class="textarea textarea-bordered w-full min-h-[360px]" name="markdown" required>{{ markdown|default:example }}</textarea>
       <div class="mt-3">
-        <button class="btn btn-primary" type="button" id="bulk-import-open-modal">Create survey</button>
+        <button class="btn btn-primary" type="button" id="bulk-import-open-modal">{% trans "Create survey" %}</button>
       </div>
     </form>
     <dialog id="bulk-import-confirm" class="modal">
       <div class="modal-box space-y-4">
-        <h3 class="text-lg font-semibold">Overwrite survey questions?</h3>
+        <h3 class="text-lg font-semibold">{% trans "Overwrite survey questions?" %}</h3>
         <p class="text-sm text-base-content/80">
-          Importing from Markdown will delete all existing question groups, questions, branching rules, and collections that belong to this survey. Continue only if you are ready to replace the current builder content with the uploaded version.
+          {% trans "Importing from Markdown will delete all existing question groups, questions, branching rules, and collections that belong to this survey. Continue only if you are ready to replace the current builder content with the uploaded version." %}
         </p>
         <div class="modal-action">
-          <button class="btn" type="button" id="bulk-import-cancel">Cancel</button>
-          <button class="btn btn-primary" type="submit" form="bulk-import-form">Create survey</button>
+          <button class="btn" type="button" id="bulk-import-cancel">{% trans "Cancel" %}</button>
+          <button class="btn btn-primary" type="submit" form="bulk-import-form">{% trans "Create survey" %}</button>
         </div>
       </div>
     </dialog>
@@ -40,13 +43,13 @@
       <div class="p-4 sm:p-6 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold text-base-content">Live structure preview</h2>
-            <p class="text-sm text-base-content/70">Groups and questions are assigned unique IDs as you edit. Use these IDs to reason about branching later.</p>
+            <h2 class="text-lg font-semibold text-base-content">{% trans "Live structure preview" %}</h2>
+            <p class="text-sm text-base-content/70">{% trans "Groups and questions are assigned unique IDs as you edit. Use these IDs to reason about branching later." %}</p>
           </div>
           <span class="badge badge-outline hidden" id="bulk-structure-count" aria-live="polite"></span>
         </div>
         <div id="bulk-structure-preview" class="space-y-4" aria-live="polite" aria-busy="true">
-          <div class="text-sm text-base-content/70">Start typing (or use the sample markdown) to see the survey structure.</div>
+          <div class="text-sm text-base-content/70">{% trans "Start typing (or use the sample markdown) to see the survey structure." %}</div>
         </div>
       </div>
     </section>
@@ -55,38 +58,38 @@
     <div class="card bg-base-100 shadow">
       <div class="card-body space-y-4">
         <div>
-          <h2 class="card-title">Format reference</h2>
-          <p class="text-base-content/80">Use markdown with the following structure:</p>
+          <h2 class="card-title">{% trans "Format reference" %}</h2>
+          <p class="text-base-content/80">{% trans "Use markdown with the following structure:" %}</p>
         </div>
         <ul class="list-disc pl-5 space-y-1 text-sm">
-          <li><code># Group Title</code>, followed by a line for the group description</li>
-          <li><code>## Question Title</code>, followed by a line for the question description</li>
-          <li>Add <code class="text-error">*</code> after the question title to mark it as required</li>
-          <li><code>(type)</code> on the next line in parentheses</li>
-          <li>If the type requires options, list each on a line starting with <code>-</code></li>
-          <li>For options that should have follow-up text input, add an indented line starting with <code>+</code></li>
-          <li>For Likert number scales, add key-value lines: <code>min:</code>, <code>max:</code>, optional <code>left:</code>, <code>right:</code></li>
+          <li>{% trans "<code># Group Title</code>, followed by a line for the group description" %}</li>
+          <li>{% trans "<code>## Question Title</code>, followed by a line for the question description" %}</li>
+          <li>{% trans "Add <code class=\"text-error\">*</code> after the question title to mark it as required" %}</li>
+          <li>{% trans "<code>(type)</code> on the next line in parentheses" %}</li>
+          <li>{% trans "If the type requires options, list each on a line starting with <code>-</code>" %}</li>
+          <li>{% trans "For options that should have follow-up text input, add an indented line starting with <code>+</code>" %}</li>
+          <li>{% trans "For Likert number scales, add key-value lines: <code>min:</code>, <code>max:</code>, optional <code>left:</code>, <code>right:</code>" %}</li>
         </ul>
 
         <div>
-          <h3 class="font-semibold">Supported types</h3>
+          <h3 class="font-semibold">{% trans "Supported types" %}</h3>
           <ul class="list-disc pl-5 space-y-1 text-sm">
-            <li><code>text</code> — free text</li>
-            <li><code>text number</code> — numeric input</li>
-            <li><code>mc_single</code> — multiple choice (single)</li>
-            <li><code>mc_multi</code> — multiple choice (multi)</li>
-            <li><code>dropdown</code> — select menu</li>
-            <li><code>orderable</code> — orderable list</li>
-            <li><code>yesno</code> — yes/no</li>
-            <li><code>image</code> — image choice</li>
-            <li><code>likert categories</code> — categories listed with <code>-</code></li>
-            <li><code>likert number</code> — provide <code>min</code>/<code>max</code> and optional labels</li>
+            <li><code>text</code> — {% trans "free text" %}</li>
+            <li><code>text number</code> — {% trans "numeric input" %}</li>
+            <li><code>mc_single</code> — {% trans "multiple choice (single)" %}</li>
+            <li><code>mc_multi</code> — {% trans "multiple choice (multi)" %}</li>
+            <li><code>dropdown</code> — {% trans "select menu" %}</li>
+            <li><code>orderable</code> — {% trans "orderable list" %}</li>
+            <li><code>yesno</code> — {% trans "yes/no" %}</li>
+            <li><code>image</code> — {% trans "image choice" %}</li>
+            <li><code>likert categories</code> — {% trans "categories listed with <code>-</code>" %}</li>
+            <li><code>likert number</code> — {% trans "provide <code>min</code>/<code>max</code> and optional labels" %}</li>
           </ul>
         </div>
 
         <div>
-          <h3 class="font-semibold">Optional: Follow-up text inputs</h3>
-          <p class="text-sm text-base-content/80">Add a follow-up text input to any option by adding an indented line starting with <code>+</code> immediately after the option. This creates a text field that appears when the participant selects that option.</p>
+          <h3 class="font-semibold">{% trans "Optional: Follow-up text inputs" %}</h3>
+          <p class="text-sm text-base-content/80">{% trans "Add a follow-up text input to any option by adding an indented line starting with <code>+</code> immediately after the option. This creates a text field that appears when the participant selects that option." %}</p>
           <pre class="mt-2 rounded bg-base-200/60 p-3 text-sm"><code>## Employment status
 (mc_single)
 - Employed full-time
@@ -99,17 +102,17 @@
 - Student
 - Retired</code></pre>
           <ul class="list-disc pl-5 space-y-1 text-sm">
-            <li>Follow-up lines must start with <code>+</code> and be indented (at least 2 spaces)</li>
-            <li>The text after <code>+</code> becomes the label for the follow-up input field</li>
-            <li>Works with <code>mc_single</code>, <code>mc_multi</code>, <code>dropdown</code>, <code>orderable</code>, and <code>yesno</code></li>
-            <li>For <code>yesno</code>, provide exactly 2 options (Yes/No) with optional follow-ups</li>
-            <li>Not all options need follow-ups—only add them where needed</li>
+            <li>{% trans "Follow-up lines must start with <code>+</code> and be indented (at least 2 spaces)" %}</li>
+            <li>{% trans "The text after <code>+</code> becomes the label for the follow-up input field" %}</li>
+            <li>{% trans "Works with <code>mc_single</code>, <code>mc_multi</code>, <code>dropdown</code>, <code>orderable</code>, and <code>yesno</code>" %}</li>
+            <li>{% trans "For <code>yesno</code>, provide exactly 2 options (Yes/No) with optional follow-ups" %}</li>
+            <li>{% trans "Not all options need follow-ups—only add them where needed" %}</li>
           </ul>
         </div>
 
         <div>
-          <h3 class="font-semibold">Optional: Required questions</h3>
-          <p class="text-sm text-base-content/80">Mark a question as required by adding an asterisk <code class="text-error">*</code> after the question title (before the ID in curly braces if present).</p>
+          <h3 class="font-semibold">{% trans "Optional: Required questions" %}</h3>
+          <p class="text-sm text-base-content/80">{% trans "Mark a question as required by adding an asterisk <code class=\"text-error\">*</code> after the question title (before the ID in curly braces if present)." %}</p>
           <pre class="mt-2 rounded bg-base-200/60 p-3 text-sm"><code>## Age<span class="text-error">*</span> {patient-age}
 Age in years
 (text number)
@@ -117,17 +120,17 @@ Age in years
 ## Email address<span class="text-error">*</span>
 (text)</code></pre>
           <ul class="list-disc pl-5 space-y-1 text-sm">
-            <li>Required questions must be answered before the form can be submitted</li>
-            <li>The asterisk <code class="text-error">*</code> appears in red in the preview</li>
-            <li>Place the asterisk immediately after the question title text</li>
-            <li>Works with all question types</li>
+            <li>{% trans "Required questions must be answered before the form can be submitted" %}</li>
+            <li>{% trans "The asterisk <code class=\"text-error\">*</code> appears in red in the preview" %}</li>
+            <li>{% trans "Place the asterisk immediately after the question title text" %}</li>
+            <li>{% trans "Works with all question types" %}</li>
           </ul>
         </div>
 
         <div>
-          <h3 class="font-semibold">Optional: Collections with REPEAT</h3>
-          <p class="text-sm text-base-content/80">To mark a group as repeatable, add a line with <strong>REPEAT</strong> (or <strong>REPEAT-5</strong> to cap it) immediately above the group heading.</p>
-          <p class="text-sm text-base-content/80">To define a child collection nested under a repeatable parent, indent with <code>&gt;</code> and add <strong>REPEAT</strong> above the child group:</p>
+          <h3 class="font-semibold">{% trans "Optional: Collections with REPEAT" %}</h3>
+          <p class="text-sm text-base-content/80">{% trans "To mark a group as repeatable, add a line with <strong>REPEAT</strong> (or <strong>REPEAT-5</strong> to cap it) immediately above the group heading." %}</p>
+          <p class="text-sm text-base-content/80">{% trans "To define a child collection nested under a repeatable parent, indent with <code>&gt;</code> and add <strong>REPEAT</strong> above the child group:" %}</p>
           <pre class="mt-2 rounded bg-base-200/60 p-3 text-sm"><code>REPEAT-5
 # Patient
 ... group content ...
@@ -136,15 +139,15 @@ Age in years
 &gt; # Visit
 &gt; ... child group content ...</code></pre>
           <ul class="list-disc pl-5 space-y-1 text-sm">
-            <li><strong>REPEAT</strong> = unlimited repeats. <strong>REPEAT-1</strong> means one allowed.</li>
-            <li>Use <code>&gt;</code> before REPEAT and the group heading to indicate one level of nesting.</li>
-            <li>Nesting is limited to one level (Parent → Child) by design.</li>
-            <li>Groups without REPEAT are normal, non-collection groups.</li>
+            <li>{% trans "<strong>REPEAT</strong> = unlimited repeats. <strong>REPEAT-1</strong> means one allowed." %}</li>
+            <li>{% trans "Use <code>&gt;</code> before REPEAT and the group heading to indicate one level of nesting." %}</li>
+            <li>{% trans "Nesting is limited to one level (Parent → Child) by design." %}</li>
+            <li>{% trans "Groups without REPEAT are normal, non-collection groups." %}</li>
           </ul>
         </div>
         <div>
-          <h3 class="font-semibold">Optional: Questions with conditional branching</h3>
-          <p class="text-sm text-base-content/80">Assign stable IDs by placing them in curly braces at the end of group or question headings. Then add branching rules below the question&rsquo;s <code>(type)</code> line using <code>? when &lt;operator&gt; &lt;value&gt; -&gt; {target-id}</code>.</p>
+          <h3 class="font-semibold">{% trans "Optional: Questions with conditional branching" %}</h3>
+          <p class="text-sm text-base-content/80">{% trans "Assign stable IDs by placing them in curly braces at the end of group or question headings. Then add branching rules below the question's <code>(type)</code> line using <code>? when &lt;operator&gt; &lt;value&gt; -&gt; {target-id}</code>." %}</p>
           <pre class="mt-2 rounded bg-base-200/60 p-3 text-sm"><code># Intro {intro}
 ## Consent {intro-consent}
 (text)
@@ -159,10 +162,10 @@ Age in years
 ## Thanks {intro-exit-thanks}
 (text)</code></pre>
           <ul class="list-disc pl-5 space-y-1 text-sm">
-            <li>Branching rules must start with <code>? when</code> and reference a question or group ID in curly braces.</li>
-            <li>Operators mirror the survey builder: <code>equals</code>, <code>not_equals</code>, <code>contains</code>, <code>greater_than</code>, and more.</li>
-            <li>IDs are normalised to lowercase slugs; keep them unique within your document.</li>
-            <li>Point to a group ID to jump to that group, or a question ID to jump directly to that question.</li>
+            <li>{% trans "Branching rules must start with <code>? when</code> and reference a question or group ID in curly braces." %}</li>
+            <li>{% trans "Operators mirror the survey builder: <code>equals</code>, <code>not_equals</code>, <code>contains</code>, <code>greater_than</code>, and more." %}</li>
+            <li>{% trans "IDs are normalised to lowercase slugs; keep them unique within your document." %}</li>
+            <li>{% trans "Point to a group ID to jump to that group, or a question ID to jump directly to that question." %}</li>
           </ul>
         </div>
       </div>

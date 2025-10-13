@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-13 20:20+0000\n"
+"POT-Creation-Date: 2025-10-13 20:33+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -230,6 +230,317 @@ msgstr ""
 msgid "Organisation created. You are an organisation admin."
 msgstr ""
 
+#: census_app/surveys/templates/surveys/builder.html:23
+#: census_app/surveys/templates/surveys/builder.html:28
+#: census_app/surveys/templates/surveys/builder.html:30
+msgid "Question Group Builder"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/builder.html:27
+#: census_app/surveys/templates/surveys/bulk_upload.html:7
+#: census_app/surveys/templates/surveys/dashboard.html:32
+#: census_app/surveys/templates/surveys/group_builder.html:8
+#: census_app/surveys/templates/surveys/unlock.html:6
+msgid "Survey Dashboard"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/builder.html:41
+msgid "All Questions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/builder.html:51
+#: census_app/surveys/templates/surveys/groups.html:22
+#: census_app/surveys/templates/surveys/list.html:37
+msgid "Groups"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/builder.html:52
+msgid "Create and manage groups, then add questions inside each group."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/builder.html:53
+#: census_app/surveys/templates/surveys/dashboard.html:43
+msgid "Manage groups"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/builder.html:55
+msgid "Open a group"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:4
+#: census_app/surveys/templates/surveys/bulk_upload.html:8
+msgid "Import Questions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:12
+msgid "Import questions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:24
+msgid "Markdown"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:27
+#: census_app/surveys/templates/surveys/bulk_upload.html:38
+#: census_app/surveys/templates/surveys/create.html:17
+#: census_app/surveys/templates/surveys/list.html:13
+msgid "Create survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:32
+msgid "Overwrite survey questions?"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:34
+msgid ""
+"Importing from Markdown will delete all existing question groups, questions, "
+"branching rules, and collections that belong to this survey. Continue only "
+"if you are ready to replace the current builder content with the uploaded "
+"version."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:37
+#: census_app/surveys/templates/surveys/delete_confirm.html:74
+#: census_app/surveys/templates/surveys/groups.html:167
+msgid "Cancel"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:46
+msgid "Live structure preview"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:47
+msgid ""
+"Groups and questions are assigned unique IDs as you edit. Use these IDs to "
+"reason about branching later."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:52
+msgid "Start typing (or use the sample markdown) to see the survey structure."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:61
+msgid "Format reference"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:62
+msgid "Use markdown with the following structure:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:65
+msgid ""
+"<code># Group Title</code>, followed by a line for the group description"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:66
+msgid ""
+"<code>## Question Title</code>, followed by a line for the question "
+"description"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:67
+msgid "Add <code class=\\"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:68
+msgid "<code>(type)</code> on the next line in parentheses"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:69
+msgid ""
+"If the type requires options, list each on a line starting with <code>-</"
+"code>"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:70
+msgid ""
+"For options that should have follow-up text input, add an indented line "
+"starting with <code>+</code>"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:71
+msgid ""
+"For Likert number scales, add key-value lines: <code>min:</code>, <code>max:"
+"</code>, optional <code>left:</code>, <code>right:</code>"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:75
+msgid "Supported types"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:77
+msgid "free text"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:78
+msgid "numeric input"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:79
+msgid "multiple choice (single)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:80
+msgid "multiple choice (multi)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:81
+msgid "select menu"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:82
+msgid "orderable list"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:83
+msgid "yes/no"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:84
+msgid "image choice"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:85
+msgid "categories listed with <code>-</code>"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:86
+msgid "provide <code>min</code>/<code>max</code> and optional labels"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:91
+msgid "Optional: Follow-up text inputs"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:92
+msgid ""
+"Add a follow-up text input to any option by adding an indented line starting "
+"with <code>+</code> immediately after the option. This creates a text field "
+"that appears when the participant selects that option."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:105
+msgid ""
+"Follow-up lines must start with <code>+</code> and be indented (at least 2 "
+"spaces)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:106
+msgid ""
+"The text after <code>+</code> becomes the label for the follow-up input field"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:107
+msgid ""
+"Works with <code>mc_single</code>, <code>mc_multi</code>, <code>dropdown</"
+"code>, <code>orderable</code>, and <code>yesno</code>"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:108
+msgid ""
+"For <code>yesno</code>, provide exactly 2 options (Yes/No) with optional "
+"follow-ups"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:109
+msgid "Not all options need follow-ups—only add them where needed"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:114
+msgid "Optional: Required questions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:115
+msgid "Mark a question as required by adding an asterisk <code class=\\"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:123
+msgid "Required questions must be answered before the form can be submitted"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:124
+msgid "The asterisk <code class=\\"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:125
+msgid "Place the asterisk immediately after the question title text"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:126
+msgid "Works with all question types"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:131
+msgid "Optional: Collections with REPEAT"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:132
+msgid ""
+"To mark a group as repeatable, add a line with <strong>REPEAT</strong> (or "
+"<strong>REPEAT-5</strong> to cap it) immediately above the group heading."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:133
+msgid ""
+"To define a child collection nested under a repeatable parent, indent with "
+"<code>&gt;</code> and add <strong>REPEAT</strong> above the child group:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:142
+msgid ""
+"<strong>REPEAT</strong> = unlimited repeats. <strong>REPEAT-1</strong> means "
+"one allowed."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:143
+msgid ""
+"Use <code>&gt;</code> before REPEAT and the group heading to indicate one "
+"level of nesting."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:144
+msgid "Nesting is limited to one level (Parent → Child) by design."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:145
+msgid "Groups without REPEAT are normal, non-collection groups."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:149
+msgid "Optional: Questions with conditional branching"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:150
+msgid ""
+"Assign stable IDs by placing them in curly braces at the end of group or "
+"question headings. Then add branching rules below the question's "
+"<code>(type)</code> line using <code>? when &lt;operator&gt; &lt;value&gt; "
+"-&gt; {target-id}</code>."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:165
+msgid ""
+"Branching rules must start with <code>? when</code> and reference a question "
+"or group ID in curly braces."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:166
+msgid ""
+"Operators mirror the survey builder: <code>equals</code>, <code>not_equals</"
+"code>, <code>contains</code>, <code>greater_than</code>, and more."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:167
+msgid ""
+"IDs are normalised to lowercase slugs; keep them unique within your document."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:168
+msgid ""
+"Point to a group ID to jump to that group, or a question ID to jump directly "
+"to that question."
+msgstr ""
+
 #: census_app/surveys/templates/surveys/create.html:3
 msgid "Create Survey"
 msgstr ""
@@ -254,11 +565,6 @@ msgstr ""
 msgid "Description"
 msgstr ""
 
-#: census_app/surveys/templates/surveys/create.html:17
-#: census_app/surveys/templates/surveys/list.html:13
-msgid "Create survey"
-msgstr ""
-
 #: census_app/surveys/templates/surveys/dashboard.html:22
 #: census_app/surveys/templates/surveys/list.html:36
 msgid "Dashboard"
@@ -271,10 +577,6 @@ msgstr ""
 #: census_app/surveys/templates/surveys/dashboard.html:31
 #: census_app/templates/base.html:62 census_app/templates/base.html:101
 msgid "Surveys"
-msgstr ""
-
-#: census_app/surveys/templates/surveys/dashboard.html:32
-msgid "Survey Dashboard"
 msgstr ""
 
 #: census_app/surveys/templates/surveys/dashboard.html:36
@@ -297,10 +599,6 @@ msgstr ""
 
 #: census_app/surveys/templates/surveys/dashboard.html:42
 msgid "Preview (read-only)"
-msgstr ""
-
-#: census_app/surveys/templates/surveys/dashboard.html:43
-msgid "Manage groups"
 msgstr ""
 
 #: census_app/surveys/templates/surveys/dashboard.html:47
@@ -495,11 +793,6 @@ msgid ""
 "<strong>%(survey.name)s</strong>"
 msgstr ""
 
-#: census_app/surveys/templates/surveys/delete_confirm.html:74
-#: census_app/surveys/templates/surveys/groups.html:167
-msgid "Cancel"
-msgstr ""
-
 #: census_app/surveys/templates/surveys/delete_confirm.html:80
 msgid "Delete Survey Permanently"
 msgstr ""
@@ -525,9 +818,26 @@ msgstr ""
 msgid "Submit"
 msgstr ""
 
-#: census_app/surveys/templates/surveys/groups.html:22
-#: census_app/surveys/templates/surveys/list.html:37
-msgid "Groups"
+#: census_app/surveys/templates/surveys/group_builder.html:4
+#: census_app/surveys/templates/surveys/group_builder.html:10
+#: census_app/surveys/templates/surveys/group_builder.html:14
+msgid "Manage Questions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/group_builder.html:9
+msgid "Question Groups"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/group_builder.html:16
+msgid "Question Group"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/group_builder.html:37
+msgid "Questions in this group"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/group_builder.html:44
+msgid "No questions in this group yet."
 msgstr ""
 
 #: census_app/surveys/templates/surveys/groups.html:28
@@ -662,6 +972,87 @@ msgstr ""
 msgid "No surveys yet."
 msgstr ""
 
+#: census_app/surveys/templates/surveys/org_users.html:6
+msgid "Organisation users"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:9
+#: census_app/surveys/templates/surveys/survey_users.html:9
+msgid "User"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:9
+#: census_app/surveys/templates/surveys/org_users.html:40
+#: census_app/surveys/templates/surveys/survey_users.html:9
+#: census_app/surveys/templates/surveys/survey_users.html:43
+#: census_app/surveys/templates/surveys/user_management_hub.html:28
+#: census_app/surveys/templates/surveys/user_management_hub.html:70
+msgid "Role"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:9
+#: census_app/surveys/templates/surveys/survey_users.html:9
+msgid "Actions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:20
+#: census_app/surveys/templates/surveys/survey_users.html:21
+msgid "Remove"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:25
+#: census_app/surveys/templates/surveys/survey_users.html:27
+msgid "No users."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:32
+#: census_app/surveys/templates/surveys/survey_users.html:35
+msgid "Add or update user"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:37
+#: census_app/surveys/templates/surveys/survey_users.html:40
+msgid "Email (preferred)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:38
+#: census_app/surveys/templates/surveys/survey_users.html:41
+msgid "Or specify User ID if email not found:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:39
+#: census_app/surveys/templates/surveys/survey_users.html:42
+msgid "User ID"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:42
+#: census_app/surveys/templates/surveys/user_management_hub.html:32
+msgid "Admin"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:43
+#: census_app/surveys/templates/surveys/survey_users.html:45
+#: census_app/surveys/templates/surveys/user_management_hub.html:31
+#: census_app/surveys/templates/surveys/user_management_hub.html:73
+msgid "Creator"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:44
+#: census_app/surveys/templates/surveys/survey_users.html:46
+#: census_app/surveys/templates/surveys/user_management_hub.html:30
+#: census_app/surveys/templates/surveys/user_management_hub.html:72
+msgid "Viewer"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:47
+#: census_app/surveys/templates/surveys/survey_users.html:49
+msgid "Save"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/survey_users.html:6
+msgid "Survey users"
+msgstr ""
+
 #: census_app/surveys/templates/surveys/thank_you.html:3
 #: census_app/surveys/templates/surveys/thank_you.html:8
 msgid "Thank you"
@@ -728,6 +1119,88 @@ msgstr ""
 msgid "No tokens yet."
 msgstr ""
 
+#: census_app/surveys/templates/surveys/unlock.html:3
+msgid "Unlock Survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:7
+#: census_app/surveys/templates/surveys/unlock.html:10
+#: census_app/surveys/templates/surveys/unlock.html:16
+msgid "Unlock"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:11
+msgid ""
+"Enter the one-time survey key to decrypt sensitive fields for this session."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:15
+msgid "Survey key"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:3
+#: census_app/surveys/templates/surveys/user_management_hub.html:7
+#: census_app/templates/base.html:64 census_app/templates/base.html:103
+msgid "User management"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:11
+msgid "You don't have an organisation to manage yet."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:17
+msgid "Organisation"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:24
+#: census_app/surveys/templates/surveys/user_management_hub.html:66
+msgid "User email"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:35
+msgid "Add user to org"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:40
+#, python-format
+msgid "All users (%(counter)s)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:45
+msgid "No users yet"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:55
+msgid "Users by survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:62
+msgid "Survey slug"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:76
+msgid "Add user to survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:85
+#, python-format
+msgid "%(counter)s member"
+msgid_plural "%(counter)s members"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:91
+msgid "No members"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:96
+msgid "No surveys yet"
+msgstr ""
+
 #: census_app/templates/admin/login.html:4
 #: census_app/templates/admin/login.html:42
 msgid "Log in"
@@ -758,10 +1231,6 @@ msgstr ""
 
 #: census_app/templates/admin/login.html:38
 msgid "Forgotten your password or username?"
-msgstr ""
-
-#: census_app/templates/base.html:64 census_app/templates/base.html:103
-msgid "User management"
 msgstr ""
 
 #: census_app/templates/base.html:66 census_app/templates/base.html:68
