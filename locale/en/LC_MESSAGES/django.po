@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-13 20:09+0000\n"
+"POT-Creation-Date: 2025-10-13 20:14+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -442,7 +442,65 @@ msgid ""
 msgstr ""
 
 #: census_app/surveys/templates/surveys/dashboard.html:207
+#: census_app/surveys/templates/surveys/delete_confirm.html:13
 msgid "Delete Survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:23
+msgid "Warning: This action cannot be undone!"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:24
+msgid "You are about to permanently delete the survey:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:31
+msgid "Deleting this survey will permanently remove:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:34
+msgid "All survey data and responses"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:35
+msgid "All associated groups and questions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:36
+msgid "All collection and publication records"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:37
+msgid "All access permissions and tokens"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:47
+msgid ""
+"To confirm deletion, please type the survey name exactly as shown above:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:53
+msgid "Type survey name here"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:63
+msgid "You must type the survey name to confirm deletion."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:65
+#, python-format
+msgid ""
+"The name you entered does not match. Please type exactly: "
+"<strong>%(survey.name)s</strong>"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:74
+#: census_app/surveys/templates/surveys/groups.html:167
+msgid "Cancel"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:80
+msgid "Delete Survey Permanently"
 msgstr ""
 
 #: census_app/surveys/templates/surveys/detail.html:114
@@ -495,12 +553,35 @@ msgstr ""
 msgid "Selected for repeat"
 msgstr ""
 
+#: census_app/surveys/templates/surveys/groups.html:70
+msgid "Repeats"
+msgstr ""
+
 #: census_app/surveys/templates/surveys/groups.html:74
 msgid "Remove this group from its repeat?"
 msgstr ""
 
 #: census_app/surveys/templates/surveys/groups.html:76
 msgid "Remove repeat"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:82
+#, python-format
+msgid "%(counter)s question"
+msgid_plural "%(counter)s questions"
+msgstr[0] ""
+msgstr[1] ""
+
+#: census_app/surveys/templates/surveys/groups.html:85
+msgid "Delete this group?"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:87
+msgid "Delete"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:95
+msgid "No groups yet. Create one to get started."
 msgstr ""
 
 #: census_app/surveys/templates/surveys/groups.html:102
@@ -559,10 +640,6 @@ msgstr ""
 msgid "Nesting is limited to one level."
 msgstr ""
 
-#: census_app/surveys/templates/surveys/groups.html:167
-msgid "Cancel"
-msgstr ""
-
 #: census_app/surveys/templates/surveys/groups.html:168
 msgid "Create"
 msgstr ""
@@ -582,6 +659,19 @@ msgstr ""
 
 #: census_app/surveys/templates/surveys/list.html:47
 msgid "No surveys yet."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/thank_you.html:3
+#: census_app/surveys/templates/surveys/thank_you.html:8
+msgid "Thank you"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/thank_you.html:9
+msgid "Your response has been recorded."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/thank_you.html:11
+msgid "Back to survey"
 msgstr ""
 
 #: census_app/surveys/templates/surveys/tokens.html:3
