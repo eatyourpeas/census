@@ -128,10 +128,17 @@ LANGUAGE_CODE = "en-gb"
 LANGUAGES = [
     ("en", "English"),
     ("en-gb", "English (UK)"),
-    # Add additional languages as needed:
-    # ("fr", "Français"),
-    # ("es", "Español"),
-    # ("de", "Deutsch"),
+    ("cy", "Cymraeg (Welsh)"),
+    ("fr", "Français (French)"),
+    ("es", "Español (Spanish)"),
+    ("de", "Deutsch (German)"),
+    ("it", "Italiano (Italian)"),
+    ("pt", "Português (Portuguese)"),
+    ("pl", "Polski (Polish)"),
+    ("ar", "العربية (Arabic)"),
+    ("zh-hans", "简体中文 (Simplified Chinese)"),
+    ("hi", "हिन्दी (Hindi)"),
+    ("ur", "اردو (Urdu)"),
 ]
 
 # Directory for translation files
