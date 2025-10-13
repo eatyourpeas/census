@@ -63,57 +63,63 @@ msgstr "S'inscrire"
 #: census_app/core/templates/core/home.html:92
 #: census_app/templates/base.html:193
 msgid "Build"
-msgstr ""
+msgstr "Créer"
 
 #: census_app/core/templates/core/home.html:94
 msgid ""
 "Drag-and-drop groups and questions, apply DaisyUI themes per survey, and "
 "control access with roles."
 msgstr ""
+"Glissez-déposez des groupes et des questions, appliquez des thèmes DaisyUI par enquête, "
+"et contrôlez l'accès avec des rôles."
 
 #: census_app/core/templates/core/home.html:97
 msgid "Create a survey"
-msgstr ""
+msgstr "Créer une enquête"
 
 #: census_app/core/templates/core/home.html:99
 msgid "Login to start"
-msgstr ""
+msgstr "Connectez-vous pour commencer"
 
 #: census_app/core/templates/core/home.html:109
 msgid "Distribute"
-msgstr ""
+msgstr "Distribuer"
 
 #: census_app/core/templates/core/home.html:111
 msgid ""
 "Invite your team, scope visibility by organisation and survey membership, "
 "and manage participation securely."
 msgstr ""
+"Invitez votre équipe, définissez la visibilité par organisation et appartenance à l'enquête, "
+"et gérez la participation en toute sécurité."
 
 #: census_app/core/templates/core/home.html:114
 msgid "Manage surveys"
-msgstr ""
+msgstr "Gérer les enquêtes"
 
 #: census_app/core/templates/core/home.html:116
 msgid "Explore docs"
-msgstr ""
+msgstr "Explorer la documentation"
 
 #: census_app/core/templates/core/home.html:126
 msgid "Analyze"
-msgstr ""
+msgstr "Analyser"
 
 #: census_app/core/templates/core/home.html:128
 msgid ""
 "Monitor dashboards, export CSV, and audit changes. Everything runs on a "
 "secure SSR stack."
 msgstr ""
+"Surveillez les tableaux de bord, exportez en CSV et auditez les modifications. Tout fonctionne "
+"sur une pile SSR sécurisée."
 
 #: census_app/core/templates/core/home.html:131
 msgid "View dashboards"
-msgstr ""
+msgstr "Voir les tableaux de bord"
 
 #: census_app/core/templates/core/home.html:133
 msgid "See capabilities"
-msgstr ""
+msgstr "Voir les fonctionnalités"
 
 #: census_app/core/templates/core/profile.html:3
 #: census_app/templates/base.html:127
@@ -140,74 +146,74 @@ msgstr "Vos badges"
 
 #: census_app/core/templates/core/profile.html:38
 msgid "You have full administrative access to the platform"
-msgstr ""
+msgstr "Vous avez un accès administratif complet à la plateforme"
 
 #: census_app/core/templates/core/profile.html:48
 msgid "You have staff-level access to the platform"
-msgstr ""
+msgstr "Vous avez un accès au niveau du personnel à la plateforme"
 
 #: census_app/core/templates/core/profile.html:58
 #, python-format
 msgid "You own %(orgs)s organization"
 msgid_plural "You own %(orgs)s organizations"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Vous possédez %(orgs)s organisation"
+msgstr[1] "Vous possédez %(orgs)s organisations"
 
 #: census_app/core/templates/core/profile.html:68
 #, python-format
 msgid "You are an administrator in %(orgs)s organization"
 msgid_plural "You are an administrator in %(orgs)s organizations"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Vous êtes administrateur dans %(orgs)s organisation"
+msgstr[1] "Vous êtes administrateur dans %(orgs)s organisations"
 
 #: census_app/core/templates/core/profile.html:78
 #, python-format
 msgid "You are a member of %(orgs)s organization"
 msgid_plural "You are a member of %(orgs)s organizations"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Vous êtes membre de %(orgs)s organisation"
+msgstr[1] "Vous êtes membre de %(orgs)s organisations"
 
 #: census_app/core/templates/core/profile.html:88
 #, python-format
 msgid "You own %(surveys)s survey"
 msgid_plural "You own %(surveys)s surveys"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Vous possédez %(surveys)s enquête"
+msgstr[1] "Vous possédez %(surveys)s enquêtes"
 
 #: census_app/core/templates/core/profile.html:98
 #, python-format
 msgid "You are a creator on %(surveys)s survey"
 msgid_plural "You are a creator on %(surveys)s surveys"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Vous êtes créateur sur %(surveys)s enquête"
+msgstr[1] "Vous êtes créateur sur %(surveys)s enquêtes"
 
 #: census_app/core/templates/core/profile.html:108
 #, python-format
 msgid "You can view %(surveys)s survey"
 msgid_plural "You can view %(surveys)s surveys"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Vous pouvez consulter %(surveys)s enquête"
+msgstr[1] "Vous pouvez consulter %(surveys)s enquêtes"
 
 #: census_app/core/templates/core/profile.html:118
 #, python-format
 msgid "You have authored %(groups)s question group"
 msgid_plural "You have authored %(groups)s question groups"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Vous avez créé %(groups)s groupe de questions"
+msgstr[1] "Vous avez créé %(groups)s groupes de questions"
 
 #: census_app/core/templates/core/profile.html:128
 #, python-format
 msgid "You have submitted %(responses)s response to surveys"
 msgid_plural "You have submitted %(responses)s responses to surveys"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Vous avez soumis %(responses)s réponse aux enquêtes"
+msgstr[1] "Vous avez soumis %(responses)s réponses aux enquêtes"
 
 #: census_app/core/templates/core/profile.html:138
 #, python-format
 msgid "You have created %(tokens)s invitation token"
 msgid_plural "You have created %(tokens)s invitation tokens"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Vous avez créé %(tokens)s jeton d'invitation"
+msgstr[1] "Vous avez créé %(tokens)s jetons d'invitation"
 
 #: census_app/core/templates/core/profile.html:154
 msgid "Language"
@@ -235,60 +241,62 @@ msgstr ""
 
 #: census_app/core/templates/core/profile.html:176
 msgid "Theme"
-msgstr ""
+msgstr "Thème"
 
 #: census_app/core/templates/core/profile.html:179
 #: census_app/core/templates/core/profile.html:183
 msgid "System"
-msgstr ""
+msgstr "Système"
 
 #: census_app/core/templates/core/profile.html:184
 msgid "Light"
-msgstr ""
+msgstr "Clair"
 
 #: census_app/core/templates/core/profile.html:185
 msgid "Dark"
-msgstr ""
+msgstr "Sombre"
 
 #: census_app/core/templates/core/profile.html:189
 msgid "Enable JavaScript to change theme."
-msgstr ""
+msgstr "Activez JavaScript pour changer de thème."
 
 #: census_app/core/views.py:61
 msgid "Language preference updated successfully."
-msgstr ""
+msgstr "Préférence de langue mise à jour avec succès."
 
 #: census_app/core/views.py:64
 msgid "There was an error updating your language preference."
-msgstr ""
+msgstr "Une erreur s'est produite lors de la mise à jour de votre préférence de langue."
 
 #: census_app/core/views.py:74
 msgid "Email preferences updated successfully."
-msgstr ""
+msgstr "Préférences d'e-mail mises à jour avec succès."
 
 #: census_app/core/views.py:77
 msgid "There was an error updating your email preferences."
-msgstr ""
+msgstr "Une erreur s'est produite lors de la mise à jour de vos préférences d'e-mail."
 
 #: census_app/core/views.py:95
 msgid ""
 "Organisation created. You are now an organisation admin and can host surveys "
 "and build a team."
 msgstr ""
+"Organisation créée. Vous êtes maintenant administrateur de l'organisation et pouvez héberger des enquêtes "
+"et constituer une équipe."
 
 #: census_app/core/views.py:119
 msgid "Project theme saved."
-msgstr ""
+msgstr "Thème du projet enregistré."
 
 #: census_app/core/views.py:214
 msgid "Organisation created. You are an organisation admin."
-msgstr ""
+msgstr "Organisation créée. Vous êtes administrateur de l'organisation."
 
 #: census_app/surveys/templates/surveys/builder.html:23
 #: census_app/surveys/templates/surveys/builder.html:28
 #: census_app/surveys/templates/surveys/builder.html:30
 msgid "Question Group Builder"
-msgstr ""
+msgstr "Constructeur de groupe de questions"
 
 #: census_app/surveys/templates/surveys/builder.html:27
 #: census_app/surveys/templates/surveys/bulk_upload.html:7
@@ -296,54 +304,54 @@ msgstr ""
 #: census_app/surveys/templates/surveys/group_builder.html:8
 #: census_app/surveys/templates/surveys/unlock.html:6
 msgid "Survey Dashboard"
-msgstr ""
+msgstr "Tableau de bord de l'enquête"
 
 #: census_app/surveys/templates/surveys/builder.html:41
 msgid "All Questions"
-msgstr ""
+msgstr "Toutes les questions"
 
 #: census_app/surveys/templates/surveys/builder.html:51
 #: census_app/surveys/templates/surveys/groups.html:22
 #: census_app/surveys/templates/surveys/list.html:37
 msgid "Groups"
-msgstr ""
+msgstr "Groupes"
 
 #: census_app/surveys/templates/surveys/builder.html:52
 msgid "Create and manage groups, then add questions inside each group."
-msgstr ""
+msgstr "Créez et gérez des groupes, puis ajoutez des questions dans chaque groupe."
 
 #: census_app/surveys/templates/surveys/builder.html:53
 #: census_app/surveys/templates/surveys/dashboard.html:43
 msgid "Manage groups"
-msgstr ""
+msgstr "Gérer les groupes"
 
 #: census_app/surveys/templates/surveys/builder.html:55
 msgid "Open a group"
-msgstr ""
+msgstr "Ouvrir un groupe"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:4
 #: census_app/surveys/templates/surveys/bulk_upload.html:8
 msgid "Import Questions"
-msgstr ""
+msgstr "Importer des questions"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:12
 msgid "Import questions"
-msgstr ""
+msgstr "Importer des questions"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:24
 msgid "Markdown"
-msgstr ""
+msgstr "Markdown"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:27
 #: census_app/surveys/templates/surveys/bulk_upload.html:38
 #: census_app/surveys/templates/surveys/create.html:17
 #: census_app/surveys/templates/surveys/list.html:13
 msgid "Create survey"
-msgstr ""
+msgstr "Créer une enquête"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:32
 msgid "Overwrite survey questions?"
-msgstr ""
+msgstr "Remplacer les questions de l'enquête ?"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:34
 msgid ""
@@ -352,119 +360,132 @@ msgid ""
 "if you are ready to replace the current builder content with the uploaded "
 "version."
 msgstr ""
+"L'importation depuis Markdown supprimera tous les groupes de questions, questions, "
+"règles de branchement et collections existants de cette enquête. Continuez uniquement "
+"si vous êtes prêt à remplacer le contenu actuel du constructeur par la version téléchargée."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:37
 #: census_app/surveys/templates/surveys/delete_confirm.html:74
 #: census_app/surveys/templates/surveys/groups.html:167
 msgid "Cancel"
-msgstr ""
+msgstr "Annuler"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:46
 msgid "Live structure preview"
-msgstr ""
+msgstr "Aperçu de la structure en direct"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:47
 msgid ""
 "Groups and questions are assigned unique IDs as you edit. Use these IDs to "
 "reason about branching later."
 msgstr ""
+"Les groupes et les questions se voient attribuer des identifiants uniques lors de la modification. "
+"Utilisez ces identifiants pour définir les branchements ultérieurement."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:52
 msgid "Start typing (or use the sample markdown) to see the survey structure."
-msgstr ""
+msgstr "Commencez à saisir (ou utilisez l'exemple markdown) pour voir la structure de l'enquête."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:61
 msgid "Format reference"
-msgstr ""
+msgstr "Référence du format"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:62
 msgid "Use markdown with the following structure:"
-msgstr ""
+msgstr "Utilisez markdown avec la structure suivante :"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:65
 msgid ""
 "<code># Group Title</code>, followed by a line for the group description"
 msgstr ""
+"<code># Titre du groupe</code>, suivi d'une ligne pour la description du groupe"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:66
 msgid ""
 "<code>## Question Title</code>, followed by a line for the question "
 "description"
 msgstr ""
+"<code>## Titre de la question</code>, suivi d'une ligne pour la description de la question"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:67
 msgid "Add <code class=\\"
-msgstr ""
+msgstr "Ajoutez <code class=\\"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:68
 msgid "<code>(type)</code> on the next line in parentheses"
-msgstr ""
+msgstr "<code>(type)</code> sur la ligne suivante entre parenthèses"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:69
 msgid ""
 "If the type requires options, list each on a line starting with <code>-</"
 "code>"
 msgstr ""
+"Si le type nécessite des options, listez chacune sur une ligne commençant par <code>-</"
+"code>"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:70
 msgid ""
 "For options that should have follow-up text input, add an indented line "
 "starting with <code>+</code>"
 msgstr ""
+"Pour les options qui nécessitent une saisie de texte supplémentaire, ajoutez une ligne indentée "
+"commençant par <code>+</code>"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:71
 msgid ""
 "For Likert number scales, add key-value lines: <code>min:</code>, <code>max:"
 "</code>, optional <code>left:</code>, <code>right:</code>"
 msgstr ""
+"Pour les échelles numériques de Likert, ajoutez des lignes clé-valeur : <code>min:</code>, <code>max:"
+"</code>, optionnel <code>left:</code>, <code>right:</code>"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:75
 msgid "Supported types"
-msgstr ""
+msgstr "Types pris en charge"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:77
 msgid "free text"
-msgstr ""
+msgstr "texte libre"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:78
 msgid "numeric input"
-msgstr ""
+msgstr "saisie numérique"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:79
 msgid "multiple choice (single)"
-msgstr ""
+msgstr "choix multiple (simple)"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:80
 msgid "multiple choice (multi)"
-msgstr ""
+msgstr "choix multiple (multiple)"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:81
 msgid "select menu"
-msgstr ""
+msgstr "menu déroulant"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:82
 msgid "orderable list"
-msgstr ""
+msgstr "liste ordonnée"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:83
 msgid "yes/no"
-msgstr ""
+msgstr "oui/non"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:84
 msgid "image choice"
-msgstr ""
+msgstr "choix d'image"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:85
 msgid "categories listed with <code>-</code>"
-msgstr ""
+msgstr "catégories listées avec <code>-</code>"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:86
 msgid "provide <code>min</code>/<code>max</code> and optional labels"
-msgstr ""
+msgstr "fournir <code>min</code>/<code>max</code> et étiquettes optionnelles"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:91
 msgid "Optional: Follow-up text inputs"
-msgstr ""
+msgstr "Optionnel : Saisies de texte supplémentaires"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:92
 msgid ""
@@ -472,97 +493,115 @@ msgid ""
 "with <code>+</code> immediately after the option. This creates a text field "
 "that appears when the participant selects that option."
 msgstr ""
+"Ajoutez une saisie de texte supplémentaire à n'importe quelle option en ajoutant une ligne indentée "
+"commençant par <code>+</code> immédiatement après l'option. Cela crée un champ de texte "
+"qui apparaît lorsque le participant sélectionne cette option."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:105
 msgid ""
 "Follow-up lines must start with <code>+</code> and be indented (at least 2 "
 "spaces)"
 msgstr ""
+"Les lignes de suivi doivent commencer par <code>+</code> et être indentées (au moins 2 "
+"espaces)"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:106
 msgid ""
 "The text after <code>+</code> becomes the label for the follow-up input field"
 msgstr ""
+"Le texte après <code>+</code> devient l'étiquette du champ de saisie supplémentaire"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:107
 msgid ""
 "Works with <code>mc_single</code>, <code>mc_multi</code>, <code>dropdown</"
 "code>, <code>orderable</code>, and <code>yesno</code>"
 msgstr ""
+"Fonctionne avec <code>mc_single</code>, <code>mc_multi</code>, <code>dropdown</"
+"code>, <code>orderable</code> et <code>yesno</code>"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:108
 msgid ""
 "For <code>yesno</code>, provide exactly 2 options (Yes/No) with optional "
 "follow-ups"
 msgstr ""
+"Pour <code>yesno</code>, fournissez exactement 2 options (Oui/Non) avec des "
+"suivis optionnels"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:109
 msgid "Not all options need follow-ups—only add them where needed"
-msgstr ""
+msgstr "Toutes les options n'ont pas besoin de suivis—ajoutez-les uniquement là où c'est nécessaire"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:114
 msgid "Optional: Required questions"
-msgstr ""
+msgstr "Optionnel : Questions obligatoires"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:115
 msgid "Mark a question as required by adding an asterisk <code class=\\"
-msgstr ""
+msgstr "Marquez une question comme obligatoire en ajoutant un astérisque <code class=\\"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:123
 msgid "Required questions must be answered before the form can be submitted"
-msgstr ""
+msgstr "Les questions obligatoires doivent être répondues avant que le formulaire puisse être soumis"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:124
 msgid "The asterisk <code class=\\"
-msgstr ""
+msgstr "L'astérisque <code class=\\"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:125
 msgid "Place the asterisk immediately after the question title text"
-msgstr ""
+msgstr "Placez l'astérisque immédiatement après le texte du titre de la question"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:126
 msgid "Works with all question types"
-msgstr ""
+msgstr "Fonctionne avec tous les types de questions"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:131
 msgid "Optional: Collections with REPEAT"
-msgstr ""
+msgstr "Optionnel : Collections avec REPEAT"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:132
 msgid ""
 "To mark a group as repeatable, add a line with <strong>REPEAT</strong> (or "
 "<strong>REPEAT-5</strong> to cap it) immediately above the group heading."
 msgstr ""
+"Pour marquer un groupe comme répétable, ajoutez une ligne avec <strong>REPEAT</strong> (ou "
+"<strong>REPEAT-5</strong> pour le limiter) immédiatement au-dessus du titre du groupe."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:133
 msgid ""
 "To define a child collection nested under a repeatable parent, indent with "
 "<code>&gt;</code> and add <strong>REPEAT</strong> above the child group:"
 msgstr ""
+"Pour définir une collection enfant imbriquée sous un parent répétable, indentez avec "
+"<code>&gt;</code> et ajoutez <strong>REPEAT</strong> au-dessus du groupe enfant :"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:142
 msgid ""
 "<strong>REPEAT</strong> = unlimited repeats. <strong>REPEAT-1</strong> means "
 "one allowed."
 msgstr ""
+"<strong>REPEAT</strong> = répétitions illimitées. <strong>REPEAT-1</strong> signifie "
+"une seule autorisée."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:143
 msgid ""
 "Use <code>&gt;</code> before REPEAT and the group heading to indicate one "
 "level of nesting."
 msgstr ""
+"Utilisez <code>&gt;</code> avant REPEAT et le titre du groupe pour indiquer un "
+"niveau d'imbrication."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:144
 msgid "Nesting is limited to one level (Parent → Child) by design."
-msgstr ""
+msgstr "L'imbrication est limitée à un niveau (Parent → Enfant) par conception."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:145
 msgid "Groups without REPEAT are normal, non-collection groups."
-msgstr ""
+msgstr "Les groupes sans REPEAT sont des groupes normaux, sans collection."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:149
 msgid "Optional: Questions with conditional branching"
-msgstr ""
+msgstr "Optionnel : Questions avec branchement conditionnel"
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:150
 msgid ""
@@ -571,62 +610,73 @@ msgid ""
 "<code>(type)</code> line using <code>? when &lt;operator&gt; &lt;value&gt; "
 "-&gt; {target-id}</code>."
 msgstr ""
+"Attribuez des identifiants stables en les plaçant entre accolades à la fin des titres de groupe ou "
+"de question. Ajoutez ensuite des règles de branchement sous la ligne "
+"<code>(type)</code> de la question en utilisant <code>? when &lt;opérateur&gt; &lt;valeur&gt; "
+"-&gt; {id-cible}</code>."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:165
 msgid ""
 "Branching rules must start with <code>? when</code> and reference a question "
 "or group ID in curly braces."
 msgstr ""
+"Les règles de branchement doivent commencer par <code>? when</code> et référencer un identifiant de question "
+"ou de groupe entre accolades."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:166
 msgid ""
 "Operators mirror the survey builder: <code>equals</code>, <code>not_equals</"
 "code>, <code>contains</code>, <code>greater_than</code>, and more."
 msgstr ""
+"Les opérateurs reflètent le constructeur d'enquête : <code>equals</code>, <code>not_equals</"
+"code>, <code>contains</code>, <code>greater_than</code>, et plus."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:167
 msgid ""
 "IDs are normalised to lowercase slugs; keep them unique within your document."
 msgstr ""
+"Les identifiants sont normalisés en slugs minuscules ; gardez-les uniques dans votre document."
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:168
 msgid ""
 "Point to a group ID to jump to that group, or a question ID to jump directly "
 "to that question."
 msgstr ""
+"Pointez vers un identifiant de groupe pour accéder à ce groupe, ou un identifiant de question pour accéder directement "
+"à cette question."
 
 #: census_app/surveys/templates/surveys/create.html:3
 msgid "Create Survey"
-msgstr ""
+msgstr "Créer une enquête"
 
 #: census_app/surveys/templates/surveys/create.html:8
 msgid "Create a new survey"
-msgstr ""
+msgstr "Créer une nouvelle enquête"
 
 #: census_app/surveys/templates/surveys/create.html:14
 msgid "Name"
-msgstr ""
+msgstr "Nom"
 
 #: census_app/surveys/templates/surveys/create.html:15
 msgid "URL Name or 'Slug' (optional)"
-msgstr ""
+msgstr "Nom d'URL ou 'Slug' (optionnel)"
 
 #: census_app/surveys/templates/surveys/create.html:15
 msgid "If left blank, a slug will be generated from the name."
-msgstr ""
+msgstr "Si laissé vide, un slug sera généré à partir du nom."
 
 #: census_app/surveys/templates/surveys/create.html:16
 msgid "Description"
-msgstr ""
+msgstr "Description"
 
 #: census_app/surveys/templates/surveys/dashboard.html:22
 #: census_app/surveys/templates/surveys/list.html:36
 msgid "Dashboard"
-msgstr ""
+msgstr "Tableau de bord"
 
 #: census_app/surveys/templates/surveys/dashboard.html:28
 msgid "Keep track of survey status, number of responses and control styling."
-msgstr ""
+msgstr "Suivez le statut de l'enquête, le nombre de réponses et contrôlez le style."
 
 #: census_app/surveys/templates/surveys/dashboard.html:31
 #: census_app/templates/base.html:62 census_app/templates/base.html:101
@@ -636,45 +686,45 @@ msgstr "Enquêtes"
 #: census_app/surveys/templates/surveys/dashboard.html:36
 #: census_app/surveys/templates/surveys/dashboard.html:121
 msgid "Status"
-msgstr ""
+msgstr "Statut"
 
 #: census_app/surveys/templates/surveys/dashboard.html:37
 #: census_app/surveys/templates/surveys/dashboard.html:133
 msgid "Visibility"
-msgstr ""
+msgstr "Visibilité"
 
 #: census_app/surveys/templates/surveys/dashboard.html:38
 msgid "Window"
-msgstr ""
+msgstr "Fenêtre"
 
 #: census_app/surveys/templates/surveys/dashboard.html:39
 msgid "Total responses"
-msgstr ""
+msgstr "Réponses totales"
 
 #: census_app/surveys/templates/surveys/dashboard.html:42
 msgid "Preview (read-only)"
-msgstr ""
+msgstr "Aperçu (lecture seule)"
 
 #: census_app/surveys/templates/surveys/dashboard.html:47
 msgid "Today"
-msgstr ""
+msgstr "Aujourd'hui"
 
 #: census_app/surveys/templates/surveys/dashboard.html:49
 #: census_app/surveys/templates/surveys/dashboard.html:54
 msgid "Submissions"
-msgstr ""
+msgstr "Soumissions"
 
 #: census_app/surveys/templates/surveys/dashboard.html:52
 msgid "Last 7 days"
-msgstr ""
+msgstr "Les 7 derniers jours"
 
 #: census_app/surveys/templates/surveys/dashboard.html:57
 msgid "Last 14 days"
-msgstr ""
+msgstr "Les 14 derniers jours"
 
 #: census_app/surveys/templates/surveys/dashboard.html:64
 msgid "No submissions yet"
-msgstr ""
+msgstr "Aucune soumission pour le moment"
 
 #: census_app/surveys/templates/surveys/dashboard.html:70
 msgid ""
@@ -683,24 +733,28 @@ msgid ""
 "<em>Visits</em>) directly on the Groups page, with optional one-level "
 "nesting."
 msgstr ""
+"<strong>Les groupes</strong> sont des ensembles réutilisables de questions. Vous pouvez marquer un ou "
+"plusieurs groupes comme entité répétable (par exemple, <em>Personnes</em> ou "
+"<em>Visites</em>) directement sur la page Groupes, avec une imbrication optionnelle d'un niveau."
 
 #: census_app/surveys/templates/surveys/dashboard.html:76
 msgid "Survey style"
-msgstr ""
+msgstr "Style de l'enquête"
 
 #: census_app/surveys/templates/surveys/dashboard.html:115
 msgid "Publish settings"
-msgstr ""
+msgstr "Paramètres de publication"
 
 #: census_app/surveys/templates/surveys/dashboard.html:116
 #: census_app/surveys/templates/surveys/tokens.html:8
 msgid "Learn more"
-msgstr ""
+msgstr "En savoir plus"
 
 #: census_app/surveys/templates/surveys/dashboard.html:122
 msgid ""
 "Draft: build only · Published: accept submissions · Closed: stop submissions"
 msgstr ""
+"Brouillon : construction uniquement · Publié : accepter les soumissions · Fermé : arrêter les soumissions"
 
 #: census_app/surveys/templates/surveys/dashboard.html:123
 #: census_app/surveys/templates/surveys/dashboard.html:135
@@ -717,7 +771,7 @@ msgstr ""
 
 #: census_app/surveys/templates/surveys/dashboard.html:129
 msgid "Closed"
-msgstr ""
+msgstr "Fermé"
 
 #: census_app/surveys/templates/surveys/dashboard.html:134
 msgid ""
@@ -727,35 +781,35 @@ msgstr ""
 
 #: census_app/surveys/templates/surveys/dashboard.html:139
 msgid "Authenticated"
-msgstr ""
+msgstr "Authentifié"
 
 #: census_app/surveys/templates/surveys/dashboard.html:140
 msgid "Public"
-msgstr ""
+msgstr "Public"
 
 #: census_app/surveys/templates/surveys/dashboard.html:141
 msgid "Unlisted"
-msgstr ""
+msgstr "Non répertorié"
 
 #: census_app/surveys/templates/surveys/dashboard.html:142
 msgid "Invite token"
-msgstr ""
+msgstr "Jeton d'invitation"
 
 #: census_app/surveys/templates/surveys/dashboard.html:146
 msgid "Max responses"
-msgstr ""
+msgstr "Réponses maximales"
 
 #: census_app/surveys/templates/surveys/dashboard.html:150
 msgid "Start at"
-msgstr ""
+msgstr "Début à"
 
 #: census_app/surveys/templates/surveys/dashboard.html:154
 msgid "End at"
-msgstr ""
+msgstr "Fin à"
 
 #: census_app/surveys/templates/surveys/dashboard.html:160
 msgid "Require CAPTCHA for anonymous submissions"
-msgstr ""
+msgstr "Exiger un CAPTCHA pour les soumissions anonymes"
 
 #: census_app/surveys/templates/surveys/dashboard.html:166
 msgid ""
@@ -766,27 +820,27 @@ msgstr ""
 
 #: census_app/surveys/templates/surveys/dashboard.html:170
 msgid "Save publish settings"
-msgstr ""
+msgstr "Enregistrer les paramètres de publication"
 
 #: census_app/surveys/templates/surveys/dashboard.html:172
 msgid "Unlisted link"
-msgstr ""
+msgstr "Lien non répertorié"
 
 #: census_app/surveys/templates/surveys/dashboard.html:175
 msgid "Public link"
-msgstr ""
+msgstr "Lien public"
 
 #: census_app/surveys/templates/surveys/dashboard.html:181
 msgid "Manage invite tokens"
-msgstr ""
+msgstr "Gérer les jetons d'invitation"
 
 #: census_app/surveys/templates/surveys/dashboard.html:191
 msgid "Danger Zone"
-msgstr ""
+msgstr "Zone dangereuse"
 
 #: census_app/surveys/templates/surveys/dashboard.html:199
 msgid "Delete this survey"
-msgstr ""
+msgstr "Supprimer cette enquête"
 
 #: census_app/surveys/templates/surveys/dashboard.html:200
 msgid ""
@@ -797,35 +851,35 @@ msgstr ""
 #: census_app/surveys/templates/surveys/dashboard.html:207
 #: census_app/surveys/templates/surveys/delete_confirm.html:13
 msgid "Delete Survey"
-msgstr ""
+msgstr "Supprimer l'enquête"
 
 #: census_app/surveys/templates/surveys/delete_confirm.html:23
 msgid "Warning: This action cannot be undone!"
-msgstr ""
+msgstr "Attention : Cette action ne peut pas être annulée !"
 
 #: census_app/surveys/templates/surveys/delete_confirm.html:24
 msgid "You are about to permanently delete the survey:"
-msgstr ""
+msgstr "Vous êtes sur le point de supprimer définitivement l'enquête :"
 
 #: census_app/surveys/templates/surveys/delete_confirm.html:31
 msgid "Deleting this survey will permanently remove:"
-msgstr ""
+msgstr "La suppression de cette enquête supprimera définitivement :"
 
 #: census_app/surveys/templates/surveys/delete_confirm.html:34
 msgid "All survey data and responses"
-msgstr ""
+msgstr "Toutes les données et réponses de l'enquête"
 
 #: census_app/surveys/templates/surveys/delete_confirm.html:35
 msgid "All associated groups and questions"
-msgstr ""
+msgstr "Tous les groupes et questions associés"
 
 #: census_app/surveys/templates/surveys/delete_confirm.html:36
 msgid "All collection and publication records"
-msgstr ""
+msgstr "Tous les enregistrements de collection et de publication"
 
 #: census_app/surveys/templates/surveys/delete_confirm.html:37
 msgid "All access permissions and tokens"
-msgstr ""
+msgstr "Toutes les permissions d'accès et jetons"
 
 #: census_app/surveys/templates/surveys/delete_confirm.html:47
 msgid ""
@@ -834,7 +888,7 @@ msgstr ""
 
 #: census_app/surveys/templates/surveys/delete_confirm.html:53
 msgid "Type survey name here"
-msgstr ""
+msgstr "Tapez le nom de l'enquête ici"
 
 #: census_app/surveys/templates/surveys/delete_confirm.html:63
 msgid "You must type the survey name to confirm deletion."
