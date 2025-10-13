@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-13 19:53+0000\n"
+"POT-Creation-Date: 2025-10-13 19:57+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -46,17 +46,20 @@ msgid "Read documentation"
 msgstr ""
 
 #: census_app/core/templates/core/home.html:74
+#: census_app/templates/base.html:69 census_app/templates/base.html:144
 #: census_app/templates/registration/login.html:3
 #: census_app/templates/registration/login.html:8
 msgid "Login"
 msgstr ""
 
 #: census_app/core/templates/core/home.html:75
+#: census_app/templates/base.html:70 census_app/templates/base.html:145
 #: census_app/templates/registration/signup.html:4
 msgid "Sign up"
 msgstr ""
 
 #: census_app/core/templates/core/home.html:92
+#: census_app/templates/base.html:193
 msgid "Build"
 msgstr ""
 
@@ -111,6 +114,7 @@ msgid "See capabilities"
 msgstr ""
 
 #: census_app/core/templates/core/profile.html:3
+#: census_app/templates/base.html:127
 msgid "Profile"
 msgstr ""
 
@@ -230,6 +234,7 @@ msgid "Dashboard"
 msgstr ""
 
 #: census_app/surveys/templates/surveys/dashboard.html:31
+#: census_app/templates/base.html:62 census_app/templates/base.html:101
 msgid "Surveys"
 msgstr ""
 
@@ -589,6 +594,51 @@ msgstr ""
 
 #: census_app/templates/admin/login.html:38
 msgid "Forgotten your password or username?"
+msgstr ""
+
+#: census_app/templates/base.html:64 census_app/templates/base.html:103
+msgid "User management"
+msgstr ""
+
+#: census_app/templates/base.html:66 census_app/templates/base.html:68
+#: census_app/templates/base.html:105 census_app/templates/base.html:107
+msgid "Documentation"
+msgstr ""
+
+#: census_app/templates/base.html:136
+msgid "Logout"
+msgstr ""
+
+#: census_app/templates/base.html:165
+msgid "Built by"
+msgstr ""
+
+#: census_app/templates/base.html:173
+msgid "GitHub"
+msgstr ""
+
+#: census_app/templates/base.html:176
+msgid "Issues"
+msgstr ""
+
+#: census_app/templates/base.html:178
+msgid "Releases"
+msgstr ""
+
+#: census_app/templates/base.html:180
+msgid "Contributing"
+msgstr ""
+
+#: census_app/templates/base.html:182
+msgid "Version"
+msgstr ""
+
+#: census_app/templates/base.html:185
+msgid "Branch"
+msgstr ""
+
+#: census_app/templates/base.html:189
+msgid "Commit"
 msgstr ""
 
 #: census_app/templates/registration/login.html:16
