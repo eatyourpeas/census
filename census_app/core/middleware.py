@@ -27,7 +27,6 @@ class UserLanguageMiddleware:
             try:
                 # Import here to avoid circular imports
                 from census_app.core.models import UserLanguagePreference
-                from django.conf import settings
 
                 preference = UserLanguagePreference.objects.filter(
                     user=request.user
@@ -35,16 +34,20 @@ class UserLanguageMiddleware:
                 if preference and preference.language:
                     # Activate the user's preferred language
                     language = preference.language
-                    print(f"DEBUG Middleware: User {request.user.username} has language preference: {language}")
+                    print(
+                        f"DEBUG Middleware: User {request.user.username} has language preference: {language}"
+                    )
                     # Normalize language code (en-gb -> en-gb)
                     translation.activate(language)
                     request.LANGUAGE_CODE = language
                     # Also set in session so it persists across requests
-                    if hasattr(request, 'session'):
+                    if hasattr(request, "session"):
                         session_lang_before = request.session.get(LANGUAGE_SESSION_KEY)
                         request.session[LANGUAGE_SESSION_KEY] = language
                         request.session.modified = True
-                        print(f"DEBUG Middleware: Session language was: {session_lang_before}, now: {language}")
+                        print(
+                            f"DEBUG Middleware: Session language was: {session_lang_before}, now: {language}"
+                        )
             except Exception:
                 # If anything goes wrong (e.g., table doesn't exist yet during migration),
                 # just continue without setting language preference

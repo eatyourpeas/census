@@ -11,9 +11,6 @@ from django.utils import translation
 from django.utils.translation import gettext as _
 import markdown as mdlib
 
-# Django's session key for storing language preference
-LANGUAGE_SESSION_KEY = "_language"
-
 from census_app.surveys.models import (
     Organization,
     OrganizationMembership,
@@ -42,6 +39,10 @@ except ImportError:
         return s
 
 
+# Django's session key for storing language preference
+LANGUAGE_SESSION_KEY = "_language"
+
+
 def home(request):
     return render(request, "core/home.html")
 
@@ -58,7 +59,9 @@ def profile(request):
     sb = None
     # Handle language preference form submission
     if request.method == "POST" and request.POST.get("action") == "update_language":
-        lang_pref, created = UserLanguagePreference.objects.get_or_create(user=request.user)
+        lang_pref, created = UserLanguagePreference.objects.get_or_create(
+            user=request.user
+        )
         form = UserLanguagePreferenceForm(request.POST, instance=lang_pref)
         if form.is_valid():
             saved_pref = form.save()
@@ -68,7 +71,9 @@ def profile(request):
             request.session[LANGUAGE_SESSION_KEY] = saved_pref.language
             request.session.modified = True
             print(f"DEBUG: Saved language: {saved_pref.language}")
-            print(f"DEBUG: Session key set to: {request.session.get(LANGUAGE_SESSION_KEY)}")
+            print(
+                f"DEBUG: Session key set to: {request.session.get(LANGUAGE_SESSION_KEY)}"
+            )
             print(f"DEBUG: request.LANGUAGE_CODE: {request.LANGUAGE_CODE}")
             messages.success(request, _("Language preference updated successfully."))
         else:
@@ -105,7 +110,9 @@ def profile(request):
             )
         messages.success(
             request,
-            _("Organisation created. You are now an organisation admin and can host surveys and build a team."),
+            _(
+                "Organisation created. You are now an organisation admin and can host surveys and build a team."
+            ),
         )
         return redirect("surveys:org_users", org_id=org.id)
     if request.method == "POST" and request.POST.get("action") == "update_branding":
@@ -454,7 +461,10 @@ def _infer_category(slug: str) -> str:
         return "testing"
 
     # Internationalization
-    if any(x in slug_lower for x in ["i18n", "internationalization", "translation", "locale"]):
+    if any(
+        x in slug_lower
+        for x in ["i18n", "internationalization", "translation", "locale"]
+    ):
         return "internationalization"
 
     # Advanced
