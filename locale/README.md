@@ -22,6 +22,34 @@ The application currently supports the following languages:
 
 ## Working with Translations
 
+### Import Translations from Markdown Files
+
+Census provides a convenient management command to import translations from structured markdown files:
+
+```bash
+# Preview changes (dry run)
+docker compose exec web python manage.py import_translations --dry-run
+
+# Import translations
+docker compose exec web python manage.py import_translations
+
+# Compile the updated translations
+docker compose exec web python manage.py compilemessages
+docker compose restart web
+```
+
+The markdown translation files are located in `docs/languages/`:
+- `COMPLETE_STRINGS_LIST.md` - Master English string list (numbered 1-101)
+- `arabic.md`, `chinese.md`, `french.md`, etc. - Translation files for each language
+
+The import command:
+- Matches translations by number (1-101)
+- Restores HTML tags and `\n` formatting from English template
+- Preserves `.po` file headers and metadata
+- Updates only the `msgstr` values, leaving `msgid` and comments intact
+
+See the "Importing Translations from Markdown Files" section in `docs/i18n.md` for detailed usage.
+
 ### Generate translation files for all languages
 
 ```bash
@@ -38,8 +66,9 @@ python manage.py compilemessages
 
 1. Add the language code to `LANGUAGES` in `settings.py`
 2. Run `makemessages -l <language_code>`
-3. Translate the strings in `locale/<language_code>/LC_MESSAGES/django.po`
-4. Run `compilemessages`
+3. Create a markdown file in `docs/languages/<language>.md` with translations
+4. Run `import_translations` to import from markdown
+5. Run `compilemessages`
 
 ## Translation Status
 

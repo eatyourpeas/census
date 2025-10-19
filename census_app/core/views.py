@@ -377,6 +377,29 @@ def _discover_doc_pages():
                 }
             )
 
+    # Auto-discover translation files in docs/languages/
+    languages_dir = DOCS_DIR / "languages"
+    if languages_dir.exists():
+        for md_file in sorted(languages_dir.glob("*.md")):
+            # Generate slug from filename with languages prefix
+            slug = f"languages-{md_file.stem}"
+
+            # Skip if already manually configured
+            if slug in pages:
+                continue
+
+            # Extract title from file (first H1) or use slug
+            title = _extract_title_from_file(md_file) or _doc_title(md_file.stem)
+
+            pages[slug] = md_file
+            categorized["internationalization"].append(
+                {
+                    "slug": slug,
+                    "title": title,
+                    "file": md_file,
+                }
+            )
+
     return pages, categorized
 
 

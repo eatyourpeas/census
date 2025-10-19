@@ -68,7 +68,7 @@ When patient data is collected in a survey response:
 # Sensitive fields (encrypted)
 demographics = {
     "first_name": "John",
-    "last_name": "Smith", 
+    "last_name": "Smith",
     "date_of_birth": "1980-01-01",
     "nhs_number": "1234567890",
     "address": "123 Main St"
@@ -97,26 +97,26 @@ key = request.POST.get("key").encode("utf-8")
 if verify_key(key, survey.key_hash, survey.key_salt):
     # Store in session (HttpOnly, Secure cookie)
     request.session["survey_key"] = key
-    
+
 # Now can decrypt responses
 demographics = response.load_demographics(survey_key)
 ```
 
 ### Current Security Properties
 
-✅ **Zero-Knowledge**: Server never stores encryption keys in plaintext  
-✅ **Per-Survey Isolation**: Each survey has unique encryption key  
-✅ **Authenticated Encryption**: AES-GCM prevents tampering  
-✅ **Strong KDF**: Scrypt protects against brute-force attacks  
-✅ **Session-Based**: Keys stored only in session, not permanently  
+✅ **Zero-Knowledge**: Server never stores encryption keys in plaintext
+✅ **Per-Survey Isolation**: Each survey has unique encryption key
+✅ **Authenticated Encryption**: AES-GCM prevents tampering
+✅ **Strong KDF**: Scrypt protects against brute-force attacks
+✅ **Session-Based**: Keys stored only in session, not permanently
 ✅ **No Key Escrow**: True end-to-end encryption
 
 ### Current Limitations
 
-⚠️ **Key Loss = Data Loss**: If encryption key is lost, data cannot be recovered  
-⚠️ **User Responsibility**: Users must securely store the key shown at creation  
-⚠️ **No Organization Recovery**: Organization admins cannot recover lost keys  
-⚠️ **Single Point of Failure**: No backup/recovery mechanism  
+⚠️ **Key Loss = Data Loss**: If encryption key is lost, data cannot be recovered
+⚠️ **User Responsibility**: Users must securely store the key shown at creation
+⚠️ **No Organization Recovery**: Organization admins cannot recover lost keys
+⚠️ **Single Point of Failure**: No backup/recovery mechanism
 
 ## Web Application Integration
 
@@ -135,17 +135,17 @@ def survey_create(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             survey: Survey = form.save(commit=False)
             survey.owner = request.user
-            
+
             # Generate encryption key automatically
             encryption_key = os.urandom(32)
             survey.set_key(encryption_key)  # Stores hash + salt only
-            
+
             survey.save()
-            
+
             # Show key ONCE to user (enhanced approach below)
             request.session['new_survey_key'] = encryption_key
             request.session['new_survey_slug'] = survey.slug
-            
+
             return redirect("surveys:key-display", slug=survey.slug)
     else:
         form = SurveyCreateForm()
@@ -165,7 +165,7 @@ After survey creation, users are redirected to a **one-time key display page** t
       <div>
         <h3 class="font-bold">⚠️ Critical: Save Your Encryption Key</h3>
         <div class="text-sm">
-          This key encrypts sensitive patient data in your survey. 
+          This key encrypts sensitive patient data in your survey.
           <strong>It will only be shown once.</strong>
         </div>
       </div>
@@ -175,22 +175,22 @@ After survey creation, users are redirected to a **one-time key display page** t
   <div class="card bg-base-100 shadow-xl">
     <div class="card-body">
       <h2 class="card-title">Survey: {{ survey.name }}</h2>
-      
+
       <!-- Encryption Key Display -->
       <div class="form-control">
         <label class="label">
           <span class="label-text font-semibold">Encryption Key</span>
         </label>
         <div class="input-group">
-          <input 
-            type="text" 
-            readonly 
-            value="{{ encryption_key_b64 }}" 
+          <input
+            type="text"
+            readonly
+            value="{{ encryption_key_b64 }}"
             class="input input-bordered w-full font-mono text-sm"
             id="encryption-key"
           />
-          <button 
-            class="btn btn-square" 
+          <button
+            class="btn btn-square"
             onclick="copyToClipboard()"
             title="Copy to clipboard"
           >
@@ -201,14 +201,14 @@ After survey creation, users are redirected to a **one-time key display page** t
 
       <!-- Download Options -->
       <div class="flex gap-2 mt-4">
-        <button 
-          class="btn btn-primary" 
+        <button
+          class="btn btn-primary"
           onclick="downloadKeyFile()"
         >
           📥 Download Key File
         </button>
-        <button 
-          class="btn btn-secondary" 
+        <button
+          class="btn btn-secondary"
           onclick="printKey()"
         >
           🖨️ Print Key
@@ -253,9 +253,9 @@ After survey creation, users are redirected to a **one-time key display page** t
       <!-- Acknowledgment Checkbox -->
       <div class="form-control mt-6">
         <label class="label cursor-pointer justify-start gap-3">
-          <input 
-            type="checkbox" 
-            class="checkbox checkbox-primary" 
+          <input
+            type="checkbox"
+            class="checkbox checkbox-primary"
             id="acknowledge"
             required
           />
@@ -267,8 +267,8 @@ After survey creation, users are redirected to a **one-time key display page** t
 
       <!-- Continue Button -->
       <div class="card-actions justify-end mt-6">
-        <button 
-          class="btn btn-primary btn-wide" 
+        <button
+          class="btn btn-primary btn-wide"
           id="continue-btn"
           disabled
           onclick="window.location.href='{% url 'surveys:groups' slug=survey.slug %}'"
@@ -314,7 +314,7 @@ ${key}
 
 Generated by Census Survey Platform
 `;
-    
+
     const blob = new Blob([content], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -363,7 +363,7 @@ The encryption approach is communicated clearly during account signup:
     <li><strong>Data Loss Risk:</strong> Losing your key means losing encrypted data</li>
     <li><strong>Best For:</strong> Small studies, personal projects, non-critical data</li>
   </ul>
-  
+
   <div class="form-control mt-4">
     <label class="label cursor-pointer justify-start gap-3">
       <input type="checkbox" class="checkbox checkbox-warning" required />
@@ -389,18 +389,18 @@ Modern browsers provide the **Credential Management API** and **Password Manager
 <div class="card bg-base-100 shadow-xl">
   <div class="card-body">
     <h2 class="card-title">🔑 Survey Encryption Key</h2>
-    
+
     <div class="alert alert-info">
       <p>Save this key to your browser's password manager:</p>
     </div>
-    
+
     <!-- Key Display -->
     <div class="form-control">
       <label class="label">
         <span class="label-text">Encryption Key</span>
       </label>
-      <input 
-        type="text" 
+      <input
+        type="text"
         id="survey-key"
         name="encryption-key"
         value="{{ survey_key }}"
@@ -410,28 +410,28 @@ Modern browsers provide the **Credential Management API** and **Password Manager
         data-survey-slug="{{ survey.slug }}"
       />
     </div>
-    
+
     <!-- Browser Save Button -->
-    <button 
-      type="button" 
+    <button
+      type="button"
       id="save-to-browser"
       class="btn btn-primary"
       onclick="saveKeyToBrowser()"
     >
       💾 Save to Browser Password Manager
     </button>
-    
+
     <!-- Manual Download Fallback -->
-    <button 
+    <button
       type="button"
       class="btn btn-secondary"
       onclick="downloadKeyFile()"
     >
       📥 Download Key File
     </button>
-    
+
     <!-- Print Option -->
-    <button 
+    <button
       type="button"
       class="btn btn-ghost"
       onclick="printKey()"
@@ -446,12 +446,12 @@ async function saveKeyToBrowser() {
   const keyInput = document.getElementById('survey-key');
   const surveySlug = keyInput.dataset.surveySlug;
   const keyValue = keyInput.value;
-  
+
   if (!window.PasswordCredential) {
     alert('Your browser does not support password manager integration. Please use manual download.');
     return;
   }
-  
+
   try {
     // Create credential for browser's password manager
     const credential = new PasswordCredential({
@@ -460,17 +460,17 @@ async function saveKeyToBrowser() {
       name: `Census Survey: ${surveySlug}`,
       iconURL: '/static/icons/census_brand.svg'
     });
-    
+
     // Request browser to save
     await navigator.credentials.store(credential);
-    
+
     alert('✅ Key saved to your browser password manager!\n\n' +
           'You can retrieve it later when unlocking the survey.');
-    
+
     // Mark as saved
     document.getElementById('save-to-browser').classList.add('btn-success');
     document.getElementById('save-to-browser').textContent = '✅ Saved to Browser';
-    
+
   } catch (error) {
     console.error('Failed to save credential:', error);
     alert('Could not save to browser. Please use manual download.');
@@ -481,7 +481,7 @@ function downloadKeyFile() {
   const keyInput = document.getElementById('survey-key');
   const surveySlug = keyInput.dataset.surveySlug;
   const keyValue = keyInput.value;
-  
+
   // Create downloadable text file
   const content = `Census Survey Encryption Key
 Survey: ${surveySlug}
@@ -494,7 +494,7 @@ Generated: ${new Date().toISOString()}
 • Required to decrypt survey responses
 • Cannot be recovered if lost
 `;
-  
+
   const blob = new Blob([content], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -538,17 +538,17 @@ class SurveyKeyStore {
     this.storeName = 'keys';
     this.db = null;
   }
-  
+
   async init() {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, 1);
-      
+
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
         this.db = request.result;
         resolve();
       };
-      
+
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
         if (!db.objectStoreNames.contains(this.storeName)) {
@@ -557,33 +557,33 @@ class SurveyKeyStore {
       };
     });
   }
-  
+
   async saveKey(surveySlug, encryptionKey) {
     await this.init();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
-      
+
       const request = store.put({
         surveySlug: surveySlug,
         key: encryptionKey,
         savedAt: new Date().toISOString()
       });
-      
+
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
   }
-  
+
   async getKey(surveySlug) {
     await this.init();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);
       const request = store.get(surveySlug);
-      
+
       request.onsuccess = () => {
         const result = request.result;
         resolve(result ? result.key : null);
@@ -591,28 +591,28 @@ class SurveyKeyStore {
       request.onerror = () => reject(request.error);
     });
   }
-  
+
   async deleteKey(surveySlug) {
     await this.init();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
       const request = store.delete(surveySlug);
-      
+
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
   }
-  
+
   async listKeys() {
     await this.init();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);
       const request = store.getAll();
-      
+
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -625,13 +625,13 @@ const keyStore = new SurveyKeyStore();
 async function saveKeyLocally() {
   const keyInput = document.getElementById('survey-key');
   const surveySlug = keyInput.dataset.surveySlug;
-  
+
   try {
     await keyStore.saveKey(surveySlug, keyInput.value);
     alert('✅ Key saved locally in browser storage!\n\n' +
           '⚠️ Note: Keys are stored per-browser. ' +
           'Download a backup if you use multiple devices.');
-    
+
     document.getElementById('save-locally').classList.add('btn-success');
     document.getElementById('save-locally').textContent = '✅ Saved Locally';
   } catch (error) {
@@ -644,13 +644,13 @@ async function saveKeyLocally() {
 async function autoFillKey() {
   const surveySlug = document.querySelector('[data-survey-slug]')?.dataset.surveySlug;
   if (!surveySlug) return;
-  
+
   try {
     const savedKey = await keyStore.getKey(surveySlug);
     if (savedKey) {
       const keyInput = document.getElementById('key');
       keyInput.value = savedKey;
-      
+
       // Show indicator
       const indicator = document.createElement('div');
       indicator.className = 'badge badge-success';
@@ -692,7 +692,7 @@ For users who want **cross-device sync**, recommend existing password managers:
   <p class="mt-2">
     For the best security and convenience, save this key in a password manager:
   </p>
-  
+
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
     <!-- 1Password -->
     <div class="card bg-base-200">
@@ -708,7 +708,7 @@ For users who want **cross-device sync**, recommend existing password managers:
         </a>
       </div>
     </div>
-    
+
     <!-- Bitwarden -->
     <div class="card bg-base-200">
       <div class="card-body p-4">
@@ -723,7 +723,7 @@ For users who want **cross-device sync**, recommend existing password managers:
         </a>
       </div>
     </div>
-    
+
     <!-- macOS Keychain -->
     <div class="card bg-base-200">
       <div class="card-body p-4">
@@ -739,10 +739,10 @@ For users who want **cross-device sync**, recommend existing password managers:
       </div>
     </div>
   </div>
-  
+
   <div class="mt-4 p-3 bg-base-300 rounded">
     <p class="text-sm">
-      <strong>How to save:</strong> Copy the key above and create a new "Secure Note" 
+      <strong>How to save:</strong> Copy the key above and create a new "Secure Note"
       or "Password" entry in your password manager with these details:
     </p>
     <ul class="text-sm list-disc list-inside ml-4 mt-2">
@@ -811,16 +811,16 @@ For **mobile users**, allow them to **scan and save** to their phone's keychain:
 <div class="card bg-base-100">
   <div class="card-body">
     <h3 class="card-title">📱 Save to Mobile Device</h3>
-    
+
     <div class="flex justify-center p-4">
       <!-- QR Code generated server-side or via qrcode.js -->
-      <img 
-        src="{% url 'surveys:key-qr' slug=survey.slug %}" 
+      <img
+        src="{% url 'surveys:key-qr' slug=survey.slug %}"
         alt="QR Code for encryption key"
         class="w-48 h-48"
       />
     </div>
-    
+
     <div class="alert alert-sm">
       <p>Scan with your phone to save to Notes app or password manager:</p>
       <ol class="text-sm list-decimal list-inside ml-2 mt-2">
@@ -843,13 +843,13 @@ from io import BytesIO
 def key_qr_code(request: HttpRequest, slug: str) -> HttpResponse:
     """Generate QR code for survey encryption key."""
     survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    
+
     # Only allow QR code generation during initial key display
     if not request.session.get(f'new_survey_key_{slug}'):
         raise Http404("QR code only available during initial setup")
-    
+
     survey_key = request.session[f'new_survey_key_{slug}']
-    
+
     # Create QR code with structured data
     qr_data = f"""Census Survey Key
 Survey: {survey.name}
@@ -859,17 +859,17 @@ URL: {request.build_absolute_uri(survey.get_absolute_url())}
 Generated: {timezone.now().isoformat()}
 
 ⚠️ STORE SECURELY - Cannot be recovered!"""
-    
+
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(qr_data)
     qr.make(fit=True)
-    
+
     img = qr.make_image(fill_color="black", back_color="white")
-    
+
     buffer = BytesIO()
     img.save(buffer, format='PNG')
     buffer.seek(0)
-    
+
     return HttpResponse(buffer.read(), content_type='image/png')
 ```
 
@@ -886,7 +886,7 @@ Offer **all options** and let users choose based on their needs:
     <h2 class="font-bold text-xl">⚠️ Save Your Encryption Key Now</h2>
     <p>This key will only be shown once. Choose at least one storage method:</p>
   </div>
-  
+
   <!-- Display Key -->
   <div class="card bg-base-100 shadow-xl mb-6">
     <div class="card-body">
@@ -897,8 +897,8 @@ Offer **all options** and let users choose based on their needs:
             📋 Copy
           </button>
         </label>
-        <input 
-          type="text" 
+        <input
+          type="text"
           id="survey-key"
           value="{{ survey_key }}"
           class="input input-bordered font-mono text-lg"
@@ -908,10 +908,10 @@ Offer **all options** and let users choose based on their needs:
       </div>
     </div>
   </div>
-  
+
   <!-- Storage Options -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-    
+
     <!-- Option 1: Browser Password Manager (Recommended) -->
     <div class="card bg-primary text-primary-content">
       <div class="card-body">
@@ -925,7 +925,7 @@ Offer **all options** and let users choose based on their needs:
           <li>Syncs across devices (Chrome/Safari)</li>
           <li>Encrypted by browser</li>
         </ul>
-        <button 
+        <button
           type="button"
           id="save-to-browser"
           class="btn btn-secondary mt-4"
@@ -935,7 +935,7 @@ Offer **all options** and let users choose based on their needs:
         </button>
       </div>
     </div>
-    
+
     <!-- Option 2: Password Manager App -->
     <div class="card bg-base-200">
       <div class="card-body">
@@ -959,7 +959,7 @@ Offer **all options** and let users choose based on their needs:
         </div>
       </div>
     </div>
-    
+
     <!-- Option 3: Local Browser Storage -->
     <div class="card bg-base-200">
       <div class="card-body">
@@ -973,7 +973,7 @@ Offer **all options** and let users choose based on their needs:
           <li>Automatic unlock on this device</li>
           <li>⚠️ Not synced across devices</li>
         </ul>
-        <button 
+        <button
           type="button"
           id="save-locally"
           class="btn btn-ghost btn-sm mt-4"
@@ -983,7 +983,7 @@ Offer **all options** and let users choose based on their needs:
         </button>
       </div>
     </div>
-    
+
     <!-- Option 4: Download File -->
     <div class="card bg-base-200">
       <div class="card-body">
@@ -997,7 +997,7 @@ Offer **all options** and let users choose based on their needs:
           <li>Add to encrypted USB/drive</li>
           <li>Keep offline backup</li>
         </ul>
-        <button 
+        <button
           type="button"
           class="btn btn-ghost btn-sm mt-4"
           onclick="downloadKeyFile()"
@@ -1006,16 +1006,16 @@ Offer **all options** and let users choose based on their needs:
         </button>
       </div>
     </div>
-    
+
   </div>
-  
+
   <!-- Mobile QR Option -->
   <div class="card bg-base-200 mb-6">
     <div class="card-body">
       <h3 class="card-title">📱 Save to Mobile Device</h3>
       <div class="flex flex-col md:flex-row gap-4 items-center">
         <div class="flex-shrink-0">
-          <img 
+          <img
             src="{% url 'surveys:key-qr' slug=survey.slug %}"
             alt="QR Code"
             class="w-32 h-32 border-4 border-base-300 rounded"
@@ -1032,60 +1032,60 @@ Offer **all options** and let users choose based on their needs:
       </div>
     </div>
   </div>
-  
+
   <!-- Confirmation Checklist -->
   <div class="card bg-warning text-warning-content">
     <div class="card-body">
       <h3 class="card-title">✅ Before Proceeding</h3>
       <p class="mb-4">Confirm you've saved your key using at least one method:</p>
-      
+
       <form method="post" action="{% url 'surveys:key-confirm' slug=survey.slug %}">
         {% csrf_token %}
-        
+
         <div class="form-control">
           <label class="label cursor-pointer justify-start gap-3">
             <input type="checkbox" id="saved-browser" class="checkbox" onchange="updateConfirm()" />
             <span class="label-text">Saved to browser password manager</span>
           </label>
         </div>
-        
+
         <div class="form-control">
           <label class="label cursor-pointer justify-start gap-3">
             <input type="checkbox" id="saved-pm" class="checkbox" onchange="updateConfirm()" />
             <span class="label-text">Saved to password manager app (1Password, Bitwarden, etc.)</span>
           </label>
         </div>
-        
+
         <div class="form-control">
           <label class="label cursor-pointer justify-start gap-3">
             <input type="checkbox" id="saved-local" class="checkbox" onchange="updateConfirm()" />
             <span class="label-text">Saved to this browser's local storage</span>
           </label>
         </div>
-        
+
         <div class="form-control">
           <label class="label cursor-pointer justify-start gap-3">
             <input type="checkbox" id="saved-download" class="checkbox" onchange="updateConfirm()" />
             <span class="label-text">Downloaded and stored securely</span>
           </label>
         </div>
-        
+
         <div class="form-control">
           <label class="label cursor-pointer justify-start gap-3">
             <input type="checkbox" id="saved-mobile" class="checkbox" onchange="updateConfirm()" />
             <span class="label-text">Saved to mobile device via QR code</span>
           </label>
         </div>
-        
+
         <div class="divider"></div>
-        
+
         <div class="form-control">
           <label class="label cursor-pointer justify-start gap-3">
-            <input 
-              type="checkbox" 
-              id="acknowledge" 
-              class="checkbox checkbox-warning" 
-              required 
+            <input
+              type="checkbox"
+              id="acknowledge"
+              class="checkbox checkbox-warning"
+              required
               onchange="updateConfirm()"
             />
             <span class="label-text font-bold">
@@ -1093,9 +1093,9 @@ Offer **all options** and let users choose based on their needs:
             </span>
           </label>
         </div>
-        
-        <button 
-          type="submit" 
+
+        <button
+          type="submit"
           id="confirm-btn"
           class="btn btn-primary mt-6 w-full"
           disabled
@@ -1114,9 +1114,9 @@ function updateConfirm() {
                    document.querySelector('#saved-local:checked') ||
                    document.querySelector('#saved-download:checked') ||
                    document.querySelector('#saved-mobile:checked');
-  
+
   const acknowledged = document.getElementById('acknowledge').checked;
-  
+
   const confirmBtn = document.getElementById('confirm-btn');
   confirmBtn.disabled = !(anySaved && acknowledged);
 }
@@ -1125,7 +1125,7 @@ function copyToClipboard() {
   const keyInput = document.getElementById('survey-key');
   keyInput.select();
   document.execCommand('copy');
-  
+
   // Show toast notification
   const toast = document.createElement('div');
   toast.className = 'toast toast-top toast-end';
@@ -1145,10 +1145,10 @@ Users unlock surveys to view encrypted data through `/surveys/<slug>/unlock/`:
 @require_http_methods(["GET", "POST"])
 def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    
+
     if request.method == "POST":
         key = request.POST.get("key", "").encode("utf-8")
-        
+
         # Verify key against stored hash
         if (
             survey.key_hash
@@ -1157,7 +1157,7 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
         ):
             # Store in session (HttpOnly, Secure cookie)
             request.session["survey_key"] = key
-            
+
             # Log access for audit trail
             AuditLog.objects.create(
                 actor=request.user,
@@ -1166,12 +1166,12 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
                 action=AuditLog.Action.KEY_ACCESS,
                 metadata={"unlocked_at": timezone.now().isoformat()}
             )
-            
+
             messages.success(request, "Survey unlocked for this session.")
             return redirect("surveys:dashboard", slug=slug)
-        
+
         messages.error(request, "Invalid encryption key.")
-    
+
     return render(request, "surveys/unlock.html", {"survey": survey})
 ```
 
@@ -1183,22 +1183,22 @@ Once unlocked, encrypted demographics are automatically decrypted when viewing r
 @login_required
 def survey_responses(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    
+
     # Check if survey is unlocked in session
     if not request.session.get("survey_key"):
         messages.warning(request, "Unlock survey to view encrypted patient data.")
         return redirect("surveys:unlock", slug=slug)
-    
+
     survey_key = request.session["survey_key"]
     responses = []
-    
+
     for response in survey.responses.all():
         response_data = {
             "id": response.id,
             "submitted_at": response.submitted_at,
             "answers": response.answers,
         }
-        
+
         # Decrypt demographics if present
         if response.enc_demographics:
             try:
@@ -1206,9 +1206,9 @@ def survey_responses(request: HttpRequest, slug: str) -> HttpResponse:
                 response_data["demographics"] = demographics
             except Exception:
                 response_data["demographics_error"] = "Decryption failed"
-        
+
         responses.append(response_data)
-    
+
     return render(request, "surveys/responses.html", {
         "survey": survey,
         "responses": responses,
@@ -1225,19 +1225,19 @@ def survey_export_csv(
     request: HttpRequest, slug: str
 ) -> Union[HttpResponse, StreamingHttpResponse]:
     survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    
+
     if not request.session.get("survey_key"):
         messages.error(request, "Unlock survey first to export with patient data.")
         return redirect("surveys:unlock", slug=slug)
-    
+
     survey_key = request.session["survey_key"]
-    
+
     def generate():
         import csv
         from io import StringIO
 
         # Build header with demographic fields
-        header = ["id", "submitted_at", "first_name", "last_name", 
+        header = ["id", "submitted_at", "first_name", "last_name",
                   "date_of_birth", "nhs_number", "answers"]
         s = StringIO()
         writer = csv.writer(s)
@@ -1245,7 +1245,7 @@ def survey_export_csv(
         yield s.getvalue()
         s.seek(0)
         s.truncate(0)
-        
+
         for r in survey.responses.iterator():
             # Decrypt demographics
             demographics = {}
@@ -1254,7 +1254,7 @@ def survey_export_csv(
                     demographics = r.load_demographics(survey_key)
                 except Exception:
                     demographics = {"error": "decryption_failed"}
-            
+
             row = [
                 r.id,
                 r.submitted_at.isoformat(),
@@ -1268,7 +1268,7 @@ def survey_export_csv(
             yield s.getvalue()
             s.seek(0)
             s.truncate(0)
-    
+
     resp = StreamingHttpResponse(generate(), content_type="text/csv")
     resp["Content-Disposition"] = f"attachment; filename={slug}-responses.csv"
     return resp
@@ -1342,12 +1342,12 @@ def verify_key(key: bytes, digest: bytes, salt: bytes) -> bool:
 
 ### Benefits of Unified Approach
 
-✅ **Consistent Security**: Same encryption regardless of entry point  
-✅ **Interoperability**: API and web users can collaborate on same surveys  
-✅ **Single Audit Trail**: All access logged via same `AuditLog` model  
-✅ **Unified Testing**: One test suite covers both interfaces  
-✅ **Clear Documentation**: Users understand security model regardless of interface  
-✅ **Maintainability**: Single codebase for encryption logic  
+✅ **Consistent Security**: Same encryption regardless of entry point
+✅ **Interoperability**: API and web users can collaborate on same surveys
+✅ **Single Audit Trail**: All access logged via same `AuditLog` model
+✅ **Unified Testing**: One test suite covers both interfaces
+✅ **Clear Documentation**: Users understand security model regardless of interface
+✅ **Maintainability**: Single codebase for encryption logic
 
 ## OIDC Integration and Authentication
 
@@ -1449,7 +1449,7 @@ Survey Encryption Key (KEK) Storage:
 │     └─ Stable across password changes
 │     └─ User has primary access when authenticated
 │
-├─ Organization-Encrypted Copy  
+├─ Organization-Encrypted Copy
 │  └─ Encrypted with organization master key
 │     └─ Stored in AWS KMS / Azure Key Vault
 │     └─ Org admins can decrypt for recovery
@@ -1491,14 +1491,14 @@ from django.contrib.auth.models import AbstractUser
 class User(AbstractUser):
     # OIDC fields
     oidc_provider = models.CharField(
-        max_length=100, 
+        max_length=100,
         blank=True,
         help_text="OIDC provider (google, microsoft, okta, etc.)"
     )
     oidc_subject = models.CharField(
-        max_length=255, 
-        unique=True, 
-        null=True, 
+        max_length=255,
+        unique=True,
+        null=True,
         blank=True,
         help_text="Stable OIDC subject identifier"
     )
@@ -1506,13 +1506,13 @@ class User(AbstractUser):
         default=False,
         help_text="Email verified by OIDC provider"
     )
-    
+
     # Key derivation salt (unique per user)
     key_derivation_salt = models.BinaryField(
         null=True,
         help_text="Salt for deriving encryption keys from OIDC identity"
     )
-    
+
     # Legacy password users (migrated to OIDC over time)
     is_oidc_user = models.BooleanField(
         default=False,
@@ -1526,18 +1526,18 @@ class User(AbstractUser):
 # census_app/surveys/utils.py
 
 def derive_key_from_oidc_identity(
-    oidc_provider: str, 
-    oidc_subject: str, 
+    oidc_provider: str,
+    oidc_subject: str,
     user_salt: bytes
 ) -> bytes:
     """
     Derive encryption key from OIDC identity.
-    
+
     This is stable across password changes but unique per user.
     """
     # Combine provider + subject for uniqueness
     identity = f"{oidc_provider}:{oidc_subject}".encode('utf-8')
-    
+
     # Use PBKDF2 with user-specific salt
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
@@ -1545,13 +1545,13 @@ def derive_key_from_oidc_identity(
         salt=user_salt,
         iterations=200_000
     )
-    
+
     return kdf.derive(identity)
 
 
 def encrypt_survey_kek_for_user(survey_kek: bytes, user: User) -> bytes:
     """Encrypt survey KEK for a specific user."""
-    
+
     if user.is_oidc_user:
         # OIDC users: derive key from stable identity
         user_key = derive_key_from_oidc_identity(
@@ -1562,17 +1562,17 @@ def encrypt_survey_kek_for_user(survey_kek: bytes, user: User) -> bytes:
     else:
         # Legacy users: derive from password (to be migrated)
         user_key = derive_key_from_password(user.password)
-    
+
     # Encrypt KEK with user key
     return encrypt_sensitive(user_key, {"kek": survey_kek.hex()})
 
 
 def decrypt_survey_kek_for_user(
-    encrypted_kek: bytes, 
+    encrypted_kek: bytes,
     user: User
 ) -> bytes:
     """Decrypt survey KEK for a specific user."""
-    
+
     if user.is_oidc_user:
         user_key = derive_key_from_oidc_identity(
             user.oidc_provider,
@@ -1581,7 +1581,7 @@ def decrypt_survey_kek_for_user(
         )
     else:
         user_key = derive_key_from_password(user.password)
-    
+
     decrypted = decrypt_sensitive(user_key, encrypted_kek)
     return bytes.fromhex(decrypted["kek"])
 ```
@@ -1599,19 +1599,19 @@ def survey_create(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             survey: Survey = form.save(commit=False)
             survey.owner = request.user
-            
+
             # Generate survey encryption key (KEK)
             survey_kek = os.urandom(32)
-            
+
             # Store hash for verification (legacy compatibility)
             digest, salt = make_key_hash(survey_kek)
             survey.key_hash = digest
             survey.key_salt = salt
-            
+
             # Encrypt KEK for user (OIDC or password-based)
             if request.user.is_oidc_user:
                 survey.encrypted_kek_user = encrypt_survey_kek_for_user(
-                    survey_kek, 
+                    survey_kek,
                     request.user
                 )
                 # User can unlock via OIDC authentication alone
@@ -1619,7 +1619,7 @@ def survey_create(request: HttpRequest) -> HttpResponse:
             else:
                 # Legacy: show key once for manual storage
                 request.session['new_survey_key'] = survey_kek
-            
+
             # Organization users: also encrypt with org master key
             if request.user.organization_memberships.exists():
                 org = request.user.organization_memberships.first().organization
@@ -1628,13 +1628,13 @@ def survey_create(request: HttpRequest) -> HttpResponse:
                     survey_kek,
                     org_master_key
                 )
-            
+
             survey.save()
-            
+
             # OIDC users skip manual key display
             if request.user.is_oidc_user:
                 messages.success(
-                    request, 
+                    request,
                     "Survey created! Encryption is automatic with your account."
                 )
                 return redirect("surveys:groups", slug=survey.slug)
@@ -1651,7 +1651,7 @@ def survey_create(request: HttpRequest) -> HttpResponse:
 @login_required
 def survey_responses(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    
+
     # OIDC users: automatic unlock if user has encrypted KEK
     if request.user.is_oidc_user and survey.encrypted_kek_user:
         try:
@@ -1661,7 +1661,7 @@ def survey_responses(request: HttpRequest, slug: str) -> HttpResponse:
                 request.user
             )
             request.session["survey_key"] = survey_kek
-            
+
             # Log auto-unlock
             AuditLog.objects.create(
                 actor=request.user,
@@ -1676,12 +1676,12 @@ def survey_responses(request: HttpRequest, slug: str) -> HttpResponse:
         except Exception as e:
             messages.error(request, "Unable to unlock survey automatically.")
             return redirect("surveys:unlock", slug=slug)
-    
+
     # Legacy users or OIDC users without encrypted KEK: manual unlock
     elif not request.session.get("survey_key"):
         messages.warning(request, "Unlock survey to view encrypted data.")
         return redirect("surveys:unlock", slug=slug)
-    
+
     # Continue with response viewing...
 ```
 
@@ -1702,15 +1702,15 @@ def migrate_to_oidc(request: HttpRequest):
     if request.user.is_oidc_user:
         messages.info(request, "Already using OIDC.")
         return redirect("home")
-    
+
     if request.method == "POST":
         # User has authenticated with OIDC provider
         oidc_provider = request.POST.get("oidc_provider")
         oidc_subject = request.POST.get("oidc_subject")
-        
+
         # Generate user salt for key derivation
         user_salt = os.urandom(16)
-        
+
         # Re-encrypt all survey KEKs with OIDC-derived key
         for survey in Survey.objects.filter(owner=request.user):
             if survey.encrypted_kek_user:
@@ -1719,20 +1719,20 @@ def migrate_to_oidc(request: HttpRequest):
                     survey.encrypted_kek_user,
                     request.user  # Uses password
                 )
-                
+
                 # Update user to OIDC
                 request.user.oidc_provider = oidc_provider
                 request.user.oidc_subject = oidc_subject
                 request.user.key_derivation_salt = user_salt
                 request.user.is_oidc_user = True
-                
+
                 # Re-encrypt with new OIDC-derived key
                 survey.encrypted_kek_user = encrypt_survey_kek_for_user(
                     old_kek,
                     request.user  # Now uses OIDC
                 )
                 survey.save()
-        
+
         request.user.save()
         messages.success(request, "Migrated to OIDC successfully!")
         return redirect("home")
@@ -1849,12 +1849,12 @@ OIDC_PROVIDERS = {
 
 ### Recommendation
 
-✅ **Implement OIDC** instead of building custom 2FA  
-✅ **Support multiple providers** (Google, Microsoft, Okta)  
-✅ **Auto-unlock for OIDC users** via encrypted KEKs  
-✅ **Keep recovery phrases** for individual users as backup  
-✅ **Organization master keys** remain unchanged  
-✅ **Migrate existing users** gradually to OIDC  
+✅ **Implement OIDC** instead of building custom 2FA
+✅ **Support multiple providers** (Google, Microsoft, Okta)
+✅ **Auto-unlock for OIDC users** via encrypted KEKs
+✅ **Keep recovery phrases** for individual users as backup
+✅ **Organization master keys** remain unchanged
+✅ **Migrate existing users** gradually to OIDC
 
 **Result**: Better security, better UX, less code to maintain, and the encryption model becomes even stronger!
 
@@ -1874,7 +1874,7 @@ Survey Encryption Key (KEK)
 │  └─ Encrypted with user's password-derived key
 │     └─ User has primary access
 │
-├─ Organization-Encrypted Copy  
+├─ Organization-Encrypted Copy
 │  └─ Encrypted with organization master key
 │     └─ Stored in AWS KMS / Azure Key Vault
 │     └─ Org ADMINs can decrypt for recovery
@@ -1901,7 +1901,7 @@ class Survey(models.Model):
     # Current fields
     key_salt = models.BinaryField()
     key_hash = models.BinaryField()
-    
+
     # New fields for Option 1
     encrypted_kek_user = models.BinaryField()      # User-encrypted KEK
     encrypted_kek_org = models.BinaryField(null=True)  # Org-encrypted KEK
@@ -1990,7 +1990,7 @@ class Survey(models.Model):
     # Current fields remain
     key_salt = models.BinaryField()
     key_hash = models.BinaryField()
-    
+
     # New fields for Option 2
     encrypted_kek_password = models.BinaryField()  # Password-encrypted
     encrypted_kek_recovery = models.BinaryField()  # Recovery code-encrypted
@@ -2028,23 +2028,23 @@ return {
 <div class="alert alert-warning">
   <h3>⚠️ Critical: Save Your Encryption Keys</h3>
   <p>Your survey uses end-to-end encryption for patient data.</p>
-  
+
   <div class="card">
     <h4>Survey Encryption Key</h4>
     <code>{{ survey_key_b64 }}</code>
     <button>Download Key File</button>
   </div>
-  
+
   <div class="card">
     <h4>Recovery Phrase (12 Words)</h4>
     <code>{{ recovery_phrase }}</code>
     <button>Download Recovery File</button>
   </div>
-  
+
   <div class="checkbox">
     <input type="checkbox" required>
     <label>
-      I have saved both the encryption key and recovery phrase. 
+      I have saved both the encryption key and recovery phrase.
       I understand that losing both will result in permanent data loss.
     </label>
   </div>
@@ -2058,11 +2058,11 @@ The system automatically determines which option to use:
 ```python
 def get_encryption_strategy(user: User, survey: Survey) -> str:
     """Determine encryption strategy based on user type."""
-    
+
     # Check if user belongs to an organization
     if user.organization_memberships.exists():
         return "organization"  # Use Option 1
-    
+
     # Individual user
     return "individual"  # Use Option 2
 ```
@@ -2116,26 +2116,26 @@ def get_encryption_strategy(user: User, survey: Survey) -> str:
 
 ### GDPR Compliance
 
-✅ **Data Minimization**: Only necessary fields encrypted  
-✅ **Right to Erasure**: Survey deletion removes all encrypted data  
-✅ **Data Portability**: Export functionality available  
-✅ **Breach Notification**: Encrypted data protected even if breached  
+✅ **Data Minimization**: Only necessary fields encrypted
+✅ **Right to Erasure**: Survey deletion removes all encrypted data
+✅ **Data Portability**: Export functionality available
+✅ **Breach Notification**: Encrypted data protected even if breached
 ✅ **Audit Trail**: All access logged via `AuditLog`
 
 ### HIPAA Compliance (Healthcare Organizations)
 
-✅ **Administrative Safeguards**: Role-based access control  
-✅ **Technical Safeguards**: AES-256 encryption, audit logs  
-✅ **Physical Safeguards**: KMS hardware security modules  
-✅ **Encryption**: Patient data encrypted at rest and in transit  
+✅ **Administrative Safeguards**: Role-based access control
+✅ **Technical Safeguards**: AES-256 encryption, audit logs
+✅ **Physical Safeguards**: KMS hardware security modules
+✅ **Encryption**: Patient data encrypted at rest and in transit
 ✅ **Access Controls**: Multi-factor authentication required
 
 ### NHS Data Security Standards
 
-✅ **Data Security**: End-to-end encryption  
-✅ **Secure Access**: Session-based key management  
-✅ **Audit**: Comprehensive logging  
-✅ **Incident Response**: Clear recovery procedures  
+✅ **Data Security**: End-to-end encryption
+✅ **Secure Access**: Session-based key management
+✅ **Audit**: Comprehensive logging
+✅ **Incident Response**: Clear recovery procedures
 ✅ **Training**: Documentation for staff
 
 ## Migration Path
@@ -2173,11 +2173,11 @@ def get_encryption_strategy(user: User, survey: Survey) -> str:
 def encrypt_sensitive(passphrase_key: bytes, data: dict) -> bytes:
     """
     Encrypt sensitive data dictionary with AES-GCM.
-    
+
     Args:
         passphrase_key: 32-byte encryption key
         data: Dictionary of sensitive fields
-        
+
     Returns:
         Encrypted blob: salt(16) | nonce(12) | ciphertext
     """
@@ -2191,14 +2191,14 @@ def encrypt_sensitive(passphrase_key: bytes, data: dict) -> bytes:
 def decrypt_sensitive(passphrase_key: bytes, blob: bytes) -> dict:
     """
     Decrypt sensitive data blob.
-    
+
     Args:
         passphrase_key: 32-byte encryption key
         blob: Encrypted blob from encrypt_sensitive()
-        
+
     Returns:
         Decrypted dictionary
-        
+
     Raises:
         InvalidTag: If ciphertext is tampered or key is wrong
     """
@@ -2248,7 +2248,7 @@ Census includes comprehensive tests for encryption:
 # Run encryption tests
 docker compose exec web pytest census_app/surveys/tests/ -k encrypt
 
-# Run key management tests  
+# Run key management tests
 docker compose exec web pytest census_app/surveys/tests/ -k key
 
 # Run full security test suite
@@ -2272,5 +2272,5 @@ For security-related questions or to report vulnerabilities:
 
 ---
 
-**Last Updated**: October 2025  
+**Last Updated**: October 2025
 **Version**: 1.0 (Current Implementation) + Roadmap
