@@ -378,763 +378,573 @@ The encryption approach is communicated clearly during account signup:
 
 ### Helping Users Store Keys Safely
 
-For **individual users**, Census can leverage **browser-native and OS-level key storage** to help users manage their encryption keys securely without manual copy-paste:
+For **individual users** who don't have organizational key recovery, Census implements a **multi-method recovery approach** that balances security with usability. Individual users are given multiple ways to store and recover their encryption keys without relying on browser storage or third-party services.
 
-#### Option A: Web Credential Management API (Recommended) 🌟
+#### Current Implementation: Password + Recovery Phrase (Option 2)
 
-Modern browsers provide the **Credential Management API** and **Password Manager** integration:
+The current working solution provides **dual recovery paths** for individual users:
 
-```html
-<!-- surveys/templates/surveys/key_display.html -->
-<div class="card bg-base-100 shadow-xl">
-  <div class="card-body">
-    <h2 class="card-title">🔑 Survey Encryption Key</h2>
-
-    <div class="alert alert-info">
-      <p>Save this key to your browser's password manager:</p>
-    </div>
-
-    <!-- Key Display -->
-    <div class="form-control">
-      <label class="label">
-        <span class="label-text">Encryption Key</span>
-      </label>
-      <input
-        type="text"
-        id="survey-key"
-        name="encryption-key"
-        value="{{ survey_key }}"
-        class="input input-bordered font-mono"
-        readonly
-        autocomplete="off"
-        data-survey-slug="{{ survey.slug }}"
-      />
-    </div>
-
-    <!-- Browser Save Button -->
-    <button
-      type="button"
-      id="save-to-browser"
-      class="btn btn-primary"
-      onclick="saveKeyToBrowser()"
-    >
-      💾 Save to Browser Password Manager
-    </button>
-
-    <!-- Manual Download Fallback -->
-    <button
-      type="button"
-      class="btn btn-secondary"
-      onclick="downloadKeyFile()"
-    >
-      📥 Download Key File
-    </button>
-
-    <!-- Print Option -->
-    <button
-      type="button"
-      class="btn btn-ghost"
-      onclick="printKey()"
-    >
-      🖨️ Print Key (Store Securely)
-    </button>
-  </div>
-</div>
-
-<script>
-async function saveKeyToBrowser() {
-  const keyInput = document.getElementById('survey-key');
-  const surveySlug = keyInput.dataset.surveySlug;
-  const keyValue = keyInput.value;
-
-  if (!window.PasswordCredential) {
-    alert('Your browser does not support password manager integration. Please use manual download.');
-    return;
-  }
-
-  try {
-    // Create credential for browser's password manager
-    const credential = new PasswordCredential({
-      id: `census-survey-${surveySlug}`,
-      password: keyValue,
-      name: `Census Survey: ${surveySlug}`,
-      iconURL: '/static/icons/census_brand.svg'
-    });
-
-    // Request browser to save
-    await navigator.credentials.store(credential);
-
-    alert('✅ Key saved to your browser password manager!\n\n' +
-          'You can retrieve it later when unlocking the survey.');
-
-    // Mark as saved
-    document.getElementById('save-to-browser').classList.add('btn-success');
-    document.getElementById('save-to-browser').textContent = '✅ Saved to Browser';
-
-  } catch (error) {
-    console.error('Failed to save credential:', error);
-    alert('Could not save to browser. Please use manual download.');
-  }
-}
-
-function downloadKeyFile() {
-  const keyInput = document.getElementById('survey-key');
-  const surveySlug = keyInput.dataset.surveySlug;
-  const keyValue = keyInput.value;
-
-  // Create downloadable text file
-  const content = `Census Survey Encryption Key
-Survey: ${surveySlug}
-Key: ${keyValue}
-Generated: ${new Date().toISOString()}
-
-⚠️  IMPORTANT: Store this file securely!
-• Do not share this key
-• Do not commit to version control
-• Required to decrypt survey responses
-• Cannot be recovered if lost
-`;
-
-  const blob = new Blob([content], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `census-survey-${surveySlug}-key.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function printKey() {
-  window.print();
-}
-</script>
+```
+Survey Encryption Key (KEK)
+├─ Password-Encrypted Copy
+│  └─ Encrypted with user's password-derived key
+│  └─ Used for normal day-to-day access
+│
+└─ Recovery Code-Encrypted Copy
+   └─ Encrypted with BIP39 recovery phrase-derived key
+   └─ 12-word mnemonic phrase shown ONCE at creation
+   └─ Provides backup if password is lost
 ```
 
-**Browser Support:**
-- ✅ Chrome/Edge: Full support
-- ✅ Safari: Partial support (iCloud Keychain)
-- ✅ Firefox: Partial support
-- ✅ Mobile browsers: Works with system password managers
+**Key Features:**
 
-**User Experience:**
-1. User creates survey
-2. Census shows key + "Save to Browser" button
-3. User clicks → browser prompts to save (like password save)
-4. Key stored in Chrome/Safari/Firefox password manager
-5. When unlocking: browser autofills the key! 🎉
+- **Dual Access Methods**: User can unlock with either their account password OR the recovery phrase
+- **Zero-Knowledge**: Server stores only encrypted versions, never plaintext keys
+- **Offline Backup**: Recovery phrase can be written down or printed and stored physically
+- **User Responsibility**: Clear warnings that losing BOTH password and recovery phrase = permanent data loss
 
----
-
-#### Option B: Web Crypto API with IndexedDB
-
-For users who want **encrypted local storage** without browser password manager:
-
-```javascript
-// static/js/key-storage.js
-
-class SurveyKeyStore {
-  constructor() {
-    this.dbName = 'census-survey-keys';
-    this.storeName = 'keys';
-    this.db = null;
-  }
-
-  async init() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, 1);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        this.db = request.result;
-        resolve();
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(this.storeName)) {
-          db.createObjectStore(this.storeName, { keyPath: 'surveySlug' });
-        }
-      };
-    });
-  }
-
-  async saveKey(surveySlug, encryptionKey) {
-    await this.init();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readwrite');
-      const store = transaction.objectStore(this.storeName);
-
-      const request = store.put({
-        surveySlug: surveySlug,
-        key: encryptionKey,
-        savedAt: new Date().toISOString()
-      });
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async getKey(surveySlug) {
-    await this.init();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readonly');
-      const store = transaction.objectStore(this.storeName);
-      const request = store.get(surveySlug);
-
-      request.onsuccess = () => {
-        const result = request.result;
-        resolve(result ? result.key : null);
-      };
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async deleteKey(surveySlug) {
-    await this.init();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readwrite');
-      const store = transaction.objectStore(this.storeName);
-      const request = store.delete(surveySlug);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async listKeys() {
-    await this.init();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readonly');
-      const store = transaction.objectStore(this.storeName);
-      const request = store.getAll();
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
-}
-
-// Usage
-const keyStore = new SurveyKeyStore();
-
-async function saveKeyLocally() {
-  const keyInput = document.getElementById('survey-key');
-  const surveySlug = keyInput.dataset.surveySlug;
-
-  try {
-    await keyStore.saveKey(surveySlug, keyInput.value);
-    alert('✅ Key saved locally in browser storage!\n\n' +
-          '⚠️ Note: Keys are stored per-browser. ' +
-          'Download a backup if you use multiple devices.');
-
-    document.getElementById('save-locally').classList.add('btn-success');
-    document.getElementById('save-locally').textContent = '✅ Saved Locally';
-  } catch (error) {
-    console.error('Failed to save key:', error);
-    alert('Could not save key locally. Please download instead.');
-  }
-}
-
-// Auto-fill on unlock page
-async function autoFillKey() {
-  const surveySlug = document.querySelector('[data-survey-slug]')?.dataset.surveySlug;
-  if (!surveySlug) return;
-
-  try {
-    const savedKey = await keyStore.getKey(surveySlug);
-    if (savedKey) {
-      const keyInput = document.getElementById('key');
-      keyInput.value = savedKey;
-
-      // Show indicator
-      const indicator = document.createElement('div');
-      indicator.className = 'badge badge-success';
-      indicator.textContent = '🔑 Key loaded from browser storage';
-      keyInput.parentElement.appendChild(indicator);
-    }
-  } catch (error) {
-    console.error('Could not load saved key:', error);
-  }
-}
-
-// Run on unlock page load
-if (window.location.pathname.includes('/unlock/')) {
-  document.addEventListener('DOMContentLoaded', autoFillKey);
-}
-```
-
-**Pros:**
-- ✅ Per-browser encrypted storage
-- ✅ Automatic key retrieval
-- ✅ No server storage
-- ✅ Works offline
-
-**Cons:**
-- ❌ Not synced across devices
-- ❌ Lost if browser data cleared
-- ❌ User needs backups for multi-device
-
----
-
-#### Option C: Browser Extension (Advanced Users)
-
-For users who want **cross-device sync**, recommend existing password managers:
-
-```html
-<!-- surveys/templates/surveys/key_display.html -->
-<div class="alert alert-info">
-  <h3 class="font-bold">💡 Recommended: Use a Password Manager</h3>
-  <p class="mt-2">
-    For the best security and convenience, save this key in a password manager:
-  </p>
-
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-    <!-- 1Password -->
-    <div class="card bg-base-200">
-      <div class="card-body p-4">
-        <h4 class="font-semibold">1Password</h4>
-        <ul class="text-sm list-disc list-inside">
-          <li>Cross-device sync</li>
-          <li>Browser autofill</li>
-          <li>Secure notes for keys</li>
-        </ul>
-        <a href="https://1password.com" target="_blank" class="btn btn-sm btn-ghost">
-          Learn More →
-        </a>
-      </div>
-    </div>
-
-    <!-- Bitwarden -->
-    <div class="card bg-base-200">
-      <div class="card-body p-4">
-        <h4 class="font-semibold">Bitwarden</h4>
-        <ul class="text-sm list-disc list-inside">
-          <li>Open source</li>
-          <li>Free tier available</li>
-          <li>Self-hosting option</li>
-        </ul>
-        <a href="https://bitwarden.com" target="_blank" class="btn btn-sm btn-ghost">
-          Learn More →
-        </a>
-      </div>
-    </div>
-
-    <!-- macOS Keychain -->
-    <div class="card bg-base-200">
-      <div class="card-body p-4">
-        <h4 class="font-semibold">macOS Keychain</h4>
-        <ul class="text-sm list-disc list-inside">
-          <li>Built into macOS</li>
-          <li>iCloud sync</li>
-          <li>Safari autofill</li>
-        </ul>
-        <a href="https://support.apple.com/guide/keychain-access" target="_blank" class="btn btn-sm btn-ghost">
-          Learn More →
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <div class="mt-4 p-3 bg-base-300 rounded">
-    <p class="text-sm">
-      <strong>How to save:</strong> Copy the key above and create a new "Secure Note"
-      or "Password" entry in your password manager with these details:
-    </p>
-    <ul class="text-sm list-disc list-inside ml-4 mt-2">
-      <li><strong>Title:</strong> Census Survey - {{ survey.name }}</li>
-      <li><strong>Username/ID:</strong> {{ survey.slug }}</li>
-      <li><strong>Password/Key:</strong> [paste the encryption key]</li>
-      <li><strong>URL:</strong> {{ request.build_absolute_uri }}</li>
-    </ul>
-  </div>
-</div>
-```
-
----
-
-#### Option D: Native OS Keychain Integration (Best for Desktop Apps)
-
-If you build a **desktop companion app** or **Electron wrapper** for Census, you can use OS-native keychains:
-
-**macOS Keychain:**
-```javascript
-// If building Electron app or Tauri desktop app
-const keytar = require('keytar');
-
-async function saveToKeychain(surveySlug, encryptionKey) {
-  await keytar.setPassword(
-    'census-app',           // service name
-    `survey-${surveySlug}`, // account
-    encryptionKey           // password (the encryption key)
-  );
-}
-
-async function getFromKeychain(surveySlug) {
-  return await keytar.getPassword('census-app', `survey-${surveySlug}`);
-}
-```
-
-**Windows Credential Manager:**
-```javascript
-// Same API works on Windows
-// Stored in Windows Credential Manager
-```
-
-**Linux Secret Service:**
-```javascript
-// Same API works with libsecret
-// Stored in GNOME Keyring / KWallet
-```
-
-**Pros:**
-- ✅ OS-level encryption
-- ✅ Sync across devices (iCloud Keychain, Windows Sync)
-- ✅ Biometric unlock (Touch ID, Windows Hello)
-- ✅ System-managed backups
-
-**Cons:**
-- ❌ Requires native app (not pure web)
-
----
-
-#### Option E: QR Code + Mobile Keychain
-
-For **mobile users**, allow them to **scan and save** to their phone's keychain:
-
-```html
-<!-- surveys/templates/surveys/key_display.html -->
-<div class="card bg-base-100">
-  <div class="card-body">
-    <h3 class="card-title">📱 Save to Mobile Device</h3>
-
-    <div class="flex justify-center p-4">
-      <!-- QR Code generated server-side or via qrcode.js -->
-      <img
-        src="{% url 'surveys:key-qr' slug=survey.slug %}"
-        alt="QR Code for encryption key"
-        class="w-48 h-48"
-      />
-    </div>
-
-    <div class="alert alert-sm">
-      <p>Scan with your phone to save to Notes app or password manager:</p>
-      <ol class="text-sm list-decimal list-inside ml-2 mt-2">
-        <li>Open camera app</li>
-        <li>Scan QR code</li>
-        <li>Tap notification</li>
-        <li>Save to Notes (iOS) or Keep (Android)</li>
-      </ol>
-    </div>
-  </div>
-</div>
-```
+**Database Schema:**
 
 ```python
-# census_app/surveys/views.py
-import qrcode
-from io import BytesIO
+class Survey(models.Model):
+    # Current fields (for legacy API compatibility)
+    key_salt = models.BinaryField()
+    key_hash = models.BinaryField()
 
-@login_required
-def key_qr_code(request: HttpRequest, slug: str) -> HttpResponse:
-    """Generate QR code for survey encryption key."""
-    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-
-    # Only allow QR code generation during initial key display
-    if not request.session.get(f'new_survey_key_{slug}'):
-        raise Http404("QR code only available during initial setup")
-
-    survey_key = request.session[f'new_survey_key_{slug}']
-
-    # Create QR code with structured data
-    qr_data = f"""Census Survey Key
-Survey: {survey.name}
-Slug: {slug}
-Key: {survey_key}
-URL: {request.build_absolute_uri(survey.get_absolute_url())}
-Generated: {timezone.now().isoformat()}
-
-⚠️ STORE SECURELY - Cannot be recovered!"""
-
-    qr = qrcode.QRCode(version=1, box_size=10, border=4)
-    qr.add_data(qr_data)
-    qr.make(fit=True)
-
-    img = qr.make_image(fill_color="black", back_color="white")
-
-    buffer = BytesIO()
-    img.save(buffer, format='PNG')
-    buffer.seek(0)
-
-    return HttpResponse(buffer.read(), content_type='image/png')
+    # Option 2: Individual user encryption
+    encrypted_kek_password = models.BinaryField(null=True)
+    encrypted_kek_recovery = models.BinaryField(null=True)
+    recovery_code_hint = models.CharField(max_length=100, blank=True)
 ```
 
----
+**Implementation at Survey Creation:**
 
-### Recommended Multi-Layered Approach
+```python
+@login_required
+@require_http_methods(["GET", "POST"])
+def survey_create(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        form = SurveyCreateForm(request.POST)
+        if form.is_valid():
+            survey: Survey = form.save(commit=False)
+            survey.owner = request.user
 
-Offer **all options** and let users choose based on their needs:
+            # Generate master encryption key for this survey
+            survey_kek = os.urandom(32)
+
+            # Store hash for legacy API compatibility
+            digest, salt = make_key_hash(survey_kek)
+            survey.key_hash = digest
+            survey.key_salt = salt
+
+            # Determine encryption strategy
+            if request.user.organization_memberships.exists():
+                # Organization user - implement Option 1 (future)
+                setup_organization_encryption(survey, survey_kek, request.user)
+            else:
+                # Individual user - implement Option 2 (current)
+                setup_individual_encryption(survey, survey_kek, request.user)
+
+            survey.save()
+
+            # Redirect to key display page
+            request.session['new_survey_key_b64'] = base64.b64encode(survey_kek).decode()
+            request.session['new_survey_slug'] = survey.slug
+
+            return redirect("surveys:key-display", slug=survey.slug)
+    else:
+        form = SurveyCreateForm()
+    return render(request, "surveys/create.html", {"form": form})
+
+
+def setup_individual_encryption(survey: Survey, survey_kek: bytes, user: User):
+    """Set up encryption for individual users with dual recovery."""
+
+    # Method 1: Password-based encryption (primary access)
+    password_key = derive_key_from_password(user.password)
+    survey.encrypted_kek_password = encrypt_sensitive(
+        password_key,
+        {"kek": survey_kek.hex()}
+    )
+
+    # Method 2: Recovery phrase-based encryption (backup access)
+    recovery_phrase = generate_bip39_phrase(words=12)
+    recovery_key = derive_key_from_passphrase(recovery_phrase)
+    survey.encrypted_kek_recovery = encrypt_sensitive(
+        recovery_key,
+        {"kek": survey_kek.hex()}
+    )
+
+    # Store recovery phrase in session to show user ONCE
+    request.session['recovery_phrase'] = recovery_phrase
+
+
+def generate_bip39_phrase(words: int = 12) -> str:
+    """
+    Generate a BIP39-compatible mnemonic phrase.
+
+    Uses standard BIP39 wordlist for better compatibility with
+    password managers and recovery tools.
+    """
+    from mnemonic import Mnemonic
+
+    mnemo = Mnemonic("english")
+    # Generate based on entropy: 128 bits = 12 words, 256 bits = 24 words
+    bits = 128 if words == 12 else 256
+    return mnemo.generate(strength=bits)
+
+
+def derive_key_from_passphrase(passphrase: str) -> bytes:
+    """
+    Derive encryption key from recovery passphrase.
+
+    Uses PBKDF2 with high iteration count to slow brute-force attacks.
+    """
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=b"census-recovery-phrase-salt-v1",  # Fixed salt for passphrases
+        iterations=200_000
+    )
+    return kdf.derive(passphrase.encode('utf-8'))
+```
+
+**User Interface - Key Display Page:**
 
 ```html
 <!-- surveys/templates/surveys/key_display.html -->
-<div class="container max-w-4xl mx-auto p-6">
-  <div class="alert alert-warning mb-6">
-    <h2 class="font-bold text-xl">⚠️ Save Your Encryption Key Now</h2>
-    <p>This key will only be shown once. Choose at least one storage method:</p>
+<div class="max-w-3xl mx-auto p-6">
+
+  <!-- Critical Warning Banner -->
+  <div class="alert alert-error shadow-lg mb-6">
+    <div>
+      <svg class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <div>
+        <h3 class="font-bold text-lg">⚠️ Critical: Save Your Encryption Keys</h3>
+        <div class="text-sm mt-2">
+          This survey uses end-to-end encryption for patient data security.
+          <strong>You must save BOTH keys below.</strong> They will only be shown once.
+          Without them, encrypted data cannot be recovered.
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Display Key -->
-  <div class="card bg-base-100 shadow-xl mb-6">
+  <div class="card bg-base-100 shadow-xl">
     <div class="card-body">
+      <h2 class="card-title text-2xl">Survey Created: {{ survey.name }}</h2>
+
+      <!-- Method 1: Survey Encryption Key (Base64) -->
+      <div class="divider">Primary Access Method</div>
+
       <div class="form-control">
         <label class="label">
-          <span class="label-text font-bold">Survey Encryption Key</span>
-          <button onclick="copyToClipboard()" class="btn btn-sm btn-ghost">
-            📋 Copy
-          </button>
+          <span class="label-text font-semibold text-lg">
+            🔐 Survey Encryption Key (Base64)
+          </span>
         </label>
-        <input
-          type="text"
-          id="survey-key"
-          value="{{ survey_key }}"
-          class="input input-bordered font-mono text-lg"
-          readonly
-          data-survey-slug="{{ survey.slug }}"
-        />
-      </div>
-    </div>
-  </div>
-
-  <!-- Storage Options -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-
-    <!-- Option 1: Browser Password Manager (Recommended) -->
-    <div class="card bg-primary text-primary-content">
-      <div class="card-body">
-        <h3 class="card-title">
-          🌟 Recommended
-          <div class="badge badge-secondary">Easiest</div>
-        </h3>
-        <p class="text-sm">Save to your browser's built-in password manager</p>
-        <ul class="text-sm list-disc list-inside mt-2 opacity-90">
-          <li>Autofill when unlocking</li>
-          <li>Syncs across devices (Chrome/Safari)</li>
-          <li>Encrypted by browser</li>
-        </ul>
-        <button
-          type="button"
-          id="save-to-browser"
-          class="btn btn-secondary mt-4"
-          onclick="saveKeyToBrowser()"
-        >
-          💾 Save to Browser
-        </button>
-      </div>
-    </div>
-
-    <!-- Option 2: Password Manager App -->
-    <div class="card bg-base-200">
-      <div class="card-body">
-        <h3 class="card-title">
-          🔐 Most Secure
-          <div class="badge">Cross-Device</div>
-        </h3>
-        <p class="text-sm">Use 1Password, Bitwarden, or similar</p>
-        <ul class="text-sm list-disc list-inside mt-2">
-          <li>Works on all devices</li>
-          <li>End-to-end encrypted</li>
-          <li>Team sharing possible</li>
-        </ul>
-        <div class="flex gap-2 mt-4">
-          <button onclick="copyToClipboard()" class="btn btn-ghost btn-sm flex-1">
-            📋 Copy Key
-          </button>
-          <a href="#pm-instructions" class="btn btn-ghost btn-sm flex-1">
-            📖 Instructions
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Option 3: Local Browser Storage -->
-    <div class="card bg-base-200">
-      <div class="card-body">
-        <h3 class="card-title">
-          💻 This Browser Only
-          <div class="badge badge-warning">Backup Needed</div>
-        </h3>
-        <p class="text-sm">Save encrypted in this browser's local storage</p>
-        <ul class="text-sm list-disc list-inside mt-2">
-          <li>Quick and easy</li>
-          <li>Automatic unlock on this device</li>
-          <li>⚠️ Not synced across devices</li>
-        </ul>
-        <button
-          type="button"
-          id="save-locally"
-          class="btn btn-ghost btn-sm mt-4"
-          onclick="saveKeyLocally()"
-        >
-          💾 Save Locally
-        </button>
-      </div>
-    </div>
-
-    <!-- Option 4: Download File -->
-    <div class="card bg-base-200">
-      <div class="card-body">
-        <h3 class="card-title">
-          📥 Download File
-          <div class="badge">Manual</div>
-        </h3>
-        <p class="text-sm">Download as text file for manual storage</p>
-        <ul class="text-sm list-disc list-inside mt-2">
-          <li>Store in secure location</li>
-          <li>Add to encrypted USB/drive</li>
-          <li>Keep offline backup</li>
-        </ul>
-        <button
-          type="button"
-          class="btn btn-ghost btn-sm mt-4"
-          onclick="downloadKeyFile()"
-        >
-          📥 Download
-        </button>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Mobile QR Option -->
-  <div class="card bg-base-200 mb-6">
-    <div class="card-body">
-      <h3 class="card-title">📱 Save to Mobile Device</h3>
-      <div class="flex flex-col md:flex-row gap-4 items-center">
-        <div class="flex-shrink-0">
-          <img
-            src="{% url 'surveys:key-qr' slug=survey.slug %}"
-            alt="QR Code"
-            class="w-32 h-32 border-4 border-base-300 rounded"
+        <div class="input-group">
+          <input
+            type="text"
+            readonly
+            value="{{ encryption_key_b64 }}"
+            class="input input-bordered w-full font-mono text-sm"
+            id="encryption-key"
           />
+          <button
+            class="btn btn-square"
+            onclick="copyToClipboard('encryption-key')"
+            title="Copy to clipboard"
+          >
+            📋
+          </button>
         </div>
+        <label class="label">
+          <span class="label-text-alt">
+            Use this key to unlock the survey when signed in.
+          </span>
+        </label>
+      </div>
+
+      <!-- Method 2: Recovery Phrase (12 Words) -->
+      <div class="divider mt-6">Backup Recovery Method</div>
+
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-semibold text-lg">
+            🔑 Recovery Phrase (12 Words)
+          </span>
+        </label>
+        <div class="bg-base-200 p-4 rounded-lg">
+          <div class="grid grid-cols-3 gap-3 font-mono text-sm" id="recovery-phrase">
+            {% for word in recovery_phrase_words %}
+              <div class="bg-base-100 p-2 rounded">
+                <span class="text-xs text-gray-500">{{ forloop.counter }}.</span>
+                <span class="font-semibold">{{ word }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <label class="label">
+          <span class="label-text-alt">
+            Write these words down in order. They can recover your data if you lose the encryption key.
+          </span>
+        </label>
+      </div>
+
+      <!-- Download and Print Options -->
+      <div class="flex flex-wrap gap-3 mt-6">
+        <button class="btn btn-primary gap-2" onclick="downloadKeyFile()">
+          📥 Download Keys as Text File
+        </button>
+        <button class="btn btn-secondary gap-2" onclick="downloadRecoverySheet()">
+          📄 Download Printable Recovery Sheet
+        </button>
+        <button class="btn btn-accent gap-2" onclick="window.print()">
+          🖨️ Print This Page
+        </button>
+      </div>
+
+      <!-- Security Best Practices -->
+      <div class="alert alert-info mt-6">
         <div>
-          <p class="text-sm">Scan this QR code to save the key to your mobile device:</p>
-          <ol class="text-sm list-decimal list-inside ml-2 mt-2">
-            <li>Open your phone's camera app</li>
-            <li>Scan the QR code</li>
-            <li>Save to Notes, password manager, or secure storage</li>
-          </ol>
+          <svg class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h4 class="font-bold">Recommended Storage Methods:</h4>
+            <ul class="text-sm list-disc list-inside mt-2 space-y-1">
+              <li><strong>Password Manager:</strong> Store both keys in a password manager (1Password, Bitwarden, etc.)</li>
+              <li><strong>Offline Backup:</strong> Print the recovery sheet and store in a safe place</li>
+              <li><strong>Encrypted Storage:</strong> Save the text file in encrypted cloud storage (not email!)</li>
+              <li><strong>Multiple Copies:</strong> Keep recovery phrase in 2-3 separate secure locations</li>
+            </ul>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Confirmation Checklist -->
-  <div class="card bg-warning text-warning-content">
-    <div class="card-body">
-      <h3 class="card-title">✅ Before Proceeding</h3>
-      <p class="mb-4">Confirm you've saved your key using at least one method:</p>
-
-      <form method="post" action="{% url 'surveys:key-confirm' slug=survey.slug %}">
-        {% csrf_token %}
-
-        <div class="form-control">
-          <label class="label cursor-pointer justify-start gap-3">
-            <input type="checkbox" id="saved-browser" class="checkbox" onchange="updateConfirm()" />
-            <span class="label-text">Saved to browser password manager</span>
-          </label>
+      <!-- Individual User Warning -->
+      <div class="alert alert-warning mt-4">
+        <div>
+          <svg class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <h4 class="font-bold">👤 Individual Account - Important</h4>
+            <ul class="text-sm list-disc list-inside mt-2">
+              <li>⚠️ You are solely responsible for these keys</li>
+              <li>⚠️ Census cannot recover lost keys for individual accounts</li>
+              <li>⚠️ Losing BOTH the encryption key AND recovery phrase = permanent data loss</li>
+              <li>⚠️ Never share these keys via email or messaging apps</li>
+              <li>💡 Consider upgrading to an Organization account for key recovery options</li>
+            </ul>
+          </div>
         </div>
+      </div>
 
-        <div class="form-control">
-          <label class="label cursor-pointer justify-start gap-3">
-            <input type="checkbox" id="saved-pm" class="checkbox" onchange="updateConfirm()" />
-            <span class="label-text">Saved to password manager app (1Password, Bitwarden, etc.)</span>
-          </label>
-        </div>
+      <!-- Acknowledgment Checkbox -->
+      <div class="form-control mt-6">
+        <label class="label cursor-pointer justify-start gap-3">
+          <input
+            type="checkbox"
+            class="checkbox checkbox-error checkbox-lg"
+            id="acknowledge"
+            required
+          />
+          <span class="label-text font-semibold">
+            I have saved BOTH the encryption key and recovery phrase securely.
+            I understand that losing both will result in permanent, unrecoverable data loss.
+          </span>
+        </label>
+      </div>
 
-        <div class="form-control">
-          <label class="label cursor-pointer justify-start gap-3">
-            <input type="checkbox" id="saved-local" class="checkbox" onchange="updateConfirm()" />
-            <span class="label-text">Saved to this browser's local storage</span>
-          </label>
-        </div>
-
-        <div class="form-control">
-          <label class="label cursor-pointer justify-start gap-3">
-            <input type="checkbox" id="saved-download" class="checkbox" onchange="updateConfirm()" />
-            <span class="label-text">Downloaded and stored securely</span>
-          </label>
-        </div>
-
-        <div class="form-control">
-          <label class="label cursor-pointer justify-start gap-3">
-            <input type="checkbox" id="saved-mobile" class="checkbox" onchange="updateConfirm()" />
-            <span class="label-text">Saved to mobile device via QR code</span>
-          </label>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="form-control">
-          <label class="label cursor-pointer justify-start gap-3">
-            <input
-              type="checkbox"
-              id="acknowledge"
-              class="checkbox checkbox-warning"
-              required
-              onchange="updateConfirm()"
-            />
-            <span class="label-text font-bold">
-              I understand this key cannot be recovered if lost, and I have saved it securely.
-            </span>
-          </label>
-        </div>
-
+      <!-- Continue Button -->
+      <div class="card-actions justify-end mt-6">
         <button
-          type="submit"
-          id="confirm-btn"
-          class="btn btn-primary mt-6 w-full"
+          class="btn btn-primary btn-wide btn-lg"
+          id="continue-btn"
           disabled
+          onclick="clearKeysAndContinue()"
         >
-          Continue to Survey Setup →
+          Continue to Survey Builder →
         </button>
-      </form>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-function updateConfirm() {
-  const anySaved = document.querySelector('#saved-browser:checked') ||
-                   document.querySelector('#saved-pm:checked') ||
-                   document.querySelector('#saved-local:checked') ||
-                   document.querySelector('#saved-download:checked') ||
-                   document.querySelector('#saved-mobile:checked');
+  // Enable continue button only after acknowledgment
+  document.getElementById('acknowledge').addEventListener('change', function() {
+    document.getElementById('continue-btn').disabled = !this.checked;
+  });
 
-  const acknowledged = document.getElementById('acknowledge').checked;
+  // Copy to clipboard
+  function copyToClipboard(elementId) {
+    const input = document.getElementById(elementId);
+    input.select();
+    document.execCommand('copy');
 
-  const confirmBtn = document.getElementById('confirm-btn');
-  confirmBtn.disabled = !(anySaved && acknowledged);
-}
+    // Show feedback
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.textContent = '✓';
+    setTimeout(() => btn.textContent = originalText, 1500);
+  }
 
-function copyToClipboard() {
-  const keyInput = document.getElementById('survey-key');
-  keyInput.select();
-  document.execCommand('copy');
+  // Download both keys as text file
+  function downloadKeyFile() {
+    const key = document.getElementById('encryption-key').value;
+    const recoveryWords = Array.from(
+      document.querySelectorAll('#recovery-phrase .font-semibold')
+    ).map(el => el.textContent).join(' ');
 
-  // Show toast notification
-  const toast = document.createElement('div');
-  toast.className = 'toast toast-top toast-end';
-  toast.innerHTML = '<div class="alert alert-success"><span>✅ Key copied to clipboard</span></div>';
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
-}
+    const surveyName = '{{ survey.name|escapejs }}';
+    const content = `Census Survey Encryption Keys
+=====================================
+
+Survey: ${surveyName}
+Created: {{ now|date:"Y-m-d H:i:s" }}
+
+ENCRYPTION KEY (Base64):
+${key}
+
+RECOVERY PHRASE (12 Words):
+${recoveryWords}
+
+⚠️ CRITICAL SECURITY INFORMATION ⚠️
+────────────────────────────────────
+• Store this file in a secure location (password manager or encrypted storage)
+• NEVER share via email, messaging apps, or unencrypted cloud storage
+• You need EITHER the encryption key OR the recovery phrase to access data
+• Losing BOTH means permanent data loss - Census cannot recover them
+• Consider printing a backup and storing in a physical safe
+
+RECOMMENDED STORAGE:
+────────────────────
+✓ Password manager (1Password, Bitwarden, LastPass, etc.)
+✓ Encrypted USB drive in safe deposit box
+✓ Printed copy in fireproof safe
+✓ Encrypted cloud storage with strong password
+
+DO NOT STORE:
+────────────
+✗ Unencrypted email
+✗ Text messages or chat apps
+✗ Unencrypted cloud drives
+✗ Shared network drives
+✗ Browser bookmarks or notes
+
+For more information:
+https://docs.census.app/patient-data-encryption/
+
+Generated by Census Survey Platform
+`;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `census-${surveyName.toLowerCase().replace(/\s+/g, '-')}-encryption-keys-{{ now|date:"Y-m-d" }}.txt`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  // Download printable recovery sheet (formatted PDF-ready)
+  function downloadRecoverySheet() {
+    const key = document.getElementById('encryption-key').value;
+    const recoveryWords = Array.from(
+      document.querySelectorAll('#recovery-phrase .font-semibold')
+    ).map(el => el.textContent);
+
+    const surveyName = '{{ survey.name|escapejs }}';
+
+    let recoveryGrid = '';
+    for (let i = 0; i < 12; i++) {
+      recoveryGrid += `${i + 1}. ${recoveryWords[i]}\n`;
+    }
+
+    const content = `
+╔═══════════════════════════════════════════════════════════════════╗
+║                                                                   ║
+║              CENSUS SURVEY - ENCRYPTION RECOVERY SHEET            ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+Survey Name: ${surveyName}
+Created: {{ now|date:"Y-m-d H:i:s" }}
+
+─────────────────────────────────────────────────────────────────────
+
+RECOVERY PHRASE (12 Words)
+══════════════════════════
+
+${recoveryGrid}
+
+─────────────────────────────────────────────────────────────────────
+
+ENCRYPTION KEY (Base64)
+═══════════════════════
+
+${key}
+
+─────────────────────────────────────────────────────────────────────
+
+⚠️  CRITICAL INSTRUCTIONS ⚠️
+
+1. STORE SECURELY
+   • Keep in a fireproof safe or secure location
+   • Treat like cash, passport, or bank account details
+   • Do NOT leave in plain sight
+
+2. RECOVERY METHODS
+   • Use recovery phrase if you forget encryption key
+   • Use encryption key for normal survey access
+   • You need EITHER one to access encrypted data
+
+3. PROTECTION
+   • Do not photograph or scan this document
+   • Do not share via email or messaging
+   • Shred securely when no longer needed
+
+4. DATA LOSS WARNING
+   • Losing BOTH keys = permanent data loss
+   • Census cannot recover keys for individual accounts
+   • No backdoor or recovery service exists
+
+─────────────────────────────────────────────────────────────────────
+
+For technical documentation:
+https://docs.census.app/patient-data-encryption/
+
+Generated by Census Survey Platform
+© ${new Date().getFullYear()}
+
+═══════════════════════════════════════════════════════════════════
+`;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `census-${surveyName.toLowerCase().replace(/\s+/g, '-')}-recovery-sheet-{{ now|date:"Y-m-d" }}.txt`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  // Clear keys from session and continue
+  function clearKeysAndContinue() {
+    // Keys are cleared from session server-side after first view
+    window.location.href = '{% url "surveys:groups" slug=survey.slug %}';
+  }
 </script>
+
+<style>
+  @media print {
+    .btn, .alert { page-break-inside: avoid; }
+    #continue-btn { display: none; }
+  }
+</style>
 ```
+
+**Key Recovery Workflow:**
+
+```python
+@login_required
+def survey_unlock_with_recovery(request: HttpRequest, slug: str) -> HttpResponse:
+    """Unlock survey using either password-based key OR recovery phrase."""
+
+    survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+
+    if request.method == "POST":
+        unlock_method = request.POST.get("unlock_method")  # "key" or "recovery"
+
+        if unlock_method == "key":
+            # Traditional key unlock (base64 key)
+            key_b64 = request.POST.get("key", "")
+            try:
+                key = base64.b64decode(key_b64)
+                if verify_key(key, bytes(survey.key_hash), bytes(survey.key_salt)):
+                    request.session["survey_key"] = key
+                    log_key_access(request.user, survey, method="encryption_key")
+                    messages.success(request, "Survey unlocked successfully.")
+                    return redirect("surveys:dashboard", slug=slug)
+            except Exception:
+                pass
+
+            messages.error(request, "Invalid encryption key.")
+
+        elif unlock_method == "recovery":
+            # Recovery phrase unlock
+            recovery_phrase = request.POST.get("recovery_phrase", "").strip()
+
+            try:
+                # Derive key from recovery phrase
+                recovery_key = derive_key_from_passphrase(recovery_phrase)
+
+                # Decrypt the KEK using recovery key
+                decrypted_data = decrypt_sensitive(
+                    recovery_key,
+                    bytes(survey.encrypted_kek_recovery)
+                )
+                survey_kek = bytes.fromhex(decrypted_data["kek"])
+
+                # Verify it's correct
+                if verify_key(survey_kek, bytes(survey.key_hash), bytes(survey.key_salt)):
+                    request.session["survey_key"] = survey_kek
+                    log_key_access(request.user, survey, method="recovery_phrase")
+                    messages.success(
+                        request,
+                        "Survey unlocked using recovery phrase. "
+                        "Consider saving the encryption key for easier access."
+                    )
+                    return redirect("surveys:dashboard", slug=slug)
+            except Exception as e:
+                logger.exception("Recovery phrase unlock failed")
+
+            messages.error(request, "Invalid recovery phrase. Check spelling and word order.")
+
+    return render(request, "surveys/unlock.html", {
+        "survey": survey,
+        "supports_recovery": bool(survey.encrypted_kek_recovery),
+    })
+```
+
+#### Future Enhancement: OIDC Identity-Based Keys (Planned)
+
+When OIDC (OpenID Connect) authentication is implemented, individual users will have an even better option: **automatic key derivation from their identity provider** (Google, Microsoft, GitHub, etc.).
+
+**How OIDC Will Improve Key Management:**
+
+```
+OIDC-Enhanced Individual User Encryption
+├─ OIDC Identity-Derived Key (Primary - Auto-unlock)
+│  └─ Derived from stable OIDC subject identifier
+│  └─ No manual key entry needed when signed in
+│  └─ MFA handled by identity provider (Google/Microsoft)
+│
+├─ Recovery Phrase (Backup)
+│  └─ Still generated for offline/fallback access
+│  └─ Used if OIDC provider has issues
+│
+└─ Password-Based Key (Legacy Support)
+   └─ For users who don't use OIDC
+```
+
+**Benefits of OIDC (when implemented):**
+
+✅ **No Manual Key Management**: Keys automatically available when user authenticates via Google/Microsoft
+✅ **MFA Built-In**: Multi-factor authentication handled by identity provider
+✅ **Survives Password Changes**: OIDC subject ID is stable across password resets
+✅ **Better UX**: "Sign in with Google" → automatic survey unlock
+✅ **Recovery Phrase as Backup**: Still available if OIDC provider has issues
+
+**Current Status**: OIDC implementation is planned but not yet available. For now, individual users rely on the password + recovery phrase approach (Option 2).
 
 ### Survey Unlocking via Web Interface
 
