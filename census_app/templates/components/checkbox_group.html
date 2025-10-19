@@ -7,6 +7,7 @@
   - label (optional): group label
   - inline (optional): truthy => inline layout
 #}
+{% load i18n %}
 <fieldset class="space-y-2">
   {% if label %}<legend class="font-semibold">{{ label }}</legend>{% endif %}
   <div class="{% if inline %}flex flex-wrap items-center gap-4{% else %}space-y-2{% endif %}">

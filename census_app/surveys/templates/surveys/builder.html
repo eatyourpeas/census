@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load i18n %}
 {% block head_theme_overrides %}
   {% if survey.style.theme_css_light or survey.style.theme_css_dark %}
   <style>
@@ -19,12 +20,14 @@
   {% endif %}
 {% endblock %}
 {% load static %}
-{% block title %}Question Group Builder - {{ survey.name }}{% endblock %}
+{% block title %}{% trans "Question Group Builder" %} - {{ survey.name }}{% endblock %}
 {% block content %}
 <div class="flex flex-col gap-6">
   <div class="prose">
-    {% include 'components/breadcrumbs.html' with crumb1_label="Survey Dashboard" crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label="Question Group Builder" crumb2_href="/surveys/"|add:survey.slug|add:"/builder/" %}
-    <h1>Question Group Builder</h1>
+    {% trans "Survey Dashboard" as crumb1_text %}
+    {% trans "Question Group Builder" as crumb2_text %}
+    {% include 'components/breadcrumbs.html' with crumb1_label=crumb1_text crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label=crumb2_text crumb2_href="/surveys/"|add:survey.slug|add:"/builder/" %}
+    <h1>{% trans "Question Group Builder" %}</h1>
     <hr/>
     <h2>{{ survey.name }}</h2>
   </div>
@@ -35,7 +38,7 @@
         <div class="card-body">
           <h2 class="card-title inline-flex items-center gap-2 text-base-content">
             {% include "components/icons/document.html" with classes="w-5 h-5 text-base-content" %}
-            <span>All Questions</span>
+            <span>{% trans "All Questions" %}</span>
           </h2>
           {% include 'surveys/partials/questions_list.html' %}
         </div>
@@ -45,11 +48,11 @@
     <div>
       <div class="card bg-base-100 shadow">
         <div class="card-body">
-          <h2 class="card-title">Groups</h2>
-          <p class="opacity-80">Create and manage groups, then add questions inside each group.</p>
-          <a class="btn btn-primary" href="/surveys/{{ survey.slug }}/groups/">Manage groups</a>
+          <h2 class="card-title">{% trans "Groups" %}</h2>
+          <p class="opacity-80">{% trans "Create and manage groups, then add questions inside each group." %}</p>
+          <a class="btn btn-primary" href="/surveys/{{ survey.slug }}/groups/">{% trans "Manage groups" %}</a>
           {% if groups %}
-            <div class="divider">Open a group</div>
+            <div class="divider">{% trans "Open a group" %}</div>
             <ul class="menu bg-base-100 rounded-box">
               {% for g in groups %}
                 <li><a href="/surveys/{{ survey.slug }}/builder/groups/{{ g.id }}/">{{ g.name }}</a></li>

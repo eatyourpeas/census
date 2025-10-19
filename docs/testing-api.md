@@ -42,13 +42,13 @@ User = get_user_model()
 @pytest.mark.django_db
 class TestMyAPIEndpoint:
     """Test suite for my API endpoint."""
-    
+
     @pytest.fixture
     def setup_test_data(self, client):
         """Create test data needed for tests."""
         user = User.objects.create_user(username="testuser", password="testpass")
         # ... create other test data
-        
+
         # Get JWT token
         resp = client.post(
             "/api/token",
@@ -57,20 +57,20 @@ class TestMyAPIEndpoint:
         )
         token = resp.json()["access"]
         headers = {"HTTP_AUTHORIZATION": f"Bearer {token}"}
-        
+
         return user, headers
-    
+
     def test_endpoint_success(self, client, setup_test_data):
         """Test successful API call."""
         user, headers = setup_test_data
-        
+
         response = client.post(
             "/api/my-endpoint/",
             data=json.dumps({"key": "value"}),
             content_type="application/json",
             **headers
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["key"] == "expected_value"
@@ -143,7 +143,7 @@ def test_seed_text_question(self, client, setup_basic_survey):
     data = response.json()
     assert "questions" in data
     assert len(data["questions"]) == 1
-    
+
     question = SurveyQuestion.objects.get(survey=survey)
     assert question.text == "What is your name?"
     assert question.type == SurveyQuestion.Types.TEXT
@@ -186,7 +186,7 @@ def test_seed_mc_single_with_followup(self, client, setup_basic_survey):
         }
     ]
 
-    response = client.post(url, data=json.dumps(payload), 
+    response = client.post(url, data=json.dumps(payload),
                           content_type="application/json", **headers)
 
     assert response.status_code == 200
@@ -239,7 +239,7 @@ def test_validation_warning_missing_text(self, client, setup_basic_survey):
     assert response.status_code == 200
     data = response.json()
     assert "warnings" in data
-    
+
     # Question created with default text
     question = SurveyQuestion.objects.get(survey=survey)
     assert question.text == "Untitled"
@@ -275,11 +275,11 @@ def test_seed_with_multiple_question_groups(self, client, setup_basic_survey):
                           content_type="application/json", **headers)
 
     assert response.status_code == 200
-    
+
     # Should create 2 groups
     groups = QuestionGroup.objects.filter(owner=user)
     assert groups.count() == 2
-    
+
     # Questions assigned to correct groups
     demo_group = groups.get(name="Demographics")
     assert SurveyQuestion.objects.filter(group=demo_group).count() == 2
@@ -305,12 +305,12 @@ def test_response_format(self, client, setup_basic_survey):
 
     assert response.status_code == 200
     data = response.json()
-    
+
     # Check structure
     assert isinstance(data, dict)
     assert "questions" in data
     assert isinstance(data["questions"], list)
-    
+
     # Check question data
     question_data = data["questions"][0]
     assert "id" in question_data
@@ -359,13 +359,13 @@ def setup_basic_survey(self, client):
     """Create user, survey, and auth headers."""
     user = User.objects.create_user(username="testuser", password="testpass")
     survey = Survey.objects.create(owner=user, name="Test", slug="test")
-    
-    resp = client.post("/api/token", 
+
+    resp = client.post("/api/token",
                       data=json.dumps({"username": "testuser", "password": "testpass"}),
                       content_type="application/json")
     token = resp.json()["access"]
     headers = {"HTTP_AUTHORIZATION": f"Bearer {token}"}
-    
+
     return user, survey, headers
 ```
 
@@ -429,7 +429,7 @@ Use `@pytest.mark.django_db` to ensure database cleanup:
 @pytest.mark.django_db
 class TestMyAPI:
     """Tests with automatic database cleanup."""
-    
+
     def test_something(self, client):
         # Database changes rolled back after test
         pass
@@ -445,7 +445,7 @@ def test_validation_all_valid_types_accepted(self, client, setup_basic_survey):
     user, survey, headers = setup_basic_survey
     url = f"/api/surveys/{survey.id}/seed/"
 
-    valid_types = ["text", "mc_single", "mc_multi", "dropdown", 
+    valid_types = ["text", "mc_single", "mc_multi", "dropdown",
                    "yesno", "likert", "orderable", "image",
                    "template_patient", "template_professional"]
 
@@ -454,7 +454,7 @@ def test_validation_all_valid_types_accepted(self, client, setup_basic_survey):
         response = client.post(url, data=json.dumps(payload),
                               content_type="application/json", **headers)
         assert response.status_code == 200, f"Failed for type: {qtype}"
-        
+
         # Clean up for next iteration
         SurveyQuestion.objects.filter(survey=survey).delete()
 ```

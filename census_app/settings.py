@@ -69,9 +69,11 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "csp.middleware.CSPMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "census_app.core.middleware.UserLanguageMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "axes.middleware.AxesMiddleware",
@@ -121,6 +123,29 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 LANGUAGE_CODE = "en-gb"
+
+# Supported languages
+LANGUAGES = [
+    ("en", "English"),
+    ("en-gb", "English (UK)"),
+    ("cy", "Cymraeg (Welsh)"),
+    ("fr", "Français (French)"),
+    ("es", "Español (Spanish)"),
+    ("de", "Deutsch (German)"),
+    ("it", "Italiano (Italian)"),
+    ("pt", "Português (Portuguese)"),
+    ("pl", "Polski (Polish)"),
+    ("ar", "العربية (Arabic)"),
+    ("zh-hans", "简体中文 (Simplified Chinese)"),
+    ("hi", "हिन्दी (Hindi)"),
+    ("ur", "اردو (Urdu)"),
+]
+
+# Directory for translation files
+LOCALE_PATHS = [
+    BASE_DIR / "locale",
+]
+
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True

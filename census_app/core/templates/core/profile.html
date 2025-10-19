@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Profile - Census{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Profile" %} - Census{% endblock %}
 {% block head_theme_overrides %}
   <style>
     /* Improve badge text visibility within typography (.prose) on this page */
@@ -14,13 +15,13 @@
 <div class="prose">
   <h1 class="inline-flex items-center gap-2 text-base-content">
     {% include "components/icons/users.html" with classes="w-6 h-6 text-base-content" %}
-    <span>Your Profile</span>
+    <span>{% trans "Your Profile" %}</span>
   </h1>
-  <p>Signed in as <strong>{{ request.user.username }}</strong></p>
+  <p>{% blocktrans with username=request.user.username %}Signed in as <strong>{{ username }}</strong>{% endblocktrans %}</p>
   {% if org %}
   <h2 class="inline-flex items-center gap-2 text-base-content mt-2">
     {% include "components/icons/building.html" with classes="w-5 h-5 text-base-content" %}
-    <span>Your organisation: {{ org.name }}</span>
+    <span>{% blocktrans with org_name=org.name %}Your organisation: {{ org_name }}{% endblocktrans %}</span>
   </h2>
   {% endif %}
 </div>
@@ -30,11 +31,12 @@
     <div class="card-body">
       <h2 class="card-title inline-flex items-center gap-2 text-base-content">
         {% include "components/icons/users.html" with classes="w-5 h-5 text-base-content" %}
-        <span>Your badges</span>
+        <span>{% trans "Your badges" %}</span>
       </h2>
       <div class="flex flex-wrap gap-3 items-center mt-3">
         {% if stats.is_superuser %}
-          <div class="tooltip" data-tip="You have full administrative access to the platform">
+          {% trans "You have full administrative access to the platform" as tooltip_superuser %}
+          <div class="tooltip" data-tip="{{ tooltip_superuser }}">
             <div class="indicator">
               <div class="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
                 {% include "components/icons/bolt.html" with classes="w-6 h-6" %}
@@ -43,7 +45,8 @@
           </div>
         {% endif %}
         {% if stats.is_staff and not stats.is_superuser %}
-          <div class="tooltip" data-tip="You have staff-level access to the platform">
+          {% trans "You have staff-level access to the platform" as tooltip_staff %}
+          <div class="tooltip" data-tip="{{ tooltip_staff }}">
             <div class="indicator">
               <div class="bg-secondary text-secondary-content rounded-full w-12 h-12 flex items-center justify-center">
                 {% include "components/icons/users.html" with classes="w-6 h-6" %}
@@ -52,7 +55,7 @@
           </div>
         {% endif %}
         {% if stats.orgs_owned %}
-          <div class="tooltip" data-tip="You own {{ stats.orgs_owned }} organization{{ stats.orgs_owned|pluralize }}">
+          <div class="tooltip" data-tip="{% blocktrans count orgs=stats.orgs_owned %}You own {{ orgs }} organization{% plural %}You own {{ orgs }} organizations{% endblocktrans %}">
             <div class="indicator">
               <span class="indicator-item badge badge-primary text-xs">{{ stats.orgs_owned }}</span>
               <div class="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
@@ -62,7 +65,7 @@
           </div>
         {% endif %}
         {% if stats.org_admin_count %}
-          <div class="tooltip" data-tip="You are an administrator in {{ stats.org_admin_count }} organization{{ stats.org_admin_count|pluralize }}">
+          <div class="tooltip" data-tip="{% blocktrans count orgs=stats.org_admin_count %}You are an administrator in {{ orgs }} organization{% plural %}You are an administrator in {{ orgs }} organizations{% endblocktrans %}">
             <div class="indicator">
               <span class="indicator-item badge badge-accent text-xs">{{ stats.org_admin_count }}</span>
               <div class="bg-accent text-accent-content rounded-full w-12 h-12 flex items-center justify-center">
@@ -72,7 +75,7 @@
           </div>
         {% endif %}
         {% if stats.org_memberships %}
-          <div class="tooltip" data-tip="You are a member of {{ stats.org_memberships }} organization{{ stats.org_memberships|pluralize }}">
+          <div class="tooltip" data-tip="{% blocktrans count orgs=stats.org_memberships %}You are a member of {{ orgs }} organization{% plural %}You are a member of {{ orgs }} organizations{% endblocktrans %}">
             <div class="indicator">
               <span class="indicator-item badge badge-neutral text-xs">{{ stats.org_memberships }}</span>
               <div class="bg-neutral text-neutral-content rounded-full w-12 h-12 flex items-center justify-center">
@@ -82,7 +85,7 @@
           </div>
         {% endif %}
         {% if stats.surveys_owned %}
-          <div class="tooltip" data-tip="You own {{ stats.surveys_owned }} survey{{ stats.surveys_owned|pluralize }}">
+          <div class="tooltip" data-tip="{% blocktrans count surveys=stats.surveys_owned %}You own {{ surveys }} survey{% plural %}You own {{ surveys }} surveys{% endblocktrans %}">
             <div class="indicator">
               <span class="indicator-item badge badge-primary text-xs">{{ stats.surveys_owned }}</span>
               <div class="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
@@ -92,7 +95,7 @@
           </div>
         {% endif %}
         {% if stats.survey_creator_count %}
-          <div class="tooltip" data-tip="You are a creator on {{ stats.survey_creator_count }} survey{{ stats.survey_creator_count|pluralize }}">
+          <div class="tooltip" data-tip="{% blocktrans count surveys=stats.survey_creator_count %}You are a creator on {{ surveys }} survey{% plural %}You are a creator on {{ surveys }} surveys{% endblocktrans %}">
             <div class="indicator">
               <span class="indicator-item badge badge-info text-xs">{{ stats.survey_creator_count }}</span>
               <div class="bg-info text-info-content rounded-full w-12 h-12 flex items-center justify-center">
@@ -102,7 +105,7 @@
           </div>
         {% endif %}
         {% if stats.survey_viewer_count %}
-          <div class="tooltip" data-tip="You can view {{ stats.survey_viewer_count }} survey{{ stats.survey_viewer_count|pluralize }}">
+          <div class="tooltip" data-tip="{% blocktrans count surveys=stats.survey_viewer_count %}You can view {{ surveys }} survey{% plural %}You can view {{ surveys }} surveys{% endblocktrans %}">
             <div class="indicator">
               <span class="indicator-item badge badge-neutral text-xs">{{ stats.survey_viewer_count }}</span>
               <div class="bg-neutral text-neutral-content rounded-full w-12 h-12 flex items-center justify-center">
@@ -112,7 +115,7 @@
           </div>
         {% endif %}
         {% if stats.groups_owned %}
-          <div class="tooltip" data-tip="You have authored {{ stats.groups_owned }} question group{{ stats.groups_owned|pluralize }}">
+          <div class="tooltip" data-tip="{% blocktrans count groups=stats.groups_owned %}You have authored {{ groups }} question group{% plural %}You have authored {{ groups }} question groups{% endblocktrans %}">
             <div class="indicator">
               <span class="indicator-item badge badge-success text-xs">{{ stats.groups_owned }}</span>
               <div class="bg-success text-success-content rounded-full w-12 h-12 flex items-center justify-center">
@@ -122,7 +125,7 @@
           </div>
         {% endif %}
         {% if stats.responses_submitted %}
-          <div class="tooltip" data-tip="You have submitted {{ stats.responses_submitted }} response{{ stats.responses_submitted|pluralize }} to surveys">
+          <div class="tooltip" data-tip="{% blocktrans count responses=stats.responses_submitted %}You have submitted {{ responses }} response to surveys{% plural %}You have submitted {{ responses }} responses to surveys{% endblocktrans %}">
             <div class="indicator">
               <span class="indicator-item badge badge-warning text-xs">{{ stats.responses_submitted }}</span>
               <div class="bg-warning text-warning-content rounded-full w-12 h-12 flex items-center justify-center">
@@ -132,7 +135,7 @@
           </div>
         {% endif %}
         {% if stats.tokens_created %}
-          <div class="tooltip" data-tip="You have created {{ stats.tokens_created }} invitation token{{ stats.tokens_created|pluralize }}">
+          <div class="tooltip" data-tip="{% blocktrans count tokens=stats.tokens_created %}You have created {{ tokens }} invitation token{% plural %}You have created {{ tokens }} invitation tokens{% endblocktrans %}">
             <div class="indicator">
               <span class="indicator-item badge badge-error text-xs">{{ stats.tokens_created }}</span>
               <div class="bg-error text-error-content rounded-full w-12 h-12 flex items-center justify-center">
@@ -147,25 +150,43 @@
   <div class="card bg-base-100 shadow mb-6">
     <div class="card-body">
       <h2 class="card-title inline-flex items-center gap-2 text-base-content">
-        {% include "components/icons/bolt.html" with classes="w-5 h-5 text-base-content" %}
-        <span>Appearance</span>
+        {% include "components/icons/language.html" with classes="w-5 h-5 text-base-content" %}
+        <span>{% trans "Language" %}</span>
       </h2>
-      <p class="opacity-80">Choose your theme. This only affects your view and is saved in your browser.</p>
+      <p class="opacity-80">{% trans "Choose your preferred language. This affects all text in the application." %}</p>
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_language" />
+        <div class="form-control max-w-xs">
+          {{ language_form.language }}
+        </div>
+        <button type="submit" class="btn btn-primary mt-4">{% trans "Save Language Preference" %}</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+      <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+        {% include "components/icons/bolt.html" with classes="w-5 h-5 text-base-content" %}
+        <span>{% trans "Appearance" %}</span>
+      </h2>
+      <p class="opacity-80">{% trans "Choose your theme. This only affects your view and is saved in your browser." %}</p>
       <div class="form-control">
-        <span class="label"><span class="label-text">Theme</span></span>
+        <span class="label"><span class="label-text">{% trans "Theme" %}</span></span>
         <div class="dropdown">
           <div id="theme-dropdown-btn" tabindex="0" role="button" class="btn w-48 justify-between">
-            <span id="theme-current-label">System</span>
+            <span id="theme-current-label">{% trans "System" %}</span>
             <!-- caret handled by button styles -->
           </div>
           <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-10 w-48 p-2 shadow">
-            <li><button type="button" data-theme-choice="system">System</button></li>
-            <li><button type="button" data-theme-choice="census-light">Light</button></li>
-            <li><button type="button" data-theme-choice="census-dark">Dark</button></li>
+            <li><button type="button" data-theme-choice="system">{% trans "System" %}</button></li>
+            <li><button type="button" data-theme-choice="census-light">{% trans "Light" %}</button></li>
+            <li><button type="button" data-theme-choice="census-dark">{% trans "Dark" %}</button></li>
           </ul>
         </div>
         <noscript>
-          <div class="alert alert-warning mt-3">Enable JavaScript to change theme.</div>
+          <div class="alert alert-warning mt-3">{% trans "Enable JavaScript to change theme." %}</div>
         </noscript>
       </div>
     </div>

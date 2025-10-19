@@ -67,7 +67,7 @@
                 <div class="tooltip" data-tip="{{ info.tooltip }}">
                   <div class="badge badge-info shrink-0 self-center inline-flex items-center gap-1">
                     {% include "components/icons/repeat.html" with classes="w-4 h-4" %}
-                    <span>Repeats</span>
+                    <span>{% trans "Repeats" %}</span>
                   </div>
                 </div>
                 {% if can_edit %}
@@ -79,12 +79,12 @@
                 </form>
                 {% endif %}
               {% else %}
-                <div class="badge badge-neutral shrink-0 self-center">{{ g.q_count|default:0 }} question{% if g.q_count|default:0 != 1 %}s{% endif %}</div>
+                <div class="badge badge-neutral shrink-0 self-center">{% blocktrans count counter=g.q_count|default:0 %}{{ counter }} question{% plural %}{{ counter }} questions{% endblocktrans %}</div>
               {% endif %}
               {% if can_edit %}
-              <form method="post" action="/surveys/{{ survey.slug }}/groups/{{ g.id }}/delete" onsubmit="return confirm('Delete this group?');" class="shrink-0">
+              <form method="post" action="/surveys/{{ survey.slug }}/groups/{{ g.id }}/delete" onsubmit="return confirm('{% trans "Delete this group?" %}');" class="shrink-0">
                 {% csrf_token %}
-                <button class="btn btn-sm btn-warning" type="submit">Delete</button>
+                <button class="btn btn-sm btn-warning" type="submit">{% trans "Delete" %}</button>
               </form>
               {% endif %}
             </div>
@@ -92,7 +92,7 @@
         </li>
         {% endwith %}
       {% empty %}
-        <li class="opacity-70">No groups yet. Create one to get started.</li>
+        <li class="opacity-70">{% trans "No groups yet. Create one to get started." %}</li>
       {% endfor %}
     </ul>
   <div class="flex flex-wrap gap-2 items-center sticky top-0 z-40 bg-base-200/95 backdrop-blur supports-[backdrop-filter]:bg-base-200/70 py-2">

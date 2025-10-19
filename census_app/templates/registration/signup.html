@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Sign up - {{ brand.title }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Sign up" %} - {{ brand.title }}{% endblock %}
 
 {% block head_theme_overrides %}
 <style>
@@ -25,8 +26,8 @@
 <div class="max-w-md mx-auto">
   <div class="card bg-base-100 shadow">
     <div class="card-body">
-      <h1 class="card-title">Create your account</h1>
-      <p class="opacity-80 mb-2">Sign up to start creating surveys and collecting responses.</p>
+      <h1 class="card-title">{% trans "Create your account" %}</h1>
+      <p class="opacity-80 mb-2">{% trans "Sign up to start creating surveys and collecting responses." %}</p>
       <form method="post" class="space-y-4">
         {% csrf_token %}
         {% include "components/form_errors.html" with form=form %}
@@ -37,20 +38,20 @@
 
         {# Account type selection #}
         <div class="form-control">
-          <span class="label"><span class="label-text">Account Type</span></span>
+          <span class="label"><span class="label-text">{% trans "Account Type" %}</span></span>
           <div class="space-y-2">
             <label class="label cursor-pointer justify-start gap-3 p-3 border border-base-300 rounded-lg hover:border-primary break-words">
               <input type="radio" name="account_type" value="simple" class="radio radio-primary shrink-0" checked />
               <div class="min-w-0">
-                <span class="label-text font-semibold">Individual User</span>
-                <p class="text-sm opacity-70">Create surveys and manage your own responses</p>
+                <span class="label-text font-semibold">{% trans "Individual User" %}</span>
+                <p class="text-sm opacity-70">{% trans "Create surveys and manage your own responses" %}</p>
               </div>
             </label>
             <label class="label cursor-pointer justify-start gap-3 p-3 border border-base-300 rounded-lg hover:border-primary break-words">
               <input type="radio" name="account_type" value="org" class="radio radio-primary shrink-0" />
               <div class="min-w-0">
-                <span class="label-text font-semibold">Organisation Account</span>
-                <p class="text-sm opacity-70">Create an organisation to collaborate with a team</p>
+                <span class="label-text font-semibold">{% trans "Organisation Account" %}</span>
+                <p class="text-sm opacity-70">{% trans "Create an organisation to collaborate with a team" %}</p>
               </div>
             </label>
           </div>
@@ -59,32 +60,32 @@
         {# Organisation name field (shown only when org account selected) #}
         <div id="org-name-container" class="form-control">
           <label id="org-name-label" class="label">
-            <span class="label-text">Organisation Name <span class="text-sm opacity-70">(optional)</span></span>
+            <span class="label-text">{% trans "Organisation Name" %} <span class="text-sm opacity-70">{% trans "(optional)" %}</span></span>
           </label>
           <input
             type="text"
             id="org-name-input"
             name="org_name"
             class="input input-bordered w-full min-w-0"
-            placeholder="e.g. Acme Health Research"
+            placeholder="{% trans "e.g. Acme Health Research" %}"
             disabled
           />
           <div class="label">
-            <span class="label-text-alt">Leave blank to use default name</span>
+            <span class="label-text-alt">{% trans "Leave blank to use default name" %}</span>
           </div>
           <div class="alert alert-info mt-2 text-sm" role="note">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span class="min-w-0">
-              <strong>Note:</strong> Organisation names don't need to be unique. Multiple organisations can have the same name—you'll only have access to your own organisation and any you're invited to join.
+              <strong>{% trans "Note:" %}</strong> {% trans "Organisation names don't need to be unique. Multiple organisations can have the same name—you'll only have access to your own organisation and any you're invited to join." %}
             </span>
           </div>
         </div>
 
-        <button type="submit" class="btn btn-primary w-full">Create account</button>
+        <button type="submit" class="btn btn-primary w-full">{% trans "Create account" %}</button>
       </form>
 
       <div class="mt-3 text-sm text-center">
-        Already have an account? <a class="link" href="{% url 'login' %}">Sign in</a>
+        {% trans "Already have an account?" %} <a class="link" href="{% url 'login' %}">{% trans "Sign in" %}</a>
       </div>
     </div>
   </div>

@@ -1,0 +1,1287 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-10-13 20:49+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: census_app/core/templates/core/home.html:4
+msgid "Home"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:13
+msgid "This application is in development currently and should NOT be used for live surveys at the moment."
+msgstr ""
+
+#: census_app/core/templates/core/home.html:33
+msgid "Census"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:34
+msgid "Surveys for health care"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:71
+msgid "Go to Surveys"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:76
+msgid "Read documentation"
+msgstr ""
+
+#: census_app/templates/registration/login.html:8
+msgid "Login"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:4
+msgid "Sign up"
+msgstr ""
+
+#: census_app/templates/base.html:193
+msgid "Build"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:94
+msgid "Drag-and-drop groups and questions, apply DaisyUI themes per survey, and control access with roles."
+msgstr ""
+
+#: census_app/core/templates/core/home.html:97
+msgid "Create a survey"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:99
+msgid "Login to start"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:109
+msgid "Distribute"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:111
+msgid "Invite your team, scope visibility by organisation and survey membership, and manage participation securely."
+msgstr ""
+
+#: census_app/core/templates/core/home.html:114
+msgid "Manage surveys"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:116
+msgid "Explore docs"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:126
+msgid "Analyze"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:128
+msgid "Monitor dashboards, export CSV, and audit changes. Everything runs on a secure SSR stack."
+msgstr ""
+
+#: census_app/core/templates/core/home.html:131
+msgid "View dashboards"
+msgstr ""
+
+#: census_app/core/templates/core/home.html:133
+msgid "See capabilities"
+msgstr ""
+
+#: census_app/templates/base.html:127
+msgid "Profile"
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:18
+msgid "Your Profile"
+msgstr "您的个人资料"
+
+#, python-format
+msgid "Signed in as <strong>%(username)s</strong>"
+msgstr ""
+
+#, python-format
+msgid "Your organisation: %(org_name)s"
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:34
+msgid "Your badges"
+msgstr "您的徽章"
+
+#: census_app/core/templates/core/profile.html:38
+msgid "You have full administrative access to the platform"
+msgstr "您拥有平台的完全管理访问权限"
+
+#: census_app/core/templates/core/profile.html:48
+msgid "You have staff-level access to the platform"
+msgstr "您拥有平台的员工级别访问权限"
+
+#, python-format
+msgid "You own %(orgs)s organization"
+msgstr ""
+
+#, python-format
+msgid "You are an administrator in %(orgs)s organization"
+msgstr ""
+
+#, python-format
+msgid "You are a member of %(orgs)s organization"
+msgstr ""
+
+#, python-format
+msgid "You own %(surveys)s survey"
+msgstr ""
+
+#, python-format
+msgid "You are a creator on %(surveys)s survey"
+msgstr ""
+
+#, python-format
+msgid "You can view %(surveys)s survey"
+msgstr ""
+
+#, python-format
+msgid "You have authored %(groups)s question group"
+msgstr ""
+
+#, python-format
+msgid "You have submitted %(responses)s response to surveys"
+msgstr ""
+
+#, python-format
+msgid "You have created %(tokens)s invitation token"
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:154
+msgid "Language"
+msgstr "语言"
+
+#: census_app/core/templates/core/profile.html:156
+msgid "Choose your preferred language. This affects all text in the application."
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:163
+msgid "Save Language Preference"
+msgstr "保存语言偏好设置"
+
+#: census_app/core/templates/core/profile.html:172
+msgid "Appearance"
+msgstr "外观"
+
+#: census_app/core/templates/core/profile.html:174
+msgid "Choose your theme. This only affects your view and is saved in your browser."
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:176
+msgid "Theme"
+msgstr "主题"
+
+#: census_app/core/templates/core/profile.html:183
+msgid "System"
+msgstr ""
+
+#: census_app/core/templates/core/profile.html:184
+msgid "Light"
+msgstr "浅色"
+
+#: census_app/core/templates/core/profile.html:185
+msgid "Dark"
+msgstr "深色"
+
+#: census_app/core/templates/core/profile.html:189
+msgid "Enable JavaScript to change theme."
+msgstr "启用 JavaScript 以更改主题。"
+
+#: census_app/core/views.py:61
+msgid "Language preference updated successfully."
+msgstr "语言偏好设置更新成功。"
+
+#: census_app/core/views.py:64
+msgid "There was an error updating your language preference."
+msgstr "更新您的语言偏好设置时发生错误。"
+
+#: census_app/core/views.py:74
+msgid "Email preferences updated successfully."
+msgstr ""
+
+#: census_app/core/views.py:77
+msgid "There was an error updating your email preferences."
+msgstr ""
+
+#: census_app/core/views.py:95
+msgid "Organisation created. You are now an organisation admin and can host surveys and build a team."
+msgstr ""
+
+#: census_app/core/views.py:119
+msgid "Project theme saved."
+msgstr "项目主题已保存。"
+
+#: census_app/core/views.py:214
+msgid "Organisation created. You are an organisation admin."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/builder.html:30
+msgid "Question Group Builder"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:6
+msgid "Survey Dashboard"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/builder.html:41
+msgid "All Questions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/list.html:37
+msgid "Groups"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/builder.html:52
+msgid "Create and manage groups, then add questions inside each group."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:43
+msgid "Manage groups"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/builder.html:55
+msgid "Open a group"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:8
+msgid "Import Questions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:12
+msgid "Import questions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:24
+msgid "Markdown"
+msgstr "Markdown"
+
+#: census_app/surveys/templates/surveys/list.html:13
+msgid "Create survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:32
+msgid "Overwrite survey questions?"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:34
+msgid "Importing from Markdown will delete all existing question groups, questions, branching rules, and collections that belong to this survey. Continue only if you are ready to replace the current builder content with the uploaded version."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:167
+msgid "Cancel"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:46
+msgid "Live structure preview"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:47
+msgid "Groups and questions are assigned unique IDs as you edit. Use these IDs to reason about branching later."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:52
+msgid "Start typing (or use the sample markdown) to see the survey structure."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:61
+msgid "Format reference"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:62
+msgid "Use markdown with the following structure:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:65
+msgid "<code># Group Title</code>, followed by a line for the group description"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:66
+msgid "<code>## Question Title</code>, followed by a line for the question description"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:67
+msgid "Add <code class=\\"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:68
+msgid "<code>(type)</code> on the next line in parentheses"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:69
+msgid "If the type requires options, list each on a line starting with <code>-</code>"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:70
+msgid "For options that should have follow-up text input, add an indented line starting with <code>+</code>"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:71
+msgid "For Likert number scales, add key-value lines: <code>min:</code>, <code>max:</code>, optional <code>left:</code>, <code>right:</code>"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:75
+msgid "Supported types"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:77
+msgid "free text"
+msgstr "自由文本"
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:78
+msgid "numeric input"
+msgstr "数字输入"
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:79
+msgid "multiple choice (single)"
+msgstr "多项选择 (单选)"
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:80
+msgid "multiple choice (multi)"
+msgstr "多项选择 (多选)"
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:81
+msgid "select menu"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:82
+msgid "orderable list"
+msgstr "可排序列表"
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:83
+msgid "yes/no"
+msgstr "是/否"
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:84
+msgid "image choice"
+msgstr "图片选择"
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:85
+msgid "categories listed with <code>-</code>"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:86
+msgid "provide <code>min</code>/<code>max</code> and optional labels"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:91
+msgid "Optional: Follow-up text inputs"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:92
+msgid "Add a follow-up text input to any option by adding an indented line starting with <code>+</code> immediately after the option. This creates a text field that appears when the participant selects that option."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:105
+msgid "Follow-up lines must start with <code>+</code> and be indented (at least 2 spaces)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:106
+msgid "The text after <code>+</code> becomes the label for the follow-up input field"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:107
+msgid "Works with <code>mc_single</code>, <code>mc_multi</code>, <code>dropdown</code>, <code>orderable</code>, and <code>yesno</code>"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:108
+msgid "For <code>yesno</code>, provide exactly 2 options (Yes/No) with optional follow-ups"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:109
+msgid "Not all options need follow-ups—only add them where needed"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:114
+msgid "Optional: Required questions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:115
+msgid "Mark a question as required by adding an asterisk <code class=\\"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:123
+msgid "Required questions must be answered before the form can be submitted"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:124
+msgid "The asterisk <code class=\\"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:125
+msgid "Place the asterisk immediately after the question title text"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:126
+msgid "Works with all question types"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:131
+msgid "Optional: Collections with REPEAT"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:132
+msgid "To mark a group as repeatable, add a line with <strong>REPEAT</strong> (or <strong>REPEAT-5</strong> to cap it) immediately above the group heading."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:133
+msgid "To define a child collection nested under a repeatable parent, indent with <code>&gt;</code> and add <strong>REPEAT</strong> above the child group:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:142
+msgid "<strong>REPEAT</strong> = unlimited repeats. <strong>REPEAT-1</strong> means one allowed."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:143
+msgid "Use <code>&gt;</code> before REPEAT and the group heading to indicate one level of nesting."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:144
+msgid "Nesting is limited to one level (Parent → Child) by design."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:145
+msgid "Groups without REPEAT are normal, non-collection groups."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:149
+msgid "Optional: Questions with conditional branching"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:150
+msgid "Assign stable IDs by placing them in curly braces at the end of group or question headings. Then add branching rules below the question's <code>(type)</code> line using <code>? when &lt;operator&gt; &lt;value&gt; -&gt; {target-id}</code>."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:165
+msgid "Branching rules must start with <code>? when</code> and reference a question or group ID in curly braces."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:166
+msgid "Operators mirror the survey builder: <code>equals</code>, <code>not_equals</code>, <code>contains</code>, <code>greater_than</code>, and more."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:167
+msgid "IDs are normalised to lowercase slugs; keep them unique within your document."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/bulk_upload.html:168
+msgid "Point to a group ID to jump to that group, or a question ID to jump directly to that question."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/create.html:3
+msgid "Create Survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/create.html:8
+msgid "Create a new survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/create.html:14
+msgid "Name"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/create.html:15
+msgid "URL Name or 'Slug' (optional)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/create.html:15
+msgid "If left blank, a slug will be generated from the name."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/create.html:16
+msgid "Description"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/list.html:36
+msgid "Dashboard"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:28
+msgid "Keep track of survey status, number of responses and control styling."
+msgstr ""
+
+#: census_app/templates/base.html:62 census_app/templates/base.html:101
+msgid "Surveys"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:121
+msgid "Status"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:133
+msgid "Visibility"
+msgstr "可见性"
+
+#: census_app/surveys/templates/surveys/dashboard.html:38
+msgid "Window"
+msgstr "窗口"
+
+#: census_app/surveys/templates/surveys/dashboard.html:39
+msgid "Total responses"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:42
+msgid "Preview (read-only)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:47
+msgid "Today"
+msgstr "今天"
+
+#: census_app/surveys/templates/surveys/dashboard.html:54
+msgid "Submissions"
+msgstr "提交"
+
+#: census_app/surveys/templates/surveys/dashboard.html:52
+msgid "Last 7 days"
+msgstr "过去 7 天"
+
+#: census_app/surveys/templates/surveys/dashboard.html:57
+msgid "Last 14 days"
+msgstr "过去 14 天"
+
+#: census_app/surveys/templates/surveys/dashboard.html:64
+msgid "No submissions yet"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:70
+msgid "<strong>Groups</strong> are reusable sets of questions. You can mark one or more groups as a repeating entity (for example, <em>People</em> or <em>Visits</em>) directly on the Groups page, with optional one-level nesting."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:76
+msgid "Survey style"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:115
+msgid "Publish settings"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/tokens.html:8
+msgid "Learn more"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:122
+msgid "Draft: build only · Published: accept submissions · Closed: stop submissions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:135
+msgid "What’s this?"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:127
+msgid "Draft"
+msgstr "草稿"
+
+#: census_app/surveys/templates/surveys/dashboard.html:128
+msgid "Published"
+msgstr "已发布"
+
+#: census_app/surveys/templates/surveys/dashboard.html:129
+msgid "Closed"
+msgstr "已关闭"
+
+#: census_app/surveys/templates/surveys/dashboard.html:134
+msgid "Authenticated: login required · Public: open link · Unlisted: secret link · Invite token: one-time codes"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:139
+msgid "Authenticated"
+msgstr "已认证"
+
+#: census_app/surveys/templates/surveys/dashboard.html:140
+msgid "Public"
+msgstr "公开"
+
+#: census_app/surveys/templates/surveys/dashboard.html:141
+msgid "Unlisted"
+msgstr "未列出"
+
+#: census_app/surveys/templates/surveys/dashboard.html:142
+msgid "Invite token"
+msgstr "邀请令牌"
+
+#: census_app/surveys/templates/surveys/dashboard.html:146
+msgid "Max responses"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:150
+msgid "Start at"
+msgstr "开始于"
+
+#: census_app/surveys/templates/surveys/dashboard.html:154
+msgid "End at"
+msgstr "结束于"
+
+#: census_app/surveys/templates/surveys/dashboard.html:160
+msgid "Require CAPTCHA for anonymous submissions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:166
+msgid "I confirm no <strong>patient-identifiable data</strong> is collected in this survey. This is required when using Public, Unlisted, or Token visibility to prevent unauthorised access."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:170
+msgid "Save publish settings"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:172
+msgid "Unlisted link"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:175
+msgid "Public link"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:181
+msgid "Manage invite tokens"
+msgstr "管理邀请令牌"
+
+#: census_app/surveys/templates/surveys/dashboard.html:191
+msgid "Danger Zone"
+msgstr "危险区"
+
+#: census_app/surveys/templates/surveys/dashboard.html:199
+msgid "Delete this survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/dashboard.html:200
+msgid "Once deleted, all data, responses, groups, and permissions will be permanently removed. This action cannot be undone."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:13
+msgid "Delete Survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:23
+msgid "Warning: This action cannot be undone!"
+msgstr "警告：此操作无法撤销！"
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:24
+msgid "You are about to permanently delete the survey:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:31
+msgid "Deleting this survey will permanently remove:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:34
+msgid "All survey data and responses"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:35
+msgid "All associated groups and questions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:36
+msgid "All collection and publication records"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:37
+msgid "All access permissions and tokens"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:47
+msgid "To confirm deletion, please type the survey name exactly as shown above:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:53
+msgid "Type survey name here"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:63
+msgid "You must type the survey name to confirm deletion."
+msgstr ""
+
+#, python-format
+msgid "The name you entered does not match. Please type exactly: <strong>%(survey.name)s</strong>"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/delete_confirm.html:80
+msgid "Delete Survey Permanently"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/detail.html:129
+msgid "-- Select --"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/detail.html:130
+msgid "Yes"
+msgstr "是"
+
+#: census_app/surveys/templates/surveys/detail.html:131
+msgid "No"
+msgstr "否"
+
+#: census_app/surveys/templates/surveys/detail.html:297
+msgid "Professional details"
+msgstr "专业详情"
+
+#: census_app/surveys/templates/surveys/detail.html:337
+msgid "Submit"
+msgstr "提交"
+
+#: census_app/surveys/templates/surveys/group_builder.html:14
+msgid "Manage Questions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/group_builder.html:9
+msgid "Question Groups"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/group_builder.html:16
+msgid "Question Group"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/group_builder.html:37
+msgid "Questions in this group"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/group_builder.html:44
+msgid "No questions in this group yet."
+msgstr ""
+
+#, python-format
+msgid "Question Groups for %(survey)s"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:30
+msgid "Question Groups are reusable sets of questions. Arrange them here to control the order in which participants see question sets. You can also mark a set of groups as a repeating entity (e.g. People or Visits) directly here—no separate collections screen required."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:41
+msgid "Tip: Select groups by clicking their row or checkbox, then click ‘Create repeat’ to set a name. Selected rows are highlighted and show a small repeat icon."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:61
+msgid "Selected for repeat"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:70
+msgid "Repeats"
+msgstr "重复项"
+
+#: census_app/surveys/templates/surveys/groups.html:74
+msgid "Remove this group from its repeat?"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:76
+msgid "Remove repeat"
+msgstr "移除重复项"
+
+#, python-format
+msgid "%(counter)s question"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:85
+msgid "Delete this group?"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:87
+msgid "Delete"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:95
+msgid "No groups yet. Create one to get started."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:102
+msgid "Create repeat from selection"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:105
+msgid "selected"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:106
+msgid "Clear"
+msgstr "清除"
+
+#: census_app/surveys/templates/surveys/groups.html:109
+msgid "Back to dashboard"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:110
+msgid "Help"
+msgstr "帮助"
+
+#: census_app/surveys/templates/surveys/groups.html:120
+msgid "New group name"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:121
+msgid "Create new question group"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:130
+msgid "Create repeat"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:135
+msgid "Repeat name"
+msgstr "重复项名称"
+
+#: census_app/surveys/templates/surveys/groups.html:140
+msgid "Minimum items"
+msgstr "最小项目数"
+
+#: census_app/surveys/templates/surveys/groups.html:144
+msgid "Maximum items"
+msgstr "最大项目数"
+
+#: census_app/surveys/templates/surveys/groups.html:146
+msgid "Unlimited"
+msgstr "无限制"
+
+#: census_app/surveys/templates/surveys/groups.html:156
+msgid "Nest under existing (optional)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/groups.html:163
+msgid "Nesting is limited to one level."
+msgstr "嵌套限制为一个级别。"
+
+#: census_app/surveys/templates/surveys/groups.html:168
+msgid "Create"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/list.html:10
+msgid "Your Surveys"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/list.html:38
+msgid "Preview"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/list.html:39
+msgid "Import"
+msgstr "导入"
+
+#: census_app/surveys/templates/surveys/list.html:47
+msgid "No surveys yet."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/org_users.html:6
+msgid "Organisation users"
+msgstr "组织机构用户"
+
+#: census_app/surveys/templates/surveys/survey_users.html:9
+msgid "User"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:72
+msgid "Role"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/survey_users.html:9
+msgid "Actions"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/survey_users.html:21
+msgid "Remove"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/survey_users.html:27
+msgid "No users."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/survey_users.html:35
+msgid "Add or update user"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/survey_users.html:40
+msgid "Email (preferred)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/survey_users.html:41
+msgid "Or specify User ID if email not found:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/survey_users.html:42
+msgid "User ID"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:32
+msgid "Admin"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:75
+msgid "Creator"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:74
+msgid "Viewer"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/survey_users.html:49
+msgid "Save"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/survey_users.html:6
+msgid "Survey users"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/thank_you.html:8
+msgid "Thank you"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/thank_you.html:9
+msgid "Your response has been recorded."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/thank_you.html:11
+msgid "Back to survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/tokens.html:3
+msgid "Invite Tokens"
+msgstr "邀请令牌"
+
+#: census_app/surveys/templates/surveys/tokens.html:7
+msgid "Invite tokens"
+msgstr "邀请令牌"
+
+#: census_app/surveys/templates/surveys/tokens.html:13
+msgid "How many"
+msgstr "多少个"
+
+#: census_app/surveys/templates/surveys/tokens.html:17
+msgid "Expires at (ISO)"
+msgstr "过期时间 (ISO)"
+
+#: census_app/surveys/templates/surveys/tokens.html:37
+msgid "Note"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/tokens.html:25
+msgid "Generate"
+msgstr "生成"
+
+#: census_app/surveys/templates/surveys/tokens.html:26
+msgid "Export CSV"
+msgstr "导出 CSV"
+
+#: census_app/surveys/templates/surveys/tokens.html:32
+msgid "Token"
+msgstr "令牌"
+
+#: census_app/surveys/templates/surveys/tokens.html:33
+msgid "Created"
+msgstr "已创建"
+
+#: census_app/surveys/templates/surveys/tokens.html:34
+msgid "Expires"
+msgstr "过期"
+
+#: census_app/surveys/templates/surveys/tokens.html:35
+msgid "Used"
+msgstr "已使用"
+
+#: census_app/surveys/templates/surveys/tokens.html:36
+msgid "Used by"
+msgstr "使用者"
+
+#: census_app/surveys/templates/surveys/tokens.html:51
+msgid "No tokens yet."
+msgstr "暂无令牌。"
+
+#: census_app/surveys/templates/surveys/unlock.html:3
+msgid "Unlock Survey"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:16
+msgid "Unlock"
+msgstr "解锁"
+
+#: census_app/surveys/templates/surveys/unlock.html:11
+msgid "Enter the one-time survey key to decrypt sensitive fields for this session."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:15
+msgid "Survey key"
+msgstr ""
+
+#: census_app/templates/base.html:64 census_app/templates/base.html:103
+msgid "User management"
+msgstr "用户管理"
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:11
+msgid "You don't have an organisation to manage yet."
+msgstr "您还没有可管理的组织机构。"
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:17
+msgid "Organisation"
+msgstr "组织机构"
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:68
+msgid "User email"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:35
+msgid "Add user to org"
+msgstr "添加用户到组织机构"
+
+#, python-format
+msgid "All users (%(counter)s)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:47
+msgid "No users yet"
+msgstr "暂无用户"
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:57
+msgid "Users by survey"
+msgstr "按问卷划分的用户"
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:64
+msgid "Survey slug"
+msgstr "问卷短链接名称 (Slug)"
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:78
+msgid "Add user to survey"
+msgstr "添加用户到问卷"
+
+#, python-format
+msgid "%(counter)s member"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:93
+msgid "No members"
+msgstr "暂无成员"
+
+#: census_app/surveys/templates/surveys/user_management_hub.html:98
+msgid "No surveys yet"
+msgstr "暂无问卷"
+
+#: census_app/templates/admin/login.html:42
+msgid "Log in"
+msgstr ""
+
+#: census_app/templates/admin/login.html:8
+msgid "Please correct the error below."
+msgstr "请修正以下错误。"
+
+#: census_app/templates/admin/login.html:19
+msgid "Admin login"
+msgstr ""
+
+#, python-format
+msgid "You are authenticated as %(username)s, but are not authorized to access this page. Would you like to login to a different account?"
+msgstr ""
+
+#: census_app/templates/admin/login.html:27
+msgid "Username"
+msgstr ""
+
+#: census_app/templates/admin/login.html:31
+msgid "Password"
+msgstr ""
+
+#: census_app/templates/admin/login.html:38
+msgid "Forgotten your password or username?"
+msgstr ""
+
+#: census_app/templates/base.html:105 census_app/templates/base.html:107
+msgid "Documentation"
+msgstr ""
+
+#: census_app/templates/base.html:136
+msgid "Logout"
+msgstr ""
+
+#: census_app/templates/base.html:165
+msgid "Built by"
+msgstr "由...构建"
+
+#: census_app/templates/base.html:173
+msgid "GitHub"
+msgstr "GitHub"
+
+#: census_app/templates/base.html:176
+msgid "Issues"
+msgstr "问题"
+
+#: census_app/templates/base.html:178
+msgid "Releases"
+msgstr "发布"
+
+#: census_app/templates/base.html:180
+msgid "Contributing"
+msgstr "贡献"
+
+#: census_app/templates/base.html:182
+msgid "Version"
+msgstr "版本"
+
+#: census_app/templates/base.html:185
+msgid "Branch"
+msgstr "分支"
+
+#: census_app/templates/base.html:189
+msgid "Commit"
+msgstr "提交"
+
+#: census_app/templates/registration/signup.html:88
+msgid "Sign in"
+msgstr ""
+
+#: census_app/templates/registration/login.html:19
+msgid "Forgot password?"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_complete.html:8
+msgid "Password changed"
+msgstr ""
+
+#: census_app/templates/registration/password_change_done.html:8
+msgid "Password updated"
+msgstr ""
+
+#: census_app/templates/registration/password_change_done.html:9
+msgid "Your password has been changed successfully."
+msgstr ""
+
+#: census_app/templates/registration/password_reset_done.html:11
+msgid "Back to login"
+msgstr ""
+
+#: census_app/templates/registration/password_change_form.html:3
+msgid "Change password"
+msgstr ""
+
+#: census_app/templates/registration/password_change_form.html:8
+msgid "Change your password"
+msgstr ""
+
+#: census_app/templates/registration/password_change_form.html:15
+msgid "Save new password"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_complete.html:3
+msgid "Password reset complete"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_complete.html:9
+msgid "Your password has been set. You can now log in with your new password."
+msgstr ""
+
+#: census_app/templates/registration/password_reset_complete.html:10
+msgid "Go to login"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_confirm.html:31
+msgid "Choose a new password"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_form.html:3
+msgid "Reset password"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_confirm.html:42
+msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+#: census_app/templates/registration/password_reset_confirm.html:43
+msgid "Request a new link"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_done.html:3
+msgid "Reset email sent"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_done.html:8
+msgid "Check your email"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_done.html:9
+msgid "If an account exists with that email, we've sent a password reset link. Please follow the instructions to choose a new password."
+msgstr ""
+
+#: census_app/templates/registration/password_reset_done.html:10
+msgid "In development, the reset email is printed to the console."
+msgstr ""
+
+#: census_app/templates/registration/password_reset_form.html:8
+msgid "Reset your password"
+msgstr ""
+
+#: census_app/templates/registration/password_reset_form.html:9
+msgid "Enter the email address associated with your account."
+msgstr ""
+
+#: census_app/templates/registration/password_reset_form.html:16
+msgid "Send reset link"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:29
+msgid "Create your account"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:30
+msgid "Sign up to start creating surveys and collecting responses."
+msgstr ""
+
+#: census_app/templates/registration/signup.html:41
+msgid "Account Type"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:46
+msgid "Individual User"
+msgstr "个人用户"
+
+#: census_app/templates/registration/signup.html:47
+msgid "Create surveys and manage your own responses"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:53
+msgid "Organisation Account"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:54
+msgid "Create an organisation to collaborate with a team"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:63
+msgid "Organisation Name"
+msgstr "组织机构名称"
+
+#: census_app/templates/registration/signup.html:63
+msgid "(optional)"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:70
+msgid "e.g. Acme Health Research"
+msgstr "例如：Acme 健康研究"
+
+#: census_app/templates/registration/signup.html:74
+msgid "Leave blank to use default name"
+msgstr "留空以使用默认名称"
+
+#: census_app/templates/registration/signup.html:79
+msgid "Note:"
+msgstr "注意："
+
+#: census_app/templates/registration/signup.html:79
+msgid "Organisation names don't need to be unique. Multiple organisations can have the same name—you'll only have access to your own organisation and any you're invited to join."
+msgstr ""
+
+#: census_app/templates/registration/signup.html:84
+msgid "Create account"
+msgstr ""
+
+#: census_app/templates/registration/signup.html:88
+msgid "Already have an account?"
+msgstr ""

@@ -51,21 +51,21 @@ from census_app.surveys.models import Survey, SurveyQuestion
 @pytest.mark.django_db
 class TestMyView:
     """Test suite for my view."""
-    
+
     def setup_survey(self, client):
         """Create test user and survey, log in user."""
         user = User.objects.create_user(username="testuser", password="testpass")
         survey = Survey.objects.create(owner=user, name="Test", slug="test")
         client.force_login(user)
         return user, survey
-    
+
     def test_view_renders(self, client):
         """Test that view renders successfully."""
         user, survey = self.setup_survey(client)
         url = reverse("surveys:survey_detail", kwargs={"slug": survey.slug})
-        
+
         response = client.get(url)
-        
+
         assert response.status_code == 200
         assert "Test" in response.content.decode()
 ```
@@ -85,24 +85,24 @@ def test_authenticated_access(self, client):
     """Test that authenticated users can access the page."""
     user = User.objects.create_user(username="user", password="pass")
     survey = Survey.objects.create(owner=user, name="Test", slug="test")
-    
+
     # Log in the user
     client.force_login(user)
-    
+
     url = reverse("surveys:survey_detail", kwargs={"slug": survey.slug})
     response = client.get(url)
-    
+
     assert response.status_code == 200
 
 def test_unauthenticated_redirects(self, client):
     """Test that unauthenticated users are redirected."""
     user = User.objects.create_user(username="user", password="pass")
     survey = Survey.objects.create(owner=user, name="Test", slug="test")
-    
+
     # Don't log in
     url = reverse("surveys:survey_detail", kwargs={"slug": survey.slug})
     response = client.get(url)
-    
+
     # Should redirect to login
     assert response.status_code == 302
 ```
@@ -127,9 +127,9 @@ def test_create_text_question(self, client):
     user = User.objects.create_user(username="testuser", password="testpass")
     survey = Survey.objects.create(owner=user, name="Test Survey", slug="test")
     client.force_login(user)
-    
+
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     response = client.post(
         url,
         {
@@ -140,10 +140,10 @@ def test_create_text_question(self, client):
         },
         HTTP_HX_REQUEST="true",  # HTMX request header
     )
-    
+
     assert response.status_code == 200
     assert b"Question created." in response.content
-    
+
     # Verify database
     question = SurveyQuestion.objects.get(survey=survey)
     assert question.text == "What is your name?"
@@ -161,7 +161,7 @@ def test_create_mc_single_question(self, client):
     """Test creating a multiple choice (single) question."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     response = client.post(
         url,
         {
@@ -172,11 +172,11 @@ def test_create_mc_single_question(self, client):
         },
         HTTP_HX_REQUEST="true",
     )
-    
+
     assert response.status_code == 200
     question = SurveyQuestion.objects.get(survey=survey)
     assert question.type == SurveyQuestion.Types.MULTIPLE_CHOICE_SINGLE
-    
+
     # Webapp creates options with label/value structure
     assert len(question.options) == 3
     assert question.options[0] == {"label": "Red", "value": "Red"}
@@ -193,7 +193,7 @@ def test_create_mc_single_with_followup_text(self, client):
     """Test creating MC question with follow-up text input."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     response = client.post(
         url,
         {
@@ -206,14 +206,14 @@ def test_create_mc_single_with_followup_text(self, client):
         },
         HTTP_HX_REQUEST="true",
     )
-    
+
     assert response.status_code == 200
     question = SurveyQuestion.objects.get(survey=survey)
-    
+
     # First two options have no follow-up
     assert "followup_text" not in question.options[0]
     assert "followup_text" not in question.options[1]
-    
+
     # Third option has follow-up
     assert "followup_text" in question.options[2]
     assert question.options[2]["followup_text"]["enabled"] is True
@@ -229,7 +229,7 @@ def test_create_yesno_with_followup_on_yes(self, client):
     """Test creating yes/no question with follow-up on yes."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     response = client.post(
         url,
         {
@@ -240,15 +240,15 @@ def test_create_yesno_with_followup_on_yes(self, client):
         },
         HTTP_HX_REQUEST="true",
     )
-    
+
     assert response.status_code == 200
     question = SurveyQuestion.objects.get(survey=survey)
-    
+
     # "Yes" option (index 0) has follow-up
     assert "followup_text" in question.options[0]
     assert question.options[0]["followup_text"]["enabled"] is True
     assert question.options[0]["followup_text"]["label"] == "List allergies"
-    
+
     # "No" option (index 1) does not
     assert "followup_text" not in question.options[1]
 ```
@@ -262,7 +262,7 @@ def test_create_likert_numeric_scale(self, client):
     """Test creating Likert with numeric scale."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     response = client.post(
         url,
         {
@@ -276,7 +276,7 @@ def test_create_likert_numeric_scale(self, client):
         },
         HTTP_HX_REQUEST="true",
     )
-    
+
     assert response.status_code == 200
     question = SurveyQuestion.objects.get(survey=survey)
     assert question.options[0]["type"] == "number-scale"
@@ -287,7 +287,7 @@ def test_create_likert_categories(self, client):
     """Test creating Likert with categories."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     response = client.post(
         url,
         {
@@ -298,7 +298,7 @@ def test_create_likert_categories(self, client):
         },
         HTTP_HX_REQUEST="true",
     )
-    
+
     assert response.status_code == 200
     question = SurveyQuestion.objects.get(survey=survey)
     assert question.options == ["1", "2", "3", "4", "5"]
@@ -314,12 +314,12 @@ def test_create_question_in_group(self, client):
     user, survey = self.setup_survey(client)
     group = QuestionGroup.objects.create(name="Demographics", owner=user)
     survey.question_groups.add(group)
-    
+
     url = reverse(
         "surveys:builder_group_question_create",
         kwargs={"slug": survey.slug, "gid": group.id},
     )
-    
+
     response = client.post(
         url,
         {
@@ -329,7 +329,7 @@ def test_create_question_in_group(self, client):
         },
         HTTP_HX_REQUEST="true",
     )
-    
+
     assert response.status_code == 200
     question = SurveyQuestion.objects.get(survey=survey)
     assert question.group_id == group.id
@@ -345,16 +345,16 @@ def test_htmx_response(self, client):
     """Test HTMX partial response."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     response = client.post(
         url,
         {"text": "Test", "type": "text", "text_format": "free"},
         HTTP_HX_REQUEST="true",  # This header is important!
     )
-    
+
     assert response.status_code == 200
     html = response.content.decode()
-    
+
     # Should return partial HTML, not full page
     assert "Question created." in html
     assert "<!DOCTYPE html>" not in html  # Not a full page
@@ -370,14 +370,14 @@ def test_owner_can_create_question(self, client):
     user = User.objects.create_user(username="owner", password="pass")
     survey = Survey.objects.create(owner=user, name="Test", slug="test")
     client.force_login(user)
-    
+
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
     response = client.post(
         url,
         {"text": "Test", "type": "text", "text_format": "free"},
         HTTP_HX_REQUEST="true",
     )
-    
+
     assert response.status_code == 200
     assert SurveyQuestion.objects.filter(survey=survey).exists()
 ```
@@ -390,16 +390,16 @@ def test_non_owner_cannot_create_question(self, client):
     owner = User.objects.create_user(username="owner", password="pass")
     other_user = User.objects.create_user(username="other", password="pass")
     survey = Survey.objects.create(owner=owner, name="Test", slug="test")
-    
+
     client.force_login(other_user)  # Log in as different user
-    
+
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
     response = client.post(
         url,
         {"text": "Test", "type": "text", "text_format": "free"},
         HTTP_HX_REQUEST="true",
     )
-    
+
     assert response.status_code == 403  # Forbidden
     assert SurveyQuestion.objects.filter(survey=survey).count() == 0
 ```
@@ -412,14 +412,14 @@ def test_unauthenticated_cannot_create_question(self, client):
     user = User.objects.create_user(username="owner", password="pass")
     survey = Survey.objects.create(owner=user, name="Test", slug="test")
     # Don't log in
-    
+
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
     response = client.post(
         url,
         {"text": "Test", "type": "text", "text_format": "free"},
         HTTP_HX_REQUEST="true",
     )
-    
+
     # Should redirect to login or return 403
     assert response.status_code in [302, 403]
     assert SurveyQuestion.objects.filter(survey=survey).count() == 0
@@ -434,7 +434,7 @@ def test_create_question_with_empty_text(self, client):
     """Test creating a question with empty text defaults to 'Untitled'."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     response = client.post(
         url,
         {
@@ -444,7 +444,7 @@ def test_create_question_with_empty_text(self, client):
         },
         HTTP_HX_REQUEST="true",
     )
-    
+
     assert response.status_code == 200
     question = SurveyQuestion.objects.get(survey=survey)
     assert question.text == "Untitled"  # Default value
@@ -453,7 +453,7 @@ def test_whitespace_trimmed_from_options(self, client):
     """Test that whitespace is trimmed from options."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     response = client.post(
         url,
         {
@@ -463,7 +463,7 @@ def test_whitespace_trimmed_from_options(self, client):
         },
         HTTP_HX_REQUEST="true",
     )
-    
+
     assert response.status_code == 200
     question = SurveyQuestion.objects.get(survey=survey)
     # Empty lines filtered out, whitespace trimmed
@@ -522,7 +522,7 @@ What is your current employment status?
 def test_followup_import_parses_successfully(test_markdown):
     """Test that markdown with follow-ups parses without errors."""
     parsed = parse_bulk_markdown_with_collections(test_markdown)
-    
+
     assert parsed is not None
     assert "groups" in parsed
     assert len(parsed["groups"]) == 1
@@ -534,10 +534,10 @@ def test_followup_import_parses_successfully(test_markdown):
 def test_followup_import_creates_correct_group_structure(test_markdown):
     """Test that groups are created with correct metadata."""
     parsed = parse_bulk_markdown_with_collections(test_markdown)
-    
+
     groups = parsed.get("groups", [])
     assert len(groups) == 1
-    
+
     employment_group = groups[0]
     assert employment_group["title"] == "Employment Survey"
     assert employment_group["ref"] == "employment"
@@ -550,27 +550,27 @@ def test_followup_import_creates_correct_group_structure(test_markdown):
 def test_followup_mc_single_option_structure(test_markdown):
     """Test that mc_single options with follow-ups have correct structure."""
     parsed = parse_bulk_markdown_with_collections(test_markdown)
-    
+
     employment_group = parsed["groups"][0]
     employment_q = employment_group["questions"][0]
-    
+
     # Check question metadata
     assert employment_q["title"] == "Employment status"
     assert employment_q["ref"] == "employment-status"
     assert employment_q["type"] == "mc_single"
     assert employment_q["required"] is True  # Asterisk notation
-    
+
     # Check options with follow-ups
     options = employment_q["options"]
     assert len(options) == 6
-    
+
     # Option with follow-up
     part_time = options[1]
     assert part_time["label"] == "Employed part-time"
     assert part_time.get("followup_text") is not None
     assert part_time["followup_text"]["enabled"] is True
     assert part_time["followup_text"]["label"] == "Please specify your hours per week"
-    
+
     # Option without follow-up
     full_time = options[0]
     assert full_time["label"] == "Employed full-time"
@@ -583,14 +583,14 @@ def test_followup_mc_single_option_structure(test_markdown):
 def test_required_field_parsing(test_markdown_required):
     """Test that asterisks in question titles are parsed as required flag."""
     parsed = parse_bulk_markdown_with_collections(test_markdown_required)
-    
+
     questions = parsed["groups"][0]["questions"]
-    
+
     # Question with asterisk: "## Full name* {contact-name}"
     name_q = questions[0]
     assert name_q["title"] == "Full name"  # Asterisk stripped
     assert name_q["required"] is True
-    
+
     # Question without asterisk
     phone_q = questions[2]
     assert phone_q["title"] == "Phone number"
@@ -603,9 +603,9 @@ def test_required_field_parsing(test_markdown_required):
 def test_required_with_followup_combined(test_markdown):
     """Test that required fields work correctly with follow-up questions."""
     parsed = parse_bulk_markdown_with_collections(test_markdown)
-    
+
     employment_q = parsed["groups"][0]["questions"][0]
-    
+
     # Should be both required and have follow-ups
     assert employment_q["required"] is True
     assert employment_q["options"][1]["followup_text"]["enabled"] is True
@@ -617,10 +617,10 @@ def test_required_with_followup_combined(test_markdown):
 def test_required_asterisk_with_id(test_markdown):
     """Test asterisk notation before curly brace IDs."""
     parsed = parse_bulk_markdown_with_collections(test_markdown)
-    
+
     # Format: "## Employment status* {employment-status}"
     question = parsed["groups"][0]["questions"][0]
-    
+
     assert question["title"] == "Employment status"  # Asterisk stripped
     assert question["ref"] == "employment-status"  # ID preserved
     assert question["required"] is True  # Flag set
@@ -639,10 +639,10 @@ The test suite covers follow-ups on multiple question types:
 def test_followup_mc_multi_option_structure(test_markdown):
     """Test mc_multi options with follow-ups."""
     parsed = parse_bulk_markdown_with_collections(test_markdown)
-    
+
     skills_q = parsed["groups"][0]["questions"][1]
     assert skills_q["type"] == "mc_multi"
-    
+
     python_option = skills_q["options"][0]
     assert python_option["label"] == "Python"
     assert python_option["followup_text"]["label"] == "Years of experience?"
@@ -654,10 +654,10 @@ def test_followup_mc_multi_option_structure(test_markdown):
 def test_followup_data_structure_matches_api_format(test_markdown):
     """Test that parsed data matches expected API format."""
     parsed = parse_bulk_markdown_with_collections(test_markdown)
-    
+
     question = parsed["groups"][0]["questions"][0]
     option_with_followup = question["options"][1]
-    
+
     # Should match webapp format: {enabled: bool, label: str}
     assert "followup_text" in option_with_followup
     assert isinstance(option_with_followup["followup_text"], dict)
@@ -691,7 +691,7 @@ def test_new_questions_get_incremental_order(self, client):
     """Test that new questions are assigned incremental order values."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     for i in range(3):
         client.post(
             url,
@@ -702,7 +702,7 @@ def test_new_questions_get_incremental_order(self, client):
             },
             HTTP_HX_REQUEST="true",
         )
-    
+
     questions = SurveyQuestion.objects.filter(survey=survey).order_by("order")
     assert questions.count() == 3
     assert questions[0].order == 1
@@ -719,13 +719,13 @@ def test_create_returns_success_message(self, client):
     """Test that create returns success message in response."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     response = client.post(
         url,
         {"text": "Test Question", "type": "text", "text_format": "free"},
         HTTP_HX_REQUEST="true",
     )
-    
+
     assert response.status_code == 200
     html = response.content.decode()
     assert "Question created." in html
@@ -739,17 +739,17 @@ def test_create_includes_builder_payload(self, client):
     """Test that response includes data payload for JavaScript."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     response = client.post(
         url,
         {"text": "Test", "type": "text", "text_format": "free"},
         HTTP_HX_REQUEST="true",
     )
-    
+
     assert response.status_code == 200
     question = SurveyQuestion.objects.get(survey=survey)
     html = response.content.decode()
-    
+
     # Should have a script tag with question data
     script_id = f"question-data-{question.id}"
     assert script_id in html
@@ -789,7 +789,7 @@ def test_form_displays(self, client):
     """Test that form page displays."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:some_form", kwargs={"slug": survey.slug})
-    
+
     response = client.get(url)
     assert response.status_code == 200
     assert "form" in response.context
@@ -798,7 +798,7 @@ def test_form_submission(self, client):
     """Test form submission."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:some_form", kwargs={"slug": survey.slug})
-    
+
     response = client.post(url, {"field": "value"})
     assert response.status_code == 302  # Redirect after success
 ```
@@ -840,10 +840,10 @@ def test_create_all_question_types(self, client, qtype, extra_data):
     """Test creating all valid question types."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:builder_question_create", kwargs={"slug": survey.slug})
-    
+
     data = {"text": f"Test {qtype}", "type": qtype}
     data.update(extra_data)
-    
+
     response = client.post(url, data, HTTP_HX_REQUEST="true")
     assert response.status_code == 200
 ```
@@ -855,9 +855,9 @@ def test_view_context(self, client):
     """Test that view provides correct context."""
     user, survey = self.setup_survey(client)
     url = reverse("surveys:survey_detail", kwargs={"slug": survey.slug})
-    
+
     response = client.get(url)
-    
+
     assert response.status_code == 200
     assert "survey" in response.context
     assert response.context["survey"] == survey

@@ -1,15 +1,16 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Your Surveys - Census{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Your Surveys" %} - Census{% endblock %}
 {% block content %}
 <div class="prose max-w-none">
   {% include 'components/breadcrumbs.html' with crumb1_label='Surveys' crumb1_href='/surveys/' %}
   <h1 class="inline-flex items-center gap-2">
     {% include "components/icons/clipboard.html" with classes="w-6 h-6 text-base-content" %}
-    <span>Your Surveys</span>
+    <span>{% trans "Your Surveys" %}</span>
   </h1>
   {% if user.is_authenticated %}
-    <p><a class="btn btn-primary not-prose" href="/surveys/create/">Create survey</a></p>
+    <p><a class="btn btn-primary not-prose" href="/surveys/create/">{% trans "Create survey" %}</a></p>
   {% endif %}
   {% if surveys %}
   <ul class="not-prose w-full flex flex-col gap-3">
@@ -32,10 +33,10 @@
             </div>
             <div class="-mx-1 overflow-x-auto mt-3">
               <div class="px-1 min-w-max flex items-center gap-2">
-                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/dashboard/">Dashboard</a>
-                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/groups/">Groups</a>
-                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/preview/">Preview</a>
-                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/bulk-upload/">Import</a>
+                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/dashboard/">{% trans "Dashboard" %}</a>
+                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/groups/">{% trans "Groups" %}</a>
+                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/preview/">{% trans "Preview" %}</a>
+                <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/bulk-upload/">{% trans "Import" %}</a>
               </div>
             </div>
           </div>
@@ -43,7 +44,7 @@
       {% endfor %}
     </ul>
   {% else %}
-    <p>No surveys yet.</p>
+    <p>{% trans "No surveys yet." %}</p>
   {% endif %}
 </div>
 {% endblock %}

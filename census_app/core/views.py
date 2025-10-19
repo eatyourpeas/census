@@ -7,6 +7,8 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
+from django.utils import translation
+from django.utils.translation import gettext as _
 import markdown as mdlib
 
 from census_app.surveys.models import (
@@ -19,7 +21,8 @@ from census_app.surveys.models import (
     SurveyResponse,
 )
 
-from .forms import SignupForm, UserEmailPreferencesForm
+from .forms import SignupForm, UserEmailPreferencesForm, UserLanguagePreferenceForm
+from .models import UserLanguagePreference
 
 try:
     from .models import SiteBranding, UserEmailPreferences
@@ -36,6 +39,10 @@ except ImportError:
         return s
 
 
+# Django's session key for storing language preference
+LANGUAGE_SESSION_KEY = "_language"
+
+
 def home(request):
     return render(request, "core/home.html")
 
@@ -50,6 +57,31 @@ def healthz(request):
 @login_required
 def profile(request):
     sb = None
+    # Handle language preference form submission
+    if request.method == "POST" and request.POST.get("action") == "update_language":
+        lang_pref, created = UserLanguagePreference.objects.get_or_create(
+            user=request.user
+        )
+        form = UserLanguagePreferenceForm(request.POST, instance=lang_pref)
+        if form.is_valid():
+            saved_pref = form.save()
+            # Immediately activate the new language and store in session
+            translation.activate(saved_pref.language)
+            request.LANGUAGE_CODE = saved_pref.language
+            request.session[LANGUAGE_SESSION_KEY] = saved_pref.language
+            request.session.modified = True
+            print(f"DEBUG: Saved language: {saved_pref.language}")
+            print(
+                f"DEBUG: Session key set to: {request.session.get(LANGUAGE_SESSION_KEY)}"
+            )
+            print(f"DEBUG: request.LANGUAGE_CODE: {request.LANGUAGE_CODE}")
+            messages.success(request, _("Language preference updated successfully."))
+        else:
+            print(f"DEBUG: Form errors: {form.errors}")
+            messages.error(
+                request, _("There was an error updating your language preference.")
+            )
+        return redirect("core:profile")
     # Handle email preferences form submission
     if request.method == "POST" and request.POST.get("action") == "update_email_prefs":
         if UserEmailPreferences is not None:
@@ -57,10 +89,10 @@ def profile(request):
             form = UserEmailPreferencesForm(request.POST, instance=prefs)
             if form.is_valid():
                 form.save()
-                messages.success(request, "Email preferences updated successfully.")
+                messages.success(request, _("Email preferences updated successfully."))
             else:
                 messages.error(
-                    request, "There was an error updating your email preferences."
+                    request, _("There was an error updating your email preferences.")
                 )
         return redirect("core:profile")
     if request.method == "POST" and request.POST.get("action") == "upgrade_to_org":
@@ -78,14 +110,16 @@ def profile(request):
             )
         messages.success(
             request,
-            "Organisation created. You are now an organisation admin and can host surveys and build a team.",
+            _(
+                "Organisation created. You are now an organisation admin and can host surveys and build a team."
+            ),
         )
         return redirect("surveys:org_users", org_id=org.id)
     if request.method == "POST" and request.POST.get("action") == "update_branding":
         if not request.user.is_superuser:
             return redirect("core:profile")
         if SiteBranding is not None:
-            sb, _ = SiteBranding.objects.get_or_create(pk=1)
+            sb, created = SiteBranding.objects.get_or_create(pk=1)
             sb.default_theme = request.POST.get("default_theme") or sb.default_theme
             sb.icon_url = (request.POST.get("icon_url") or "").strip()
             if request.FILES.get("icon_file"):
@@ -102,7 +136,7 @@ def profile(request):
             sb.theme_light_css = normalize_daisyui_builder_css(raw_light)
             sb.theme_dark_css = normalize_daisyui_builder_css(raw_dark)
             sb.save()
-            messages.success(request, "Project theme saved.")
+            messages.success(request, _("Project theme saved."))
         return redirect("core:profile")
     if SiteBranding is not None and sb is None:
         try:
@@ -140,6 +174,9 @@ def profile(request):
         "responses_submitted": SurveyResponse.objects.filter(submitted_by=user).count(),
         "tokens_created": SurveyAccessToken.objects.filter(created_by=user).count(),
     }
+    # Prepare language preference form
+    lang_pref, created = UserLanguagePreference.objects.get_or_create(user=user)
+    language_form = UserLanguagePreferenceForm(instance=lang_pref)
     # Prepare email preferences form
     email_prefs_form = None
     if UserEmailPreferences is not None:
@@ -152,6 +189,7 @@ def profile(request):
             "sb": sb,
             "stats": stats,
             "org": org,
+            "language_form": language_form,
             "email_prefs_form": email_prefs_form,
         },
     )
@@ -193,7 +231,7 @@ def signup(request):
                         role=OrganizationMembership.Role.ADMIN,
                     )
                 messages.success(
-                    request, "Organisation created. You are an organisation admin."
+                    request, _("Organisation created. You are an organisation admin.")
                 )
                 return redirect("surveys:org_users", org_id=org.id)
             return redirect("core:home")
@@ -264,9 +302,14 @@ DOC_CATEGORIES = {
         "order": 6,
         "icon": "🧪",
     },
+    "internationalization": {
+        "title": "Internationalization",
+        "order": 7,
+        "icon": "🌍",
+    },
     "advanced": {
         "title": "Advanced Topics",
-        "order": 7,
+        "order": 8,
         "icon": "🚀",
     },
     "other": {
@@ -341,6 +384,29 @@ def _discover_doc_pages():
                 }
             )
 
+    # Auto-discover translation files in docs/languages/
+    languages_dir = DOCS_DIR / "languages"
+    if languages_dir.exists():
+        for md_file in sorted(languages_dir.glob("*.md")):
+            # Generate slug from filename with languages prefix
+            slug = f"languages-{md_file.stem}"
+
+            # Skip if already manually configured
+            if slug in pages:
+                continue
+
+            # Extract title from file (first H1) or use slug
+            title = _extract_title_from_file(md_file) or _doc_title(md_file.stem)
+
+            pages[slug] = md_file
+            categorized["internationalization"].append(
+                {
+                    "slug": slug,
+                    "title": title,
+                    "file": md_file,
+                }
+            )
+
     return pages, categorized
 
 
@@ -393,6 +459,13 @@ def _infer_category(slug: str) -> str:
     # Testing
     if any(x in slug_lower for x in ["testing", "test-"]):
         return "testing"
+
+    # Internationalization
+    if any(
+        x in slug_lower
+        for x in ["i18n", "internationalization", "translation", "locale"]
+    ):
+        return "internationalization"
 
     # Advanced
     if any(x in slug_lower for x in ["advanced", "custom", "extend"]):

@@ -1,13 +1,14 @@
 {% extends 'base.html' %}
-{% block title %}Thank you - Census{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Thank you" %} - Census{% endblock %}
 {% block content %}
 <div class="hero min-h-[40vh] bg-base-100 rounded-box">
   <div class="hero-content text-center">
     <div class="max-w-xl">
-      <h1 class="text-3xl font-bold">Thank you</h1>
-      <p class="py-4 opacity-80">Your response has been recorded.</p>
+      <h1 class="text-3xl font-bold">{% trans "Thank you" %}</h1>
+      <p class="py-4 opacity-80">{% trans "Your response has been recorded." %}</p>
       {% if survey %}
-        <a href="/surveys/{{ survey.slug }}/take/" class="btn btn-primary">Back to survey</a>
+        <a href="/surveys/{{ survey.slug }}/take/" class="btn btn-primary">{% trans "Back to survey" %}</a>
       {% endif %}
     </div>
   </div>

@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
-{% block title %}Login - {{ brand.title }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Login" %} - {{ brand.title }}{% endblock %}
 {% block content %}
 <div class="max-w-md mx-auto">
   <div class="card bg-base-100 shadow">
     <div class="card-body">
-      <h1 class="card-title">Login</h1>
+      <h1 class="card-title">{% trans "Login" %}</h1>
       <form method="post" class="space-y-4">
         {% csrf_token %}
         {% include "components/form_errors.html" with form=form %}
@@ -12,10 +13,10 @@
           {% include "components/render_form_fields.html" with form=form %}
         </div>
         {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
-        <button type="submit" class="btn btn-primary w-full">Sign in</button>
+        <button type="submit" class="btn btn-primary w-full">{% trans "Sign in" %}</button>
       </form>
       <div class="mt-3 text-sm">
-        <a class="link" href="{% url 'password_reset' %}">Forgot password?</a>
+        <a class="link" href="{% url 'password_reset' %}">{% trans "Forgot password?" %}</a>
       </div>
     </div>
   </div>
