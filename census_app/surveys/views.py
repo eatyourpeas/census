@@ -643,8 +643,11 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
             val = request.POST.get(field)
             if val:
                 demo[field] = val
-        if demo and request.session.get("survey_key"):
-            resp.store_demographics(request.session["survey_key"], demo)
+        # Option 4: Re-derive KEK from stored credentials
+        if demo:
+            survey_key = get_survey_key_from_session(request, slug)
+            if survey_key:
+                resp.store_demographics(survey_key, demo)
         try:
             resp.save()
         except Exception:
@@ -1675,8 +1678,31 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
             )
             return redirect("surveys:dashboard", slug=slug)
 
-    # Apply changes
+    # Check if encryption setup is needed (first-time publish for individual users)
     prev_status = survey.status
+    needs_encryption_setup = (
+        prev_status != Survey.Status.PUBLISHED
+        and status == Survey.Status.PUBLISHED
+        and not survey.has_dual_encryption()
+        and survey.organization is None  # Individual user, not organization
+    )
+
+    if needs_encryption_setup:
+        # Store pending publish settings in session
+        request.session["pending_publish"] = {
+            "slug": slug,
+            "status": status,
+            "visibility": visibility,
+            "start_at": start_at.isoformat() if start_at else None,
+            "end_at": end_at.isoformat() if end_at else None,
+            "max_responses": max_responses,
+            "captcha_required": captcha_required,
+            "no_patient_data_ack": no_patient_data_ack,
+        }
+        # Redirect to encryption setup page
+        return redirect("surveys:encryption_setup", slug=slug)
+
+    # Apply changes
     survey.status = status
     survey.visibility = visibility
     survey.start_at = start_at
@@ -1697,6 +1723,139 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
     survey.save()
     messages.success(request, "Publish settings updated.")
     return redirect("surveys:dashboard", slug=slug)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
+    """
+    Encryption setup page for individual users publishing surveys.
+    Prompts for password and generates recovery phrase for Option 2 encryption.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+
+    # Check if we have pending publish settings
+    pending = request.session.get("pending_publish", {})
+    if pending.get("slug") != slug:
+        messages.error(request, "No pending publish action found.")
+        return redirect("surveys:dashboard", slug=slug)
+
+    # Check if survey already has encryption
+    if survey.has_dual_encryption():
+        messages.info(request, "Survey already has encryption enabled.")
+        return redirect("surveys:dashboard", slug=slug)
+
+    if request.method == "POST":
+        password = request.POST.get("password", "").strip()
+        password_confirm = request.POST.get("password_confirm", "").strip()
+
+        # Validate password
+        if not password:
+            messages.error(request, "Password is required.")
+            return render(request, "surveys/encryption_setup.html", {"survey": survey})
+
+        if len(password) < 12:
+            messages.error(request, "Password must be at least 12 characters.")
+            return render(request, "surveys/encryption_setup.html", {"survey": survey})
+
+        if password != password_confirm:
+            messages.error(request, "Passwords do not match.")
+            return render(request, "surveys/encryption_setup.html", {"survey": survey})
+
+        # Generate survey encryption key (KEK)
+        import os
+        from .utils import generate_bip39_phrase
+
+        kek = os.urandom(32)  # 256-bit survey encryption key
+
+        # Generate 12-word recovery phrase
+        recovery_words = generate_bip39_phrase(12)
+
+        # Set up dual encryption
+        survey.set_dual_encryption(kek, password, recovery_words)
+
+        # Apply pending publish settings
+        from django.utils.dateparse import parse_datetime
+
+        survey.status = pending.get("status", survey.status)
+        survey.visibility = pending.get("visibility", survey.visibility)
+        start_at_str = pending.get("start_at")
+        end_at_str = pending.get("end_at")
+        survey.start_at = parse_datetime(start_at_str) if start_at_str else None
+        survey.end_at = parse_datetime(end_at_str) if end_at_str else None
+        survey.max_responses = pending.get("max_responses")
+        survey.captcha_required = pending.get("captcha_required", False)
+        survey.no_patient_data_ack = pending.get("no_patient_data_ack", False)
+
+        # Set published_at if first publish
+        if survey.status == Survey.Status.PUBLISHED and not survey.published_at:
+            survey.published_at = timezone.now()
+
+        # Generate unlisted key if needed
+        if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
+            survey.unlisted_key = secrets.token_urlsafe(24)
+
+        survey.save()
+
+        # Store KEK and recovery phrase in session for key display page (one-time access)
+        request.session["encryption_display"] = {
+            "slug": slug,
+            "kek_hex": kek.hex(),
+            "recovery_phrase": " ".join(recovery_words),
+            "recovery_hint": survey.recovery_code_hint,
+        }
+
+        # Clear pending publish settings
+        if "pending_publish" in request.session:
+            del request.session["pending_publish"]
+
+        # Redirect to key display page
+        return redirect("surveys:encryption_display", slug=slug)
+
+    return render(request, "surveys/encryption_setup.html", {"survey": survey})
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def survey_encryption_display(request: HttpRequest, slug: str) -> HttpResponse:
+    """
+    Display encryption key and recovery phrase once after setup.
+    Keys are stored in session and cleared after viewing.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+
+    # Check if we have encryption display data in session
+    display_data = request.session.get("encryption_display", {})
+    if display_data.get("slug") != slug:
+        messages.error(
+            request,
+            "Encryption keys have already been displayed or no setup data found."
+        )
+        return redirect("surveys:dashboard", slug=slug)
+
+    # Prepare display data
+    kek_hex = display_data.get("kek_hex", "")
+    recovery_phrase = display_data.get("recovery_phrase", "")
+    recovery_hint = display_data.get("recovery_hint", "")
+    recovery_words = recovery_phrase.split() if recovery_phrase else []
+
+    if request.method == "POST":
+        # User has acknowledged viewing the keys - clear session data
+        if "encryption_display" in request.session:
+            del request.session["encryption_display"]
+        messages.success(request, "Survey published successfully with encryption enabled.")
+        return redirect("surveys:dashboard", slug=slug)
+
+    context = {
+        "survey": survey,
+        "kek_hex": kek_hex,
+        "recovery_phrase": recovery_phrase,
+        "recovery_words": recovery_words,
+        "recovery_hint": recovery_hint,
+    }
+    return render(request, "surveys/encryption_display.html", context)
 
 
 @require_http_methods(["GET", "POST"])
@@ -1842,8 +2001,11 @@ def _handle_participant_submission(
             val = request.POST.get(field)
             if val:
                 demo[field] = val
-        if demo and request.session.get("survey_key"):
-            resp.store_demographics(request.session["survey_key"], demo)
+        # Option 4: Re-derive KEK from stored credentials
+        if demo:
+            survey_key = get_survey_key_from_session(request, survey.slug)
+            if survey_key:
+                resp.store_demographics(survey_key, demo)
 
         try:
             resp.save()
@@ -2609,22 +2771,198 @@ def survey_group_create_from_template(request: HttpRequest, slug: str) -> HttpRe
     return redirect("surveys:groups", slug=slug)
 
 
+def get_survey_key_from_session(request: HttpRequest, survey_slug: str) -> bytes | None:
+    """
+    Option 4: Re-derive KEK from stored credentials on each request.
+    This provides forward secrecy - no key material persists in sessions.
+    Credentials are encrypted with session-specific key.
+    Returns None if session expired (>30 min) or credentials invalid.
+    """
+    import base64
+    from django.utils import timezone
+    from datetime import timedelta
+    from .utils import decrypt_sensitive
+
+    # Check if unlock is valid
+    if not request.session.get("unlock_credentials"):
+        return None
+
+    # Check timestamp (30 minute timeout)
+    verified_at_str = request.session.get("unlock_verified_at")
+    if not verified_at_str:
+        return None
+
+    verified_at = timezone.datetime.fromisoformat(verified_at_str)
+    # Ensure timezone-aware comparison
+    if timezone.is_naive(verified_at):
+        verified_at = timezone.make_aware(verified_at)
+
+    if timezone.now() - verified_at > timedelta(minutes=30):
+        # Session expired - clear credentials
+        request.session.pop("unlock_credentials", None)
+        request.session.pop("unlock_method", None)
+        request.session.pop("unlock_verified_at", None)
+        request.session.pop("unlock_survey_slug", None)
+        return None
+
+    # Check survey matches
+    if request.session.get("unlock_survey_slug") != survey_slug:
+        return None
+
+    # Decrypt credentials
+    try:
+        session_key = request.session.session_key
+        if not session_key:
+            return None
+
+        encrypted_creds_b64 = request.session.get("unlock_credentials")
+        encrypted_creds = base64.b64decode(encrypted_creds_b64)
+        creds = decrypt_sensitive(session_key.encode('utf-8'), encrypted_creds)
+
+        # Re-derive KEK based on method
+        unlock_method = request.session.get("unlock_method")
+        survey = Survey.objects.get(slug=survey_slug)
+
+        if unlock_method == "password":
+            password = creds.get("password")
+            if password:
+                return survey.unlock_with_password(password)
+        elif unlock_method == "recovery":
+            recovery_phrase = creds.get("recovery_phrase")
+            if recovery_phrase:
+                return survey.unlock_with_recovery(recovery_phrase)
+        elif unlock_method == "legacy":
+            legacy_key_b64 = creds.get("legacy_key")
+            if legacy_key_b64:
+                return base64.b64decode(legacy_key_b64)
+
+        return None
+    except Exception:
+        # If anything fails, clear session and return None
+        request.session.pop("unlock_credentials", None)
+        request.session.pop("unlock_method", None)
+        request.session.pop("unlock_verified_at", None)
+        request.session.pop("unlock_survey_slug", None)
+        return None
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug, owner=request.user)
+
+    # Ensure we have fresh data from database
+    survey.refresh_from_db()
+
+    # Determine unlock method based on form data
+    unlock_method = request.POST.get("unlock_method", "password")  # 'password' or 'recovery'
+
     if request.method == "POST":
-        key = request.POST.get("key", "").encode("utf-8")
-        if (
-            survey.key_hash
-            and survey.key_salt
-            and verify_key(key, bytes(survey.key_hash), bytes(survey.key_salt))
-        ):
-            request.session["survey_key"] = key
-            messages.success(request, "Survey unlocked for this session.")
-            return redirect("surveys:dashboard", slug=slug)
-        messages.error(request, "Invalid key.")
-    return render(request, "surveys/unlock.html", {"survey": survey})
+        kek = None
+
+        # Try Option 2 dual encryption first (if available)
+        if survey.has_dual_encryption():
+            if unlock_method == "password":
+                password = request.POST.get("password", "").strip()
+                if password:
+                    kek = survey.unlock_with_password(password)
+                    if kek:
+                        # Log successful password unlock
+                        from .models import AuditLog
+                        AuditLog.objects.create(
+                            actor=request.user,
+                            scope=AuditLog.Scope.SURVEY,
+                            action=AuditLog.Action.UPDATE,
+                            survey=survey,
+                            target_user=request.user,
+                            metadata={"unlock_method": "password"},
+                        )
+                        # Option 4: Store credentials for re-derivation, not the KEK itself
+                        # Encrypt password with session-specific key for forward secrecy
+                        import base64
+                        from django.utils import timezone
+                        session_key = request.session.session_key or request.session.create()
+                        from .utils import encrypt_sensitive
+                        encrypted_creds = encrypt_sensitive(session_key.encode('utf-8'), {
+                            'password': password,
+                            'survey_slug': slug
+                        })
+                        request.session["unlock_credentials"] = base64.b64encode(encrypted_creds).decode('ascii')
+                        request.session["unlock_method"] = "password"
+                        request.session["unlock_verified_at"] = timezone.now().isoformat()
+                        request.session["unlock_survey_slug"] = slug
+                        messages.success(request, "Survey unlocked with password.")
+                        return redirect("surveys:dashboard", slug=slug)
+                    else:
+                        messages.error(request, "Invalid password.")
+
+            elif unlock_method == "recovery":
+                recovery_phrase = request.POST.get("recovery_phrase", "").strip()
+                if recovery_phrase:
+                    kek = survey.unlock_with_recovery(recovery_phrase)
+                    if kek:
+                        # Log recovery phrase unlock (important for audit trail)
+                        from .models import AuditLog
+                        AuditLog.objects.create(
+                            actor=request.user,
+                            scope=AuditLog.Scope.SURVEY,
+                            action=AuditLog.Action.UPDATE,
+                            survey=survey,
+                            target_user=request.user,
+                            metadata={"unlock_method": "recovery_phrase"},
+                        )
+                        # Option 4: Store credentials for re-derivation, not the KEK itself
+                        # Encrypt recovery phrase with session-specific key for forward secrecy
+                        import base64
+                        from django.utils import timezone
+                        session_key = request.session.session_key or request.session.create()
+                        from .utils import encrypt_sensitive
+                        encrypted_creds = encrypt_sensitive(session_key.encode('utf-8'), {
+                            'recovery_phrase': recovery_phrase,
+                            'survey_slug': slug
+                        })
+                        request.session["unlock_credentials"] = base64.b64encode(encrypted_creds).decode('ascii')
+                        request.session["unlock_method"] = "recovery"
+                        request.session["unlock_verified_at"] = timezone.now().isoformat()
+                        request.session["unlock_survey_slug"] = slug
+                        messages.success(request, "Survey unlocked with recovery phrase.")
+                        return redirect("surveys:dashboard", slug=slug)
+                    else:
+                        messages.error(request, "Invalid recovery phrase.")
+
+        # Fallback to legacy key verification (old surveys)
+        else:
+            key = request.POST.get("key", "").encode("utf-8")
+            if survey.key_hash and survey.key_salt:
+                # Convert memoryview to bytes if needed (PostgreSQL BinaryField)
+                key_hash = bytes(survey.key_hash) if isinstance(survey.key_hash, memoryview) else survey.key_hash
+                key_salt = bytes(survey.key_salt) if isinstance(survey.key_salt, memoryview) else survey.key_salt
+
+                if verify_key(key, key_hash, key_salt):
+                    # Option 4: Store credentials for re-derivation (legacy path)
+                    # For legacy, we store the raw key encrypted with session key
+                    import base64
+                    from django.utils import timezone
+                    session_key = request.session.session_key or request.session.create()
+                    from .utils import encrypt_sensitive
+                    encrypted_creds = encrypt_sensitive(session_key.encode('utf-8'), {
+                        'legacy_key': base64.b64encode(key).decode('ascii'),
+                        'survey_slug': slug
+                    })
+                    request.session["unlock_credentials"] = base64.b64encode(encrypted_creds).decode('ascii')
+                    request.session["unlock_method"] = "legacy"
+                    request.session["unlock_verified_at"] = timezone.now().isoformat()
+                    request.session["unlock_survey_slug"] = slug
+                    messages.success(request, "Survey unlocked for this session.")
+                    return redirect("surveys:dashboard", slug=slug)
+            messages.error(request, "Invalid key.")
+
+    context = {
+        "survey": survey,
+        "has_dual_encryption": survey.has_dual_encryption(),
+        "recovery_hint": survey.recovery_code_hint if survey.has_dual_encryption() else None,
+    }
+    return render(request, "surveys/unlock.html", context)
 
 
 @login_required
@@ -2632,7 +2970,9 @@ def survey_export_csv(
     request: HttpRequest, slug: str
 ) -> Union[HttpResponse, StreamingHttpResponse]:
     survey = get_object_or_404(Survey, slug=slug, owner=request.user)
-    if not request.session.get("survey_key"):
+    # Option 4: Re-derive KEK from stored credentials
+    survey_key = get_survey_key_from_session(request, slug)
+    if not survey_key:
         messages.error(request, "Unlock survey first.")
         return redirect("surveys:unlock", slug=slug)
 

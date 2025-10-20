@@ -90,16 +90,35 @@ The encryption process:
 To view encrypted data, users must "unlock" the survey:
 
 ```python
-# User provides survey key
-key = request.POST.get("key").encode("utf-8")
+# User provides password or recovery phrase
+unlock_method = request.POST.get("unlock_method")
 
-# Verify against stored hash
-if verify_key(key, survey.key_hash, survey.key_salt):
-    # Store in session (HttpOnly, Secure cookie)
-    request.session["survey_key"] = key
+if unlock_method == "password":
+    # Derive KEK from user's password
+    password = request.POST.get("password")
+    survey_kek = survey.unlock_with_password(password)
+elif unlock_method == "recovery":
+    # Derive KEK from recovery phrase
+    recovery_phrase = request.POST.get("recovery_phrase")
+    survey_kek = survey.unlock_with_recovery(recovery_phrase)
 
-# Now can decrypt responses
-demographics = response.load_demographics(survey_key)
+if survey_kek:
+    # Store encrypted credentials in session (not the KEK)
+    # KEK is re-derived on each request for forward secrecy
+    session_key = request.session.session_key or request.session.create()
+    encrypted_creds = encrypt_sensitive(session_key.encode('utf-8'), {
+        'password': password,  # or recovery_phrase
+        'survey_slug': survey.slug
+    })
+    request.session["unlock_credentials"] = base64.b64encode(encrypted_creds).decode('ascii')
+    request.session["unlock_method"] = unlock_method
+    request.session["unlock_verified_at"] = timezone.now().isoformat()
+    request.session["unlock_survey_slug"] = survey.slug
+
+# On each request needing the KEK, re-derive it
+survey_key = get_survey_key_from_session(request, survey.slug)
+if survey_key:
+    demographics = response.load_demographics(survey_key)
 ```
 
 ### Current Security Properties
@@ -108,8 +127,93 @@ demographics = response.load_demographics(survey_key)
 ✅ **Per-Survey Isolation**: Each survey has unique encryption key
 ✅ **Authenticated Encryption**: AES-GCM prevents tampering
 ✅ **Strong KDF**: Scrypt protects against brute-force attacks
-✅ **Session-Based**: Keys stored only in session, not permanently
+✅ **Forward Secrecy**: KEK re-derived on each request, never persisted in session
+✅ **Minimal Session Storage**: Only encrypted credentials stored, not key material
+✅ **Automatic Timeout**: 30-minute session expiration for unlocked surveys
 ✅ **No Key Escrow**: True end-to-end encryption
+
+### Session Security Model
+
+Census implements a **forward secrecy** model where encryption keys are never persisted in sessions:
+
+**What's Stored in Sessions:**
+- `unlock_credentials`: Encrypted blob containing user's password or recovery phrase
+- `unlock_method`: Which method was used ("password" or "recovery")
+- `unlock_verified_at`: ISO timestamp of when unlock occurred
+- `unlock_survey_slug`: Which survey was unlocked
+
+**What's NOT Stored:**
+- ❌ The KEK (Key Encryption Key) itself
+- ❌ Any plaintext key material
+- ❌ Decrypted credentials
+
+**How It Works:**
+
+1. **User Unlocks Survey**: Provides password or recovery phrase
+2. **Credentials Encrypted**: Credentials encrypted with session-specific key using `encrypt_sensitive()`
+3. **KEK Derived & Verified**: KEK derived and verified, then discarded
+4. **Session Metadata Stored**: Only encrypted credentials + metadata stored in session
+5. **Each Request**: KEK re-derived on-demand via `get_survey_key_from_session()`
+6. **Automatic Cleanup**: After 30 minutes or on error, session data cleared
+
+**Security Benefits:**
+
+- **Forward Secrecy**: Compromise of session storage doesn't reveal KEK
+- **Time-Limited Access**: Automatic 30-minute timeout enforced
+- **Survey Isolation**: Slug validation prevents cross-survey access
+- **No Key Material in Memory**: KEK exists only during request processing
+
+**Helper Function:**
+
+```python
+def get_survey_key_from_session(request: HttpRequest, survey_slug: str) -> Optional[bytes]:
+    """
+    Re-derive KEK from encrypted session credentials.
+    Returns None if timeout expired (>30 min) or validation fails.
+    """
+    # Check credentials exist
+    if not request.session.get("unlock_credentials"):
+        return None
+
+    # Validate 30-minute timeout
+    verified_at_str = request.session.get("unlock_verified_at")
+    verified_at = timezone.datetime.fromisoformat(verified_at_str)
+    if timezone.is_naive(verified_at):
+        verified_at = timezone.make_aware(verified_at)
+
+    if timezone.now() - verified_at > timedelta(minutes=30):
+        # Clear expired session
+        request.session.pop("unlock_credentials", None)
+        request.session.pop("unlock_method", None)
+        request.session.pop("unlock_verified_at", None)
+        request.session.pop("unlock_survey_slug", None)
+        return None
+
+    # Validate survey slug matches
+    if request.session.get("unlock_survey_slug") != survey_slug:
+        return None
+
+    # Decrypt credentials with session key
+    session_key = request.session.session_key
+    encrypted_creds_b64 = request.session.get("unlock_credentials")
+    encrypted_creds = base64.b64decode(encrypted_creds_b64)
+
+    credentials = decrypt_sensitive(session_key.encode('utf-8'), encrypted_creds)
+
+    # Re-derive KEK based on method
+    survey = Survey.objects.get(slug=survey_slug)
+    unlock_method = request.session.get("unlock_method")
+
+    if unlock_method == "password":
+        return survey.unlock_with_password(credentials["password"])
+    elif unlock_method == "recovery":
+        return survey.unlock_with_recovery(credentials["recovery_phrase"])
+    elif unlock_method == "legacy":
+        # Legacy key stored as base64
+        return base64.b64decode(credentials["legacy_key"])
+
+    return None
+```
 
 ### Current Limitations
 

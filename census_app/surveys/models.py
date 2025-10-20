@@ -100,6 +100,24 @@ class Survey(models.Model):
     # One-time survey key: store only hash + salt for verification
     key_salt = models.BinaryField(blank=True, null=True, editable=False)
     key_hash = models.BinaryField(blank=True, null=True, editable=False)
+    # Option 2: Dual-path encryption for individual users
+    encrypted_kek_password = models.BinaryField(
+        blank=True,
+        null=True,
+        editable=False,
+        help_text="Survey encryption key encrypted with password-derived key",
+    )
+    encrypted_kek_recovery = models.BinaryField(
+        blank=True,
+        null=True,
+        editable=False,
+        help_text="Survey encryption key encrypted with recovery-phrase-derived key",
+    )
+    recovery_code_hint = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="First and last word of recovery phrase (e.g., 'apple...zebra')",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def is_live(self) -> bool:
@@ -126,6 +144,112 @@ class Survey(models.Model):
         self.key_hash = digest
         self.key_salt = salt
         self.save(update_fields=["key_hash", "key_salt"])
+
+    def set_dual_encryption(
+        self, kek: bytes, password: str, recovery_phrase_words: list[str]
+    ) -> None:
+        """
+        Set up Option 2 dual-path encryption for individual users.
+
+        Args:
+            kek: 32-byte survey encryption key (generated once)
+            password: User's chosen password for unlocking
+            recovery_phrase_words: List of BIP39 words for recovery
+
+        This encrypts the KEK twice:
+        1. With password-derived key -> encrypted_kek_password
+        2. With recovery-phrase-derived key -> encrypted_kek_recovery
+
+        Also stores a recovery hint (first...last word).
+        """
+        from .utils import (
+            create_recovery_hint,
+            encrypt_kek_with_passphrase,
+        )
+
+        # Encrypt KEK with password
+        self.encrypted_kek_password = encrypt_kek_with_passphrase(kek, password)
+
+        # Encrypt KEK with recovery phrase
+        recovery_phrase = " ".join(recovery_phrase_words)
+        self.encrypted_kek_recovery = encrypt_kek_with_passphrase(kek, recovery_phrase)
+
+        # Store recovery hint
+        self.recovery_code_hint = create_recovery_hint(recovery_phrase_words)
+
+        # Also set the old-style key hash for compatibility
+        digest, salt = make_key_hash(kek)
+        self.key_hash = digest
+        self.key_salt = salt
+
+        # Save all fields
+        self.save(
+            update_fields=[
+                "encrypted_kek_password",
+                "encrypted_kek_recovery",
+                "recovery_code_hint",
+                "key_hash",
+                "key_salt",
+            ]
+        )
+
+    def unlock_with_password(self, password: str) -> bytes | None:
+        """
+        Unlock survey using password (Option 2).
+
+        Args:
+            password: User's password
+
+        Returns:
+            32-byte KEK if successful, None if decryption fails
+
+        This attempts to decrypt encrypted_kek_password with the provided password.
+        """
+        from cryptography.exceptions import InvalidTag
+
+        from .utils import decrypt_kek_with_passphrase
+
+        if not self.encrypted_kek_password:
+            return None
+
+        try:
+            kek = decrypt_kek_with_passphrase(self.encrypted_kek_password, password)
+            return kek
+        except (InvalidTag, Exception):
+            return None
+
+    def unlock_with_recovery(self, recovery_phrase: str) -> bytes | None:
+        """
+        Unlock survey using recovery phrase (Option 2).
+
+        Args:
+            recovery_phrase: Space-separated BIP39 recovery phrase
+
+        Returns:
+            32-byte KEK if successful, None if decryption fails
+
+        This attempts to decrypt encrypted_kek_recovery with the provided phrase.
+        """
+        from cryptography.exceptions import InvalidTag
+
+        from .utils import decrypt_kek_with_passphrase
+
+        if not self.encrypted_kek_recovery:
+            return None
+
+        try:
+            kek = decrypt_kek_with_passphrase(
+                self.encrypted_kek_recovery, recovery_phrase
+            )
+            return kek
+        except (InvalidTag, Exception):
+            return None
+
+    def has_dual_encryption(self) -> bool:
+        """Check if survey uses Option 2 dual-path encryption."""
+        return bool(
+            self.encrypted_kek_password and self.encrypted_kek_recovery
+        )
 
 
 class SurveyQuestion(models.Model):

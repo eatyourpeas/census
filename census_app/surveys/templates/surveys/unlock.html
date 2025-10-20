@@ -6,15 +6,145 @@
   {% trans "Survey Dashboard" as crumb1_text %}
   {% trans "Unlock" as crumb2_text %}
   {% include 'components/breadcrumbs.html' with crumb1_label=crumb1_text crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label=crumb2_text %}
-  %}
   <h1>{% trans "Unlock" %} {{ survey.name }}</h1>
-  <p>{% trans "Enter the one-time survey key to decrypt sensitive fields for this session." %}</p>
+
+  {% if has_dual_encryption %}
+    <p>{% trans "Unlock this survey using your password or recovery phrase. The encryption key will be stored securely in your session." %}</p>
+  {% else %}
+    <p>{% trans "Enter the one-time survey key to decrypt sensitive fields for this session." %}</p>
+  {% endif %}
 </div>
-<form method="post" class="mt-4 space-y-4">
-  {% csrf_token %}
-  <input type="password" name="key" class="input input-bordered w-full max-w-md" placeholder="{% trans 'Survey key' %}" />
-  <button class="btn btn-primary" type="submit">{% trans "Unlock" %}</button>
 
+{% if has_dual_encryption %}
+  <!-- Dual encryption: tabs for password vs recovery phrase -->
+  <div role="tablist" class="tabs tabs-boxed mt-6 mb-4 max-w-2xl">
+    <input type="radio" name="unlock_tabs" role="tab" class="tab" aria-label="{% trans 'Password' %}" checked />
+    <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6 mt-4">
+      <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="unlock_method" value="password">
 
-</form>
+        <div class="form-control">
+          <label class="label" for="password">
+            <span class="label-text font-semibold">{% trans "Encryption Password" %}</span>
+          </label>
+          <input
+            type="password"
+            name="password"
+            id="password"
+            class="input input-bordered w-full max-w-md"
+            required
+            autocomplete="off"
+            placeholder="{% trans 'Enter your encryption password' %}"
+          />
+          <label class="label">
+            <span class="label-text-alt">
+              {% trans "This is the password you set when encrypting the survey." %}
+            </span>
+          </label>
+        </div>
+
+        <div class="alert alert-info max-w-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>{% trans "Forgot your password? Switch to the Recovery Phrase tab." %}</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          {% trans "Unlock with Password" %}
+        </button>
+      </form>
+    </div>
+
+    <input type="radio" name="unlock_tabs" role="tab" class="tab" aria-label="{% trans 'Recovery Phrase' %}" />
+    <div role="tabpanel" class="tab-content bg-base-100 border-base-300 rounded-box p-6 mt-4">
+      {% if recovery_hint %}
+        <div class="alert alert-warning mb-4 max-w-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          <div>
+            <div class="font-semibold">{% trans "Recovery Hint" %}</div>
+            <div class="text-sm">{{ recovery_hint }}</div>
+          </div>
+        </div>
+      {% endif %}
+
+      <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="unlock_method" value="recovery">
+
+        <div class="form-control">
+          <label class="label" for="recovery_phrase">
+            <span class="label-text font-semibold">{% trans "12-Word Recovery Phrase" %}</span>
+          </label>
+          <textarea
+            name="recovery_phrase"
+            id="recovery_phrase"
+            class="textarea textarea-bordered w-full max-w-2xl h-32"
+            required
+            autocomplete="off"
+            placeholder="{% trans 'Enter your 12-word recovery phrase (spaces between words)' %}"
+          ></textarea>
+          <label class="label">
+            <span class="label-text-alt">
+              {% trans "Enter all 12 words separated by spaces. Capitalization and extra spaces don't matter." %}
+            </span>
+          </label>
+        </div>
+
+        <div class="alert alert-warning max-w-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          <div>
+            <div class="font-semibold">{% trans "Security Notice" %}</div>
+            <div class="text-sm">{% trans "Recovery phrase usage is logged for security audit purposes." %}</div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-secondary">
+          {% trans "Unlock with Recovery Phrase" %}
+        </button>
+      </form>
+    </div>
+  </div>
+
+{% else %}
+  <!-- Legacy encryption: single key input -->
+  <div class="alert alert-info mt-6 mb-4 max-w-2xl">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    <span>{% trans "This survey uses legacy encryption. Enter your encryption key below." %}</span>
+  </div>
+
+  <form method="post" class="mt-4 space-y-4">
+    {% csrf_token %}
+
+    <div class="form-control">
+      <label class="label" for="key">
+        <span class="label-text font-semibold">{% trans "Survey Key" %}</span>
+      </label>
+      <input
+        type="password"
+        name="key"
+        id="key"
+        class="input input-bordered w-full max-w-md"
+        required
+        autocomplete="off"
+        placeholder="{% trans 'Survey key' %}"
+      />
+      <label class="label">
+        <span class="label-text-alt text-warning">
+          {% trans "This survey uses the older encryption format. Consider upgrading to password + recovery phrase encryption." %}
+        </span>
+      </label>
+    </div>
+
+    <button class="btn btn-primary" type="submit">{% trans "Unlock" %}</button>
+  </form>
+{% endif %}
+
+<div class="alert mt-6 max-w-2xl">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-info shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+  <div>
+    <p class="font-semibold">{% trans "About Survey Unlocking" %}</p>
+    <p class="text-sm">{% trans "Unlocking allows you to view and manage encrypted survey data in this browser session. The encryption key is stored securely in your session and never transmitted over the network unencrypted." %}</p>
+  </div>
+</div>
+
 {% endblock %}

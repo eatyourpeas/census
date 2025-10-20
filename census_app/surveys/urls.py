@@ -48,6 +48,16 @@ urlpatterns = [
         views.survey_publish_update,
         name="publish_update",
     ),
+    path(
+        "<slug:slug>/encryption/setup",
+        views.survey_encryption_setup,
+        name="encryption_setup",
+    ),
+    path(
+        "<slug:slug>/encryption/display",
+        views.survey_encryption_display,
+        name="encryption_display",
+    ),
     path("<slug:slug>/tokens/", views.survey_tokens, name="tokens"),
     path(
         "<slug:slug>/tokens/export.csv",

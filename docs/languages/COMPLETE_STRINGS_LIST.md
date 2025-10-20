@@ -1,7 +1,7 @@
 # Complete List of Translatable Strings
 
-**Total Strings:** 259 unique English strings
-**Last Updated:** October 14, 2025
+**Total Strings:** 320 unique English strings
+**Last Updated:** January 2025
 
 This document contains every string that needs translation in the Census application, organized by category. Use this as a reference when creating translations for any language.
 
@@ -46,9 +46,9 @@ User authentication, login, signup, password management, and account creation.
 
 ---
 
-## Category 2: Survey Management (91 strings)
+## Category 2: Survey Management (152 strings)
 
-Survey creation, editing, publishing, dashboard, groups, questions, tokens, and deletion.
+Survey creation, editing, publishing, dashboard, groups, questions, tokens, encryption, and deletion.
 
 1. This application is in development currently and should NOT be used for live surveys at the moment.
 2. Surveys for health care
@@ -140,17 +140,69 @@ Survey creation, editing, publishing, dashboard, groups, questions, tokens, and 
 88. Survey key
 89. Enter the one-time survey key to decrypt sensitive fields for this session.
 90. Unlock
-91. Invite Tokens
-92. Invite tokens
-93. Token
-94. Created
-95. No tokens yet.
-96. Manage invite tokens
-97. Invite token
-98. Add user to survey
-99. No surveys yet
-100. Survey slug
-101. Users by survey
+91. Unlock this survey using your password or recovery phrase. The encryption key will be stored securely in your session.
+92. Password
+93. Recovery Phrase
+94. Encryption Password
+95. Enter your encryption password
+96. This is the password you set when encrypting the survey.
+97. Forgot your password? Switch to the Recovery Phrase tab.
+98. Unlock with Password
+99. Recovery Hint
+100. 12-Word Recovery Phrase
+101. Enter your 12-word recovery phrase (spaces between words)
+102. Enter all 12 words separated by spaces. Capitalization and extra spaces don't matter.
+103. Security Notice
+104. Recovery phrase usage is logged for security audit purposes.
+105. Unlock with Recovery Phrase
+106. This survey uses legacy encryption. Enter your encryption key below.
+107. Survey Key
+108. This survey uses the older encryption format. Consider upgrading to password + recovery phrase encryption.
+109. About Survey Unlocking
+110. Unlocking allows you to view and manage encrypted survey data in this browser session. The encryption key is stored securely in your session and never transmitted over the network unencrypted.
+111. Set Encryption Password
+112. To publish this survey with encryption enabled, you must set a password.
+113. Encryption password
+114. Confirm password
+115. Passwords do not match.
+116. Recovery Hint (Optional)
+117. A hint to help you remember your recovery phrase (shown during unlock)
+118. Technical Details
+119. Your password encrypts the survey key using Scrypt (n=2^14). A 12-word BIP39 recovery phrase is also generated, which can decrypt the key if you forget your password.
+120. Set Password and Generate Recovery Phrase
+121. Never share these with anyone!
+122. Your Encryption Keys
+123. This page will only be shown once. Please save this information securely.
+124. Password encryption set successfully
+125. 12-Word Recovery Phrase
+126. Write down these words in order. You'll need them to recover access if you forget your password.
+127. Recovery Phrase (one word per box)
+128. Copy Recovery Phrase
+129. Recovery phrase copied!
+130. Download as Text File
+131. Print This Page
+132. 64-Character Hex Key (Advanced)
+133. This is the raw encryption key. Store it separately as an additional backup.
+134. Copy Hex Key
+135. Hex key copied!
+136. What happens next?
+137. You can now unlock the survey using either your password or the recovery phrase. If you lose both, the encrypted data cannot be recovered.
+138. Continue to Survey Dashboard
+139. Survey unlocked with password.
+140. Invalid password.
+141. Survey unlocked with recovery phrase.
+142. Invalid recovery phrase.
+143. Invite Tokens
+144. Invite tokens
+145. Token
+146. Created
+147. No tokens yet.
+148. Manage invite tokens
+149. Invite token
+150. Add user to survey
+151. No surveys yet
+152. Survey slug
+153. Users by survey
 
 ---
 
