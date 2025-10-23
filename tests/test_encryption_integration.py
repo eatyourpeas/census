@@ -5,9 +5,10 @@ These tests verify end-to-end encryption functionality for healthcare workers
 and organizations, including password and recovery phrase unlock methods.
 """
 
-from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
+from django.test import Client, TestCase
 from django.urls import reverse
+
 from census_app.surveys.models import Survey, SurveyResponse
 from census_app.surveys.utils import encrypt_sensitive
 
@@ -20,9 +21,7 @@ class EncryptionIntegrationTest(TestCase):
     def setUp(self):
         """Set up test user and client."""
         self.user = User.objects.create_user(
-            username="testuser",
-            email="test@example.com",
-            password="testpass123"
+            username="testuser", email="test@example.com", password="testpass123"
         )
         self.client = Client()
         self.client.login(username="testuser", password="testpass123")
@@ -48,7 +47,7 @@ class EncryptionIntegrationTest(TestCase):
             "first_name": "John",
             "last_name": "Doe",
             "date_of_birth": "1980-01-01",
-            "nhs_number": "1234567890"
+            "nhs_number": "1234567890",
         }
 
         encrypted_demographics = encrypt_sensitive(kek, test_demographics)
@@ -56,26 +55,27 @@ class EncryptionIntegrationTest(TestCase):
         SurveyResponse.objects.create(
             survey=survey,
             enc_demographics=encrypted_demographics,
-            answers={"question_1": "test answer"}
+            answers={"question_1": "test answer"},
         )
 
         # Test unlock with password
-        unlock_data = {
-            "unlock_method": "password",
-            "password": password
-        }
+        unlock_data = {"unlock_method": "password", "password": password}
 
-        response = self.client.post(reverse('surveys:unlock', kwargs={'slug': survey.slug}), data=unlock_data)
+        response = self.client.post(
+            reverse("surveys:unlock", kwargs={"slug": survey.slug}), data=unlock_data
+        )
         self.assertEqual(response.status_code, 302)
 
         # Verify session contains unlock credentials
         session = self.client.session
-        self.assertIn('unlock_credentials', session)
-        self.assertIn('unlock_method', session)
-        self.assertEqual(session['unlock_method'], 'password')
+        self.assertIn("unlock_credentials", session)
+        self.assertIn("unlock_method", session)
+        self.assertEqual(session["unlock_method"], "password")
 
         # Test accessing encrypted data (survey should be unlocked in session)
-        response = self.client.get(reverse('surveys:dashboard', kwargs={'slug': survey.slug}))
+        response = self.client.get(
+            reverse("surveys:dashboard", kwargs={"slug": survey.slug})
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_complete_encryption_workflow_recovery_unlock(self):
@@ -97,19 +97,18 @@ class EncryptionIntegrationTest(TestCase):
         # Test unlock with recovery phrase
         recovery_phrase = " ".join(recovery_words)
 
-        unlock_data = {
-            "unlock_method": "recovery",
-            "recovery_phrase": recovery_phrase
-        }
+        unlock_data = {"unlock_method": "recovery", "recovery_phrase": recovery_phrase}
 
-        response = self.client.post(reverse('surveys:unlock', kwargs={'slug': survey.slug}), data=unlock_data)
+        response = self.client.post(
+            reverse("surveys:unlock", kwargs={"slug": survey.slug}), data=unlock_data
+        )
         self.assertEqual(response.status_code, 302)
 
         # Verify session contains unlock credentials
         session = self.client.session
-        self.assertIn('unlock_credentials', session)
-        self.assertIn('unlock_method', session)
-        self.assertEqual(session['unlock_method'], 'recovery')
+        self.assertIn("unlock_credentials", session)
+        self.assertIn("unlock_method", session)
+        self.assertEqual(session["unlock_method"], "recovery")
 
     def test_session_timeout_behavior(self):
         """Test that sessions timeout after 30 minutes."""
@@ -128,21 +127,22 @@ class EncryptionIntegrationTest(TestCase):
         survey.set_dual_encryption(kek, password, recovery_words)
 
         # Unlock survey
-        unlock_data = {
-            "unlock_method": "password",
-            "password": password
-        }
+        unlock_data = {"unlock_method": "password", "password": password}
 
-        response = self.client.post(reverse('surveys:unlock', kwargs={'slug': survey.slug}), data=unlock_data)
+        response = self.client.post(
+            reverse("surveys:unlock", kwargs={"slug": survey.slug}), data=unlock_data
+        )
         self.assertEqual(response.status_code, 302)
 
         # Verify session contains unlock credentials
         session = self.client.session
-        self.assertIn('unlock_credentials', session)
-        self.assertIn('unlock_verified_at', session)
+        self.assertIn("unlock_credentials", session)
+        self.assertIn("unlock_verified_at", session)
 
         # Access dashboard should work when unlocked
-        response = self.client.get(reverse('surveys:dashboard', kwargs={'slug': survey.slug}))
+        response = self.client.get(
+            reverse("surveys:dashboard", kwargs={"slug": survey.slug})
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_cross_survey_isolation(self):
@@ -172,25 +172,28 @@ class EncryptionIntegrationTest(TestCase):
         survey2.set_dual_encryption(kek2, password2, recovery_words)
 
         # Unlock survey1
-        unlock_data = {
-            "unlock_method": "password",
-            "password": password1
-        }
+        unlock_data = {"unlock_method": "password", "password": password1}
 
-        response = self.client.post(reverse('surveys:unlock', kwargs={'slug': survey1.slug}), data=unlock_data)
+        response = self.client.post(
+            reverse("surveys:unlock", kwargs={"slug": survey1.slug}), data=unlock_data
+        )
         self.assertEqual(response.status_code, 302)
 
         # Access to survey1 should work
-        response = self.client.get(reverse('surveys:dashboard', kwargs={'slug': survey1.slug}))
+        response = self.client.get(
+            reverse("surveys:dashboard", kwargs={"slug": survey1.slug})
+        )
         self.assertEqual(response.status_code, 200)
 
         # Try to access survey2 with survey1's password (should fail)
         unlock_data = {
             "unlock_method": "password",
-            "password": password1  # Wrong password for survey2
+            "password": password1,  # Wrong password for survey2
         }
 
-        response = self.client.post(reverse('surveys:unlock', kwargs={'slug': survey2.slug}), data=unlock_data)
+        response = self.client.post(
+            reverse("surveys:unlock", kwargs={"slug": survey2.slug}), data=unlock_data
+        )
         self.assertEqual(response.status_code, 200)  # Should stay on unlock page
         self.assertContains(response, "Invalid")
 
@@ -215,27 +218,28 @@ class EncryptionIntegrationTest(TestCase):
             "first_name": "Export",
             "last_name": "Test",
             "date_of_birth": "1990-12-25",
-            "nhs_number": "5555555555"
+            "nhs_number": "5555555555",
         }
 
         encrypted_demographics = encrypt_sensitive(kek, test_demographics)
         SurveyResponse.objects.create(
             survey=survey,
             enc_demographics=encrypted_demographics,
-            answers={"question_1": "export answer"}
+            answers={"question_1": "export answer"},
         )
 
         # Unlock survey first
-        unlock_data = {
-            "unlock_method": "password",
-            "password": password
-        }
+        unlock_data = {"unlock_method": "password", "password": password}
 
-        response = self.client.post(reverse('surveys:unlock', kwargs={'slug': survey.slug}), data=unlock_data)
+        response = self.client.post(
+            reverse("surveys:unlock", kwargs={"slug": survey.slug}), data=unlock_data
+        )
         self.assertEqual(response.status_code, 302)
 
         # Test accessing dashboard (since responses view doesn't exist)
-        response = self.client.get(reverse('surveys:dashboard', kwargs={'slug': survey.slug}))
+        response = self.client.get(
+            reverse("surveys:dashboard", kwargs={"slug": survey.slug})
+        )
         self.assertEqual(response.status_code, 200)
 
         # Should contain survey name indicating successful access
@@ -258,12 +262,11 @@ class EncryptionIntegrationTest(TestCase):
         survey.set_dual_encryption(kek, password, recovery_words)
 
         # Test invalid password
-        unlock_data = {
-            "unlock_method": "password",
-            "password": "wrongpassword"
-        }
+        unlock_data = {"unlock_method": "password", "password": "wrongpassword"}
 
-        response = self.client.post(reverse('surveys:unlock', kwargs={'slug': survey.slug}), data=unlock_data)
+        response = self.client.post(
+            reverse("surveys:unlock", kwargs={"slug": survey.slug}), data=unlock_data
+        )
         # Should stay on unlock page with error message
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Invalid")
@@ -271,10 +274,12 @@ class EncryptionIntegrationTest(TestCase):
         # Test invalid recovery phrase
         unlock_data = {
             "unlock_method": "recovery",
-            "recovery_phrase": "wrong phrase words here invalid test bad"
+            "recovery_phrase": "wrong phrase words here invalid test bad",
         }
 
-        response = self.client.post(reverse('surveys:unlock', kwargs={'slug': survey.slug}), data=unlock_data)
+        response = self.client.post(
+            reverse("surveys:unlock", kwargs={"slug": survey.slug}), data=unlock_data
+        )
         # Should stay on unlock page with error message
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Invalid")
@@ -286,6 +291,7 @@ class EncryptionIntegrationTest(TestCase):
         mock_legacy_key = b"test_key"
 
         from census_app.surveys.utils import make_key_hash
+
         key_hash, key_salt = make_key_hash(mock_legacy_key)
 
         survey = Survey.objects.create(
@@ -293,15 +299,15 @@ class EncryptionIntegrationTest(TestCase):
             slug="legacy-key-test",
             owner=self.user,
             key_hash=key_hash,
-            key_salt=key_salt
+            key_salt=key_salt,
         )
 
         # Test legacy key unlock (use the string directly, like the unit test)
-        unlock_data = {
-            "key": "test_key"
-        }
+        unlock_data = {"key": "test_key"}
 
-        response = self.client.post(reverse('surveys:unlock', kwargs={'slug': survey.slug}), data=unlock_data)
+        response = self.client.post(
+            reverse("surveys:unlock", kwargs={"slug": survey.slug}), data=unlock_data
+        )
 
         # Should redirect on successful unlock
         self.assertEqual(response.status_code, 302)

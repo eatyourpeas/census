@@ -4,8 +4,8 @@ Tests for BIP39 recovery phrase and KEK encryption utilities.
 
 import os
 
-import pytest
 from cryptography.exceptions import InvalidTag
+import pytest
 
 from census_app.surveys.utils import (
     create_recovery_hint,
@@ -73,9 +73,7 @@ class TestRecoveryKeyDerivation:
         salt = os.urandom(16)
 
         # Same phrase with different formatting
-        key1 = derive_key_from_passphrase(
-            "apple  banana   cherry", salt
-        )
+        key1 = derive_key_from_passphrase("apple  banana   cherry", salt)
         key2 = derive_key_from_passphrase("APPLE BANANA CHERRY", salt)
 
         assert key1 == key2
@@ -157,8 +155,20 @@ class TestRecoveryHint:
 
     def test_create_hint_12_words(self):
         """Should create hint with first and last word."""
-        phrase = ["apple", "banana", "cherry", "dog", "elephant", "fox",
-                  "goat", "hat", "ice", "juice", "kite", "lamp"]
+        phrase = [
+            "apple",
+            "banana",
+            "cherry",
+            "dog",
+            "elephant",
+            "fox",
+            "goat",
+            "hat",
+            "ice",
+            "juice",
+            "kite",
+            "lamp",
+        ]
         hint = create_recovery_hint(phrase)
         assert hint == "apple...lamp"
 

@@ -4,8 +4,8 @@ Tests for Survey model Option 2 encryption methods.
 
 import os
 
-import pytest
 from django.contrib.auth import get_user_model
+import pytest
 
 from census_app.surveys.models import Survey
 from census_app.surveys.utils import generate_bip39_phrase

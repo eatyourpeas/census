@@ -162,10 +162,7 @@ class Survey(models.Model):
 
         Also stores a recovery hint (first...last word).
         """
-        from .utils import (
-            create_recovery_hint,
-            encrypt_kek_with_passphrase,
-        )
+        from .utils import create_recovery_hint, encrypt_kek_with_passphrase
 
         # Encrypt KEK with password
         self.encrypted_kek_password = encrypt_kek_with_passphrase(kek, password)
@@ -247,9 +244,7 @@ class Survey(models.Model):
 
     def has_dual_encryption(self) -> bool:
         """Check if survey uses Option 2 dual-path encryption."""
-        return bool(
-            self.encrypted_kek_password and self.encrypted_kek_recovery
-        )
+        return bool(self.encrypted_kek_password and self.encrypted_kek_recovery)
 
 
 class SurveyQuestion(models.Model):

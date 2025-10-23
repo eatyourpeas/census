@@ -1765,6 +1765,7 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
 
         # Generate survey encryption key (KEK)
         import os
+
         from .utils import generate_bip39_phrase
 
         kek = os.urandom(32)  # 256-bit survey encryption key
@@ -1831,7 +1832,7 @@ def survey_encryption_display(request: HttpRequest, slug: str) -> HttpResponse:
     if display_data.get("slug") != slug:
         messages.error(
             request,
-            "Encryption keys have already been displayed or no setup data found."
+            "Encryption keys have already been displayed or no setup data found.",
         )
         return redirect("surveys:dashboard", slug=slug)
 
@@ -1845,7 +1846,9 @@ def survey_encryption_display(request: HttpRequest, slug: str) -> HttpResponse:
         # User has acknowledged viewing the keys - clear session data
         if "encryption_display" in request.session:
             del request.session["encryption_display"]
-        messages.success(request, "Survey published successfully with encryption enabled.")
+        messages.success(
+            request, "Survey published successfully with encryption enabled."
+        )
         return redirect("surveys:dashboard", slug=slug)
 
     context = {
@@ -2779,8 +2782,10 @@ def get_survey_key_from_session(request: HttpRequest, survey_slug: str) -> bytes
     Returns None if session expired (>30 min) or credentials invalid.
     """
     import base64
-    from django.utils import timezone
     from datetime import timedelta
+
+    from django.utils import timezone
+
     from .utils import decrypt_sensitive
 
     # Check if unlock is valid
@@ -2817,7 +2822,7 @@ def get_survey_key_from_session(request: HttpRequest, survey_slug: str) -> bytes
 
         encrypted_creds_b64 = request.session.get("unlock_credentials")
         encrypted_creds = base64.b64decode(encrypted_creds_b64)
-        creds = decrypt_sensitive(session_key.encode('utf-8'), encrypted_creds)
+        creds = decrypt_sensitive(session_key.encode("utf-8"), encrypted_creds)
 
         # Re-derive KEK based on method
         unlock_method = request.session.get("unlock_method")
@@ -2855,7 +2860,9 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
     survey.refresh_from_db()
 
     # Determine unlock method based on form data
-    unlock_method = request.POST.get("unlock_method", "password")  # 'password' or 'recovery'
+    unlock_method = request.POST.get(
+        "unlock_method", "password"
+    )  # 'password' or 'recovery'
 
     if request.method == "POST":
         kek = None
@@ -2869,6 +2876,7 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
                     if kek:
                         # Log successful password unlock
                         from .models import AuditLog
+
                         AuditLog.objects.create(
                             actor=request.user,
                             scope=AuditLog.Scope.SURVEY,
@@ -2880,16 +2888,25 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
                         # Option 4: Store credentials for re-derivation, not the KEK itself
                         # Encrypt password with session-specific key for forward secrecy
                         import base64
+
                         from django.utils import timezone
-                        session_key = request.session.session_key or request.session.create()
+
+                        session_key = (
+                            request.session.session_key or request.session.create()
+                        )
                         from .utils import encrypt_sensitive
-                        encrypted_creds = encrypt_sensitive(session_key.encode('utf-8'), {
-                            'password': password,
-                            'survey_slug': slug
-                        })
-                        request.session["unlock_credentials"] = base64.b64encode(encrypted_creds).decode('ascii')
+
+                        encrypted_creds = encrypt_sensitive(
+                            session_key.encode("utf-8"),
+                            {"password": password, "survey_slug": slug},
+                        )
+                        request.session["unlock_credentials"] = base64.b64encode(
+                            encrypted_creds
+                        ).decode("ascii")
                         request.session["unlock_method"] = "password"
-                        request.session["unlock_verified_at"] = timezone.now().isoformat()
+                        request.session["unlock_verified_at"] = (
+                            timezone.now().isoformat()
+                        )
                         request.session["unlock_survey_slug"] = slug
                         messages.success(request, "Survey unlocked with password.")
                         return redirect("surveys:dashboard", slug=slug)
@@ -2903,6 +2920,7 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
                     if kek:
                         # Log recovery phrase unlock (important for audit trail)
                         from .models import AuditLog
+
                         AuditLog.objects.create(
                             actor=request.user,
                             scope=AuditLog.Scope.SURVEY,
@@ -2914,18 +2932,29 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
                         # Option 4: Store credentials for re-derivation, not the KEK itself
                         # Encrypt recovery phrase with session-specific key for forward secrecy
                         import base64
+
                         from django.utils import timezone
-                        session_key = request.session.session_key or request.session.create()
+
+                        session_key = (
+                            request.session.session_key or request.session.create()
+                        )
                         from .utils import encrypt_sensitive
-                        encrypted_creds = encrypt_sensitive(session_key.encode('utf-8'), {
-                            'recovery_phrase': recovery_phrase,
-                            'survey_slug': slug
-                        })
-                        request.session["unlock_credentials"] = base64.b64encode(encrypted_creds).decode('ascii')
+
+                        encrypted_creds = encrypt_sensitive(
+                            session_key.encode("utf-8"),
+                            {"recovery_phrase": recovery_phrase, "survey_slug": slug},
+                        )
+                        request.session["unlock_credentials"] = base64.b64encode(
+                            encrypted_creds
+                        ).decode("ascii")
                         request.session["unlock_method"] = "recovery"
-                        request.session["unlock_verified_at"] = timezone.now().isoformat()
+                        request.session["unlock_verified_at"] = (
+                            timezone.now().isoformat()
+                        )
                         request.session["unlock_survey_slug"] = slug
-                        messages.success(request, "Survey unlocked with recovery phrase.")
+                        messages.success(
+                            request, "Survey unlocked with recovery phrase."
+                        )
                         return redirect("surveys:dashboard", slug=slug)
                     else:
                         messages.error(request, "Invalid recovery phrase.")
@@ -2935,21 +2964,39 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
             key = request.POST.get("key", "").encode("utf-8")
             if survey.key_hash and survey.key_salt:
                 # Convert memoryview to bytes if needed (PostgreSQL BinaryField)
-                key_hash = bytes(survey.key_hash) if isinstance(survey.key_hash, memoryview) else survey.key_hash
-                key_salt = bytes(survey.key_salt) if isinstance(survey.key_salt, memoryview) else survey.key_salt
+                key_hash = (
+                    bytes(survey.key_hash)
+                    if isinstance(survey.key_hash, memoryview)
+                    else survey.key_hash
+                )
+                key_salt = (
+                    bytes(survey.key_salt)
+                    if isinstance(survey.key_salt, memoryview)
+                    else survey.key_salt
+                )
 
                 if verify_key(key, key_hash, key_salt):
                     # Option 4: Store credentials for re-derivation (legacy path)
                     # For legacy, we store the raw key encrypted with session key
                     import base64
+
                     from django.utils import timezone
-                    session_key = request.session.session_key or request.session.create()
+
+                    session_key = (
+                        request.session.session_key or request.session.create()
+                    )
                     from .utils import encrypt_sensitive
-                    encrypted_creds = encrypt_sensitive(session_key.encode('utf-8'), {
-                        'legacy_key': base64.b64encode(key).decode('ascii'),
-                        'survey_slug': slug
-                    })
-                    request.session["unlock_credentials"] = base64.b64encode(encrypted_creds).decode('ascii')
+
+                    encrypted_creds = encrypt_sensitive(
+                        session_key.encode("utf-8"),
+                        {
+                            "legacy_key": base64.b64encode(key).decode("ascii"),
+                            "survey_slug": slug,
+                        },
+                    )
+                    request.session["unlock_credentials"] = base64.b64encode(
+                        encrypted_creds
+                    ).decode("ascii")
                     request.session["unlock_method"] = "legacy"
                     request.session["unlock_verified_at"] = timezone.now().isoformat()
                     request.session["unlock_survey_slug"] = slug
@@ -2960,7 +3007,9 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
     context = {
         "survey": survey,
         "has_dual_encryption": survey.has_dual_encryption(),
-        "recovery_hint": survey.recovery_code_hint if survey.has_dual_encryption() else None,
+        "recovery_hint": (
+            survey.recovery_code_hint if survey.has_dual_encryption() else None
+        ),
     }
     return render(request, "surveys/unlock.html", context)
 

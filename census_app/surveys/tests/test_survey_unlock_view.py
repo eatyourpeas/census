@@ -1,10 +1,11 @@
 """Tests for the enhanced survey unlock view with dual-path encryption."""
 
-import pytest
-from django.urls import reverse
 from django.test import Client
+from django.urls import reverse
+import pytest
+
 from census_app.core.models import User
-from census_app.surveys.models import Survey, AuditLog
+from census_app.surveys.models import AuditLog, Survey
 
 
 @pytest.mark.django_db(transaction=True)
@@ -71,7 +72,9 @@ class TestSurveyUnlockView:
             reverse("surveys:unlock", args=[dual_encrypted_survey.slug])
         )
         assert response.status_code == 200
-        assert b"has_dual_encryption" in response.content or "unlock_method" in str(response.content)
+        assert b"has_dual_encryption" in response.content or "unlock_method" in str(
+            response.content
+        )
         assert "Password" in str(response.content)
         assert "Recovery Phrase" in str(response.content)
 
@@ -185,8 +188,13 @@ class TestSurveyUnlockView:
         assert final_count == initial_count + 1
 
         # Check that an audit log entry was created
-        assert AuditLog.objects.filter(survey=dual_encrypted_survey).count() == initial_count + 1
-        latest_log = AuditLog.objects.filter(survey=dual_encrypted_survey).latest("created_at")
+        assert (
+            AuditLog.objects.filter(survey=dual_encrypted_survey).count()
+            == initial_count + 1
+        )
+        latest_log = AuditLog.objects.filter(survey=dual_encrypted_survey).latest(
+            "created_at"
+        )
         assert latest_log.metadata.get("unlock_method") == "recovery_phrase"
 
     def test_unlock_password_creates_audit_log(
@@ -204,7 +212,9 @@ class TestSurveyUnlockView:
         assert final_count == initial_count + 1
 
         # Check that audit log has correct details
-        latest_log = AuditLog.objects.filter(survey=dual_encrypted_survey).latest("created_at")
+        latest_log = AuditLog.objects.filter(survey=dual_encrypted_survey).latest(
+            "created_at"
+        )
         assert latest_log.metadata.get("unlock_method") == "password"
 
     def test_unlock_legacy_survey_with_key(
@@ -230,7 +240,10 @@ class TestSurveyUnlockView:
         )
         assert response.status_code == 200
         assert "legacy encryption" in str(response.content).lower()
-        assert "upgrading" in str(response.content).lower() or "upgrade" in str(response.content).lower()
+        assert (
+            "upgrading" in str(response.content).lower()
+            or "upgrade" in str(response.content).lower()
+        )
 
     def test_unlock_view_requires_authentication(self, dual_encrypted_survey):
         """Test that unlock view requires user to be logged in."""
@@ -254,7 +267,9 @@ class TestSurveyUnlockView:
             owner=other_user,
         )
 
-        response = client_logged_in.get(reverse("surveys:unlock", args=[other_survey.slug]))
+        response = client_logged_in.get(
+            reverse("surveys:unlock", args=[other_survey.slug])
+        )
         assert response.status_code == 404  # get_object_or_404 returns 404
 
     # Option 4 specific tests
@@ -274,6 +289,7 @@ class TestSurveyUnlockView:
 
         # Create a mock request to test re-derivation
         from django.test import RequestFactory
+
         factory = RequestFactory()
         request = factory.get("/")
         request.session = client_logged_in.session
@@ -290,9 +306,11 @@ class TestSurveyUnlockView:
 
     def test_option4_session_timeout(self, client_logged_in, dual_encrypted_survey):
         """Test that session expires after 30 minutes."""
-        from census_app.surveys.views import get_survey_key_from_session
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
+
+        from census_app.surveys.views import get_survey_key_from_session
 
         # Unlock survey
         client_logged_in.post(
@@ -309,10 +327,12 @@ class TestSurveyUnlockView:
         # Force session reload to ensure changes are persisted
         session_key = session.session_key
         from django.contrib.sessions.backends.db import SessionStore
+
         fresh_session = SessionStore(session_key=session_key)
 
         # Create mock request with fresh session
         from django.test import RequestFactory
+
         factory = RequestFactory()
         request = factory.get("/")
         request.session = fresh_session
@@ -324,7 +344,9 @@ class TestSurveyUnlockView:
         # Session should be cleared
         assert "unlock_credentials" not in request.session
 
-    def test_option4_wrong_survey_slug(self, client_logged_in, dual_encrypted_survey, user):
+    def test_option4_wrong_survey_slug(
+        self, client_logged_in, dual_encrypted_survey, user
+    ):
         """Test that credentials only work for the correct survey."""
         from census_app.surveys.views import get_survey_key_from_session
 
@@ -343,6 +365,7 @@ class TestSurveyUnlockView:
 
         # Create mock request
         from django.test import RequestFactory
+
         factory = RequestFactory()
         request = factory.get("/")
         request.session = client_logged_in.session
