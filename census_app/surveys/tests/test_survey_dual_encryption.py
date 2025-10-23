@@ -118,7 +118,6 @@ class TestSurveyDualEncryption:
         kek = os.urandom(32)
         password = "Password123"
         recovery_words = generate_bip39_phrase(12)
-        recovery_phrase = " ".join(recovery_words)
 
         survey.set_dual_encryption(kek, password, recovery_words)
         survey.save()

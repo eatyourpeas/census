@@ -232,16 +232,13 @@ class TestIntegrationScenario:
         """
         Simulate user forgetting password but having recovery phrase.
         """
-        # Setup: User creates survey with password
+        # Setup: User creates survey with password but forgets it
         survey_kek = os.urandom(32)
-        forgotten_password = "IForgotThis123"
         recovery_words = generate_bip39_phrase(12)
         recovery_phrase = " ".join(recovery_words)
 
         # Both encryption paths stored
-        encrypted_kek_password = encrypt_kek_with_passphrase(
-            survey_kek, forgotten_password
-        )
+        # (password path not used in this test - user forgot password)
         encrypted_kek_recovery = encrypt_kek_with_passphrase(
             survey_kek, recovery_phrase
         )
