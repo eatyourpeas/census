@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-13 20:49+0000\n"
+"POT-Creation-Date: 2025-10-20 20:07+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -250,33 +250,33 @@ msgstr ""
 msgid "Enable JavaScript to change theme."
 msgstr ""
 
-#: census_app/core/views.py:61
+#: census_app/core/views.py:78
 msgid "Language preference updated successfully."
 msgstr ""
 
-#: census_app/core/views.py:64
+#: census_app/core/views.py:82
 msgid "There was an error updating your language preference."
 msgstr ""
 
-#: census_app/core/views.py:74
+#: census_app/core/views.py:92
 msgid "Email preferences updated successfully."
 msgstr ""
 
-#: census_app/core/views.py:77
+#: census_app/core/views.py:95
 msgid "There was an error updating your email preferences."
 msgstr ""
 
-#: census_app/core/views.py:95
+#: census_app/core/views.py:114
 msgid ""
 "Organisation created. You are now an organisation admin and can host surveys "
 "and build a team."
 msgstr ""
 
-#: census_app/core/views.py:119
+#: census_app/core/views.py:139
 msgid "Project theme saved."
 msgstr ""
 
-#: census_app/core/views.py:214
+#: census_app/core/views.py:234
 msgid "Organisation created. You are an organisation admin."
 msgstr ""
 
@@ -351,6 +351,7 @@ msgstr ""
 
 #: census_app/surveys/templates/surveys/bulk_upload.html:37
 #: census_app/surveys/templates/surveys/delete_confirm.html:74
+#: census_app/surveys/templates/surveys/encryption_setup.html:74
 #: census_app/surveys/templates/surveys/groups.html:167
 msgid "Cancel"
 msgstr ""
@@ -868,6 +869,192 @@ msgstr ""
 msgid "Submit"
 msgstr ""
 
+#: census_app/surveys/templates/surveys/encryption_display.html:4
+msgid "Your Encryption Keys"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:23
+msgid "Survey Published Successfully!"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:24
+msgid "Your survey is now published with encryption enabled."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:34
+msgid "Save Your Encryption Keys"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:40
+msgid "Critical: This is the only time you will see these keys!"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:42
+msgid "Write down or print your recovery phrase immediately"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:43
+msgid "Store it in a safe place (not on your computer)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:44
+msgid "You'll need your password OR recovery phrase to access survey data"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:45
+msgid "If you lose both, your data cannot be recovered"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:59
+#: census_app/surveys/templates/surveys/unlock.html:58
+msgid "Recovery Phrase"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:60
+msgid "Backup Method"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:64
+msgid ""
+"If you forget your password, use this 12-word recovery phrase to unlock your "
+"survey:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:79
+msgid "Recovery hint:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:80
+msgid "Use this hint to verify you have the correct recovery phrase."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:89
+msgid "Copy to Clipboard"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:99
+msgid "Advanced: Encryption Key (Hexadecimal)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:103
+msgid ""
+"This is the raw 256-bit encryption key in hexadecimal format. Most users "
+"should use the recovery phrase above instead."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:109
+msgid "Copy Key"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:117
+msgid "Next Steps"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:124
+msgid "Print This Page"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:131
+msgid "Download as Text File"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:138
+msgid "I have saved my recovery information"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:146
+msgid ""
+"After clicking this button, you will not be able to view these keys again."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:156
+msgid "Recovery phrase copied to clipboard!"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_display.html:163
+msgid "Encryption key copied to clipboard!"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:4
+msgid "Set Up Encryption"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:14
+msgid "Set Up Survey Encryption"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:20
+msgid "Why encryption?"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:21
+msgid ""
+"To protect patient data, your survey will be encrypted with a password you "
+"choose. You'll also receive a recovery phrase as a backup unlock method."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:30
+msgid "Choose an encryption password"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:39
+msgid "At least 12 characters"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:42
+msgid ""
+"This password encrypts your survey data. Choose a strong password you won't "
+"forget."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:48
+msgid "Confirm password"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:57
+msgid "Re-enter your password"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:64
+msgid "Important:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:65
+msgid ""
+"\n"
+"            On the next page, you'll receive a <strong>recovery phrase</"
+"strong> (12 words). \n"
+"            Write it down and keep it safe - it's your backup if you forget "
+"your password.\n"
+"            This is the <strong>only time</strong> you'll see the recovery "
+"phrase.\n"
+"            "
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:76
+msgid "Set Up Encryption & Publish"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:87
+msgid "Technical details:"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:89
+msgid "Your data is encrypted with AES-256-GCM"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:90
+msgid "Your password uses Scrypt key derivation (n=2^14)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:91
+msgid "Recovery phrase uses BIP39 standard (12 words)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/encryption_setup.html:92
+msgid "Encryption keys never leave your control"
+msgstr ""
+
 #: census_app/surveys/templates/surveys/group_builder.html:4
 #: census_app/surveys/templates/surveys/group_builder.html:10
 #: census_app/surveys/templates/surveys/group_builder.html:14
@@ -1174,18 +1361,104 @@ msgid "Unlock Survey"
 msgstr ""
 
 #: census_app/surveys/templates/surveys/unlock.html:7
-#: census_app/surveys/templates/surveys/unlock.html:10
-#: census_app/surveys/templates/surveys/unlock.html:16
+#: census_app/surveys/templates/surveys/unlock.html:9
+#: census_app/surveys/templates/surveys/unlock.html:138
 msgid "Unlock"
 msgstr ""
 
-#: census_app/surveys/templates/surveys/unlock.html:11
+#: census_app/surveys/templates/surveys/unlock.html:12
+msgid ""
+"Unlock this survey using your password or recovery phrase. The encryption "
+"key will be stored securely in your session."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:14
 msgid ""
 "Enter the one-time survey key to decrypt sensitive fields for this session."
 msgstr ""
 
-#: census_app/surveys/templates/surveys/unlock.html:15
+#: census_app/surveys/templates/surveys/unlock.html:21
+#: census_app/templates/admin/login.html:31
+msgid "Password"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:29
+msgid "Encryption Password"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:38
+msgid "Enter your encryption password"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:42
+msgid "This is the password you set when encrypting the survey."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:49
+msgid "Forgot your password? Switch to the Recovery Phrase tab."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:53
+msgid "Unlock with Password"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:64
+msgid "Recovery Hint"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:76
+msgid "12-Word Recovery Phrase"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:84
+msgid "Enter your 12-word recovery phrase (spaces between words)"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:88
+msgid ""
+"Enter all 12 words separated by spaces. Capitalization and extra spaces "
+"don't matter."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:96
+msgid "Security Notice"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:97
+msgid "Recovery phrase usage is logged for security audit purposes."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:102
+msgid "Unlock with Recovery Phrase"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:112
+msgid "This survey uses legacy encryption. Enter your encryption key below."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:120
+msgid "Survey Key"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:129
 msgid "Survey key"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:133
+msgid ""
+"This survey uses the older encryption format. Consider upgrading to password "
+"+ recovery phrase encryption."
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:145
+msgid "About Survey Unlocking"
+msgstr ""
+
+#: census_app/surveys/templates/surveys/unlock.html:146
+msgid ""
+"Unlocking allows you to view and manage encrypted survey data in this "
+"browser session. The encryption key is stored securely in your session and "
+"never transmitted over the network unencrypted."
 msgstr ""
 
 #: census_app/surveys/templates/surveys/user_management_hub.html:3
@@ -1271,10 +1544,6 @@ msgstr ""
 
 #: census_app/templates/admin/login.html:27
 msgid "Username"
-msgstr ""
-
-#: census_app/templates/admin/login.html:31
-msgid "Password"
 msgstr ""
 
 #: census_app/templates/admin/login.html:38
