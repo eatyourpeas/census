@@ -1,0 +1,175 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement for Census
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please search existing issues and discussions first to avoid duplicates.
+
+        **Remember**: Census is open source (GPL-3.0) but also offered as a hosted service. Consider whether your feature request would benefit the broader healthcare survey community.
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Category
+      description: What type of feature are you requesting?
+      options:
+        - Survey Builder Enhancement
+        - New Question Type
+        - Survey Taking Experience
+        - User Management/Permissions
+        - Organization Features
+        - API Enhancement
+        - Data Export/Import
+        - Security/Privacy Feature
+        - Integration (external systems)
+        - Admin/Management Tools
+        - Mobile Experience
+        - Performance Improvement
+        - Accessibility
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem-description
+    attributes:
+      label: Problem/Need Description
+      description: What problem does this feature solve? What need does it address?
+      placeholder: "Describe the problem you're trying to solve or the need you have"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed solution in detail
+      placeholder: "How would you like this feature to work? Be as specific as possible."
+    validations:
+      required: true
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User Story
+      description: Write a user story for this feature
+      placeholder: "As a [type of user], I want [feature] so that [benefit/goal]"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: user-type
+    attributes:
+      label: Primary User Type
+      description: Who would primarily benefit from this feature?
+      options:
+        - Survey Creator/Administrator
+        - Survey Respondent
+        - Organization Admin
+        - Super Admin
+        - API User/Developer
+        - All Users
+    validations:
+      required: true
+
+  - type: dropdown
+    id: use-case
+    attributes:
+      label: Healthcare Use Case
+      description: What healthcare/medical context is this for?
+      options:
+        - Clinical Audit
+        - Patient Reported Outcomes (PROMs)
+        - Quality Improvement
+        - Research Study
+        - Patient Feedback
+        - Staff Surveys
+        - Clinical Assessment
+        - Registry/Database
+        - Multiple Use Cases
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: What alternatives have you considered?
+      placeholder: "Describe any alternative solutions or workarounds you've considered"
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups/Examples
+      description: If you have mockups, wireframes, or examples from other systems, please share them
+      placeholder: "Drag and drop images here or describe/link to examples"
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Estimated Complexity
+      description: How complex do you think this feature would be to implement?
+      options:
+        - Simple (small UI change, configuration option)
+        - Medium (new component, moderate backend changes)
+        - Complex (significant new functionality, database changes)
+        - Major (substantial architectural changes)
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority/Urgency
+      description: How important is this feature to you?
+      options:
+        - Critical (blocking important work)
+        - High (would significantly improve workflow)
+        - Medium (nice to have, would improve experience)
+        - Low (minor improvement)
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context, requirements, or constraints
+      placeholder: |
+        - Regulatory requirements (GDPR, HIPAA, etc.)
+        - Integration needs
+        - Performance considerations
+        - Security considerations
+        - Timeline needs
+
+  - type: checkboxes
+    id: implementation
+    attributes:
+      label: Implementation Interest
+      options:
+        - label: I'd be interested in contributing to this feature
+          required: false
+        - label: I can provide detailed requirements/specifications
+          required: false
+        - label: I can help with testing/validation
+          required: false
+        - label: I can provide clinical/domain expertise
+          required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues and discussions for duplicates
+          required: true
+        - label: This feature would benefit the broader healthcare survey community
+          required: true
+        - label: I have considered the open-source nature of this project
+          required: true

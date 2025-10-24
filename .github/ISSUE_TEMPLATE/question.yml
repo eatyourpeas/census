@@ -1,0 +1,166 @@
+name: ❓ Question/Support
+description: Ask a question about using Census or get support
+title: "[Question]: "
+labels: ["question", "support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question about Census? We're here to help!
+
+        **💡 Consider using [GitHub Discussions](https://github.com/eatyourpeas/census/discussions) instead!**
+
+        Discussions are often better for:
+        - General questions and community support
+        - Getting help with setup or configuration
+        - Sharing use cases and best practices
+        - "How do I...?" questions
+
+        See our [Getting Help Guide](https://github.com/eatyourpeas/census/blob/main/docs/getting-help.md) for more guidance.
+
+        **Before asking**: Please check our documentation in the `/docs` folder and search existing issues first.
+
+  - type: dropdown
+    id: question-type
+    attributes:
+      label: Question Category
+      description: What type of question is this?
+      options:
+        - Getting Started/Setup
+        - Survey Creation
+        - Survey Management
+        - User Management/Permissions
+        - API Usage
+        - Self-hosting/Deployment
+        - Healthcare/Clinical Use Cases
+        - Data Security/Privacy
+        - Integration with External Systems
+        - Performance/Scaling
+        - Troubleshooting
+        - Best Practices
+        - Feature Clarification
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: user-type
+    attributes:
+      label: User Type
+      description: What best describes you?
+      options:
+        - Healthcare Professional (clinician, researcher)
+        - Survey Administrator
+        - Organization Admin
+        - Developer/Technical User
+        - System Administrator
+        - End User/Survey Respondent
+        - Evaluating Census for adoption
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment Context
+      description: How are you using Census?
+      options:
+        - Hosted version (census.eatyourpeas.dev)
+        - Self-hosted (production)
+        - Self-hosted (development/testing)
+        - Local development
+        - Evaluating options
+        - Not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: "Please be as specific as possible about what you're trying to accomplish or understand"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context/Background
+      description: Provide context about your situation
+      placeholder: |
+        - What are you trying to accomplish?
+        - What have you tried so far?
+        - What specific challenges are you facing?
+        - Any relevant healthcare/clinical context
+
+  - type: textarea
+    id: tried-already
+    attributes:
+      label: What Have You Tried?
+      description: What steps have you already taken?
+      placeholder: |
+        - Documentation you've read
+        - Solutions you've attempted
+        - Error messages you've encountered
+        - Workarounds you've tried
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency
+      description: How urgent is this question?
+      options:
+        - Low (general inquiry, learning)
+        - Medium (planning implementation)
+        - High (blocking current work)
+        - Critical (production issue)
+    validations:
+      required: true
+
+  - type: textarea
+    id: healthcare-context
+    attributes:
+      label: Healthcare/Clinical Context
+      description: If applicable, describe the healthcare context
+      placeholder: |
+        - Type of survey/audit (clinical audit, PROM, research, etc.)
+        - Patient population or clinical area
+        - Regulatory requirements (GDPR, local health regulations)
+        - Data sensitivity considerations
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: Any other details that might be helpful
+      placeholder: |
+        - Screenshots (remove sensitive data)
+        - Error messages
+        - Environment details
+        - Timeline considerations
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues and discussions
+          required: true
+        - label: I have checked the documentation in `/docs`
+          required: true
+        - label: I have removed any sensitive/patient data from this question
+          required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Getting Help
+
+        - 📚 **Documentation**: Check the `/docs` folder for detailed guides
+        - 🔍 **Search**: Look through existing issues and discussions
+        - 💬 **Community**: Engage with other users in discussions
+        - 🚀 **Hosted Service**: For hosted service support, mention you're using census.eatyourpeas.dev
+
+        We'll do our best to help you succeed with Census!

@@ -1,0 +1,143 @@
+name: 🔒 Security Issue
+description: Report a security vulnerability (use for non-sensitive issues only)
+title: "[Security]: "
+labels: ["security", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **IMPORTANT SECURITY NOTICE** ⚠️
+
+        **For sensitive security vulnerabilities**, please DO NOT use this public issue template. Instead:
+        - Email security concerns directly to the maintainers
+        - Use GitHub's private security advisory feature
+        - Contact us through other private channels
+
+        **Only use this template for**:
+        - General security best practices discussions
+        - Public security hardening suggestions
+        - Documentation of security features
+        - Non-sensitive security-related questions
+
+  - type: dropdown
+    id: security-type
+    attributes:
+      label: Security Issue Type
+      description: What type of security issue is this?
+      options:
+        - Security best practices suggestion
+        - Security documentation improvement
+        - Security configuration question
+        - Dependency security update needed
+        - Security feature request
+        - Security testing/audit question
+        - Compliance question (GDPR, HIPAA, etc.)
+        - Other non-sensitive security topic
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the security topic or suggestion
+      placeholder: "What security aspect would you like to discuss or improve?"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component/Area
+      description: Which part of the application does this relate to?
+      options:
+        - Authentication/Authorization
+        - Data Encryption
+        - API Security
+        - Frontend Security (CSP, etc.)
+        - Database Security
+        - Infrastructure/Deployment
+        - Dependencies/Packages
+        - Audit Logging
+        - Session Management
+        - Input Validation
+        - HTTPS/TLS Configuration
+        - General Security Practices
+        - Multiple Components
+    validations:
+      required: true
+
+  - type: dropdown
+    id: healthcare-context
+    attributes:
+      label: Healthcare Context
+      description: Is this related to healthcare data security requirements?
+      options:
+        - Patient data protection
+        - Clinical audit requirements
+        - Research data security
+        - Organizational compliance
+        - General healthcare security
+        - Not healthcare-specific
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-state
+    attributes:
+      label: Current Security State
+      description: What is the current state of security for this aspect?
+      placeholder: "How is this currently handled? What could be improved?"
+
+  - type: textarea
+    id: proposed-improvement
+    attributes:
+      label: Proposed Security Improvement
+      description: What security improvement do you suggest?
+      placeholder: "How could security be enhanced in this area?"
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact Level
+      description: What's the potential impact of this security consideration?
+      options:
+        - Low (minor security enhancement)
+        - Medium (moderate security improvement)
+        - High (significant security concern)
+        - Critical (urgent security need)
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other relevant security context
+      placeholder: |
+        - Regulatory requirements
+        - Industry standards
+        - Threat model considerations
+        - Implementation suggestions
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Security Checklist
+      options:
+        - label: This is NOT a sensitive vulnerability that could be exploited
+          required: true
+        - label: I understand that sensitive security issues should be reported privately
+          required: true
+        - label: I have considered the healthcare/medical context of this security topic
+          required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Security Resources
+
+        - Review our security practices in CONTRIBUTING.md
+        - Check existing security documentation in `/docs`
+        - Consider our threat model: healthcare surveys with encrypted patient data
+        - Remember Census handles sensitive medical information requiring strong security

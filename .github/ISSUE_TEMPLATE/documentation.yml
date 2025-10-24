@@ -1,0 +1,120 @@
+name: 📚 Documentation Issue
+description: Report problems with documentation or suggest improvements
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve our documentation! Clear docs help everyone use Census more effectively.
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Type
+      description: What type of documentation issue is this?
+      options:
+        - Missing documentation
+        - Incorrect/outdated information
+        - Unclear instructions
+        - Broken links
+        - Typo/grammar
+        - Code examples don't work
+        - API documentation
+        - Setup/installation docs
+        - User guide improvements
+        - Developer docs
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: doc-location
+    attributes:
+      label: Documentation Location
+      description: Where is the documentation issue located?
+      options:
+        - README.md
+        - CONTRIBUTING.md
+        - /docs folder (specify which file)
+        - API documentation (OpenAPI/Swagger)
+        - Code comments/docstrings
+        - GitHub issue templates
+        - Multiple locations
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: specific-file
+    attributes:
+      label: Specific File/Section
+      description: If you know the specific file or section, please specify
+      placeholder: "e.g., docs/getting-started.md, line 45"
+
+  - type: textarea
+    id: problem-description
+    attributes:
+      label: Problem Description
+      description: What's wrong with the current documentation?
+      placeholder: "Describe what's confusing, missing, or incorrect"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-improvement
+    attributes:
+      label: Suggested Improvement
+      description: How should the documentation be improved?
+      placeholder: "What information should be added, changed, or clarified?"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: user-type
+    attributes:
+      label: Target Audience
+      description: Who would benefit from this documentation improvement?
+      options:
+        - New users (getting started)
+        - Survey creators/admins
+        - API developers
+        - Self-hosting administrators
+        - Contributors/developers
+        - Healthcare professionals
+        - All users
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context about this documentation issue
+      placeholder: |
+        - Your experience level with Census
+        - What you were trying to accomplish
+        - Where you got stuck
+        - Suggestions for better organization
+
+  - type: checkboxes
+    id: contribution-interest
+    attributes:
+      label: Contribution Interest
+      options:
+        - label: I'd be willing to help improve this documentation
+          required: false
+        - label: I can provide healthcare/clinical context for technical docs
+          required: false
+        - label: I can help with proofreading/editing
+          required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues for similar documentation problems
+          required: true
+        - label: I have checked if this documentation might exist elsewhere
+          required: true
