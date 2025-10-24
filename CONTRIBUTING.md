@@ -2,6 +2,29 @@
 
 We welcome contributions of all kinds—bug reports, feature requests, docs, and code. Before opening a new issue, please search the existing [Issues](https://github.com/eatyourpeas/census/issues) to avoid duplicates. If you plan to work on something, feel free to open an issue to discuss it first. Pull Requests are very welcome—small, focused PRs are easiest to review.
 
+## Getting Help vs Reporting Issues
+
+### 💬 Use Discussions for
+
+- **General Questions**: "How do I set up multi-language surveys?"
+- **Healthcare Use Cases**: Sharing how you use Census in clinical practice
+- **Deployment Help**: Getting assistance with self-hosting or configuration
+- **Community Support**: Getting help from other Census users
+- **Ideas & Brainstorming**: Discussing potential features before formal requests
+- **Show and Tell**: Sharing your Census implementations
+- **Announcements**: Updates from the team and community
+
+### 🐛 Use Issues for
+
+- **Bug Reports**: Something is broken or not working as expected
+- **Feature Requests**: Specific, well-defined features you'd like to see
+- **Documentation**: Corrections, improvements, or missing documentation
+- **Security**: Non-sensitive security discussions (use private advisories for vulnerabilities)
+
+### When in doubt
+
+Start with **Discussions** - we can always convert a discussion to an issue if needed!
+
 Please follow these guidelines to keep the codebase healthy and secure.
 
 ## Tests and dummy credentials

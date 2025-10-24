@@ -4,99 +4,56 @@
 ![Swagger Validator](https://img.shields.io/swagger/valid/3.0?specUrl=https%3A%2F%2Fcensus.eatyourpeas.dev%2Fapi%2Fschema&style=for-the-badge)
 ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/eatyourpeas/census?style=for-the-badge&color=%23BF40BF)
 
-Census is a survey platform for medical audit and research. It is secure with encrypted identifiers only visible to users entering the data.
+Census is an open source survey platform for medical audit and research. It supports OIDC (Google and Microsoft 365) and data is secure with encrypted identifiers only visible to users entering the data. Although built for the UK, it is fully i18n compliant and supports a range of languages. Survey creators build questions from a library of question types, or they can import them written in markdown. There is a growing library of lists to populate dropdowns for which contributions are welcome. There is also an API which supports user, survey and question management.
 
 Try it out [here](https://census.eatyourpeas.dev)
 >[!NOTE]
 >This is in a sandbox dev environment and is for demo purposes only. Do not store patient or sensitive information here.
 
-## Contributing
+## Documentation
 
-Please read CONTRIBUTING.md for guidelines, especially around dummy credentials in tests and secret scanning.
+Documentation can be found [here](https://census.eatyourpeas.dev/docs/)
 
-### Enable pre-commit hooks
+## Getting Help & Contributing
 
-To run basic hygiene and secret scanning locally before each commit:
+### 💬 Community & Support
 
-```bash
-# macOS
-brew install pre-commit
+- **[Discussions](https://github.com/eatyourpeas/census/discussions)** - For questions, ideas, and community support
+- **[Issues](https://github.com/eatyourpeas/census/issues)** - For bug reports and specific feature requests
+- **[Documentation](https://census.eatyourpeas.dev/docs/)** - Complete guides and API documentation
 
-# Install hooks for this repo
-pre-commit install
-pre-commit install --hook-type commit-msg
+### When to use what?
 
-# Optional: run on the whole repo once
-pre-commit run --all-files
-```
+**Use Discussions for:**
 
-## Core Requirements
+- General questions about using Census
+- Seeking advice on healthcare survey design
+- Sharing your Census use cases
+- Community announcements and updates
+- Brainstorming new ideas before formal feature requests
+- Getting help with deployment or configuration
+- Asking "How do I...?" questions
 
-The application is open source and customizable for look and feel. Users create accounts to run surveys that they distribute by sharing a url
+**Use Issues for:**
 
-## Accounts and Authentication
+- Reporting bugs or unexpected behavior
+- Requesting specific features with detailed requirements
+- Documentation corrections or improvements
+- Security concerns (non-sensitive)
 
-Users can be individuals or Organisations that contain individuals. Permissions levels include those users creating surveys, those users that can view all surveys in an organisation, and superusers. Those completing surveys have access only to that survey and to edit their own record.   Users completing surveys do not have to own an account but they can only view the record they create. Users should not be able to edit a survey more than once unless specified otherwise.
+### Contributing
 
-### Creating a survey
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on contributing code, documentation, and reporting issues.
 
-The application runs in the browser and offers users creating surveys the option of creating surveys from different question types. These include: free text, multiple choice (single and multiple selection), lickert scale, orderable list, yes/no, drop-down, image choice. It is possible to group questions into sections. There is a menu of customisable question groups that can be shared between surveys.
+## Issues
 
-A single user (or organisation) can create multiple surveys, each with its own link and set of question groups and questions. Users can share question groups with other users in a community. On creation of a survey, a unique one-time key is created for that survey visible only to the creator(s) of that survey. This key is used to encrypt/decrypt sensitive fields.
-
-Seeding a survey with questions can be done as a drag and drop with elements on a canvas, but also can be done through an API that accepts a list of questions with options and question type and question group. It is also possible to create a survey from a simple markdown file with headings as question group headings, individual lines per question and question types in brackets, with bullets or dashes below as a list of options.
-
-Where demographic information is collected (names, dates of birth, hospital numbers, addresses), appropriate data impact assessments will be in place by the users prior. Sensitive fields are encrypted using the unique survey key known only to the admin for that survey.
-
-Some fields on completing will need access to external APIs:
-
-1. ODS codes for GP surgeries or hospital trusts
-2. medical terminologies such as SNOMED
-3. index of multiple deprivation scores from postcodes
-4. organisation codes from postcodes such as local authority or ICB
-
-Surveys are distributed either by links in an email list or are scheduled to be live between specific dates. There is a dashboard per survey showing number of completed surveys.
-
-### Data Storage
-
-Data on each survey are stored in a postgres 16 database. Critical fields are hashed and accessible only to those with the survey key. Data is exportable as csv without the identifiers but not exportable with the identifiers. Data with identifiers is viewable in the platform to those in possession of the survey key and who are users with permission to edit the survey.
-
-### Reporting
-
-There is some high-level reporting in a dashboard in real time - it reports numbers of returns and aggregated counts of fields.
+Please raise [issues](https://github.com/eatyourpeas/census/issues) for bugs and specific feature requests. For general questions and community support, use [Discussions](https://github.com/eatyourpeas/census/discussions).
 
 ## Technologies
 
-Census must be open source and customisable - admin users can change css / icons. There can be organisational styling for the platform, with options to change this per survey.
+Census is open source and customisable - admin users can change styles and icons.
 
-The project should be dockerized and easy to deploy. It is a security-first project so must follow the OWASP principles. Credentials and sensitive data is stored on a server. Python is used as this is the organisational preferred language.
-
-Frontend frameworks should be modern and lightweight, with a popular styling library (daisy ui/tailwind) and where possible, webcomponents should be used that can be shared and reused, especially for the form controls or form groups.
-
-Styling
-Basic styling is minimalist, soft and friendly, but sciencey and professional looking.
-
-## Documentation
-
-User documentation is provided as well as documentation of an API to:
-
-- get / list / create / update / delete surveys
-- healthcheck
-- get / list / create / update / delete users
-
-See docs:
-
-- docs/README.md
-- docs/authentication-and-permissions.md
-- docs/api.md
-- docs/getting-started-api.md
-- docs/using-the-api.md
-- docs/user-management.md
-- docs/themes.md
-- docs/groups-view.md
-- docs/email-notifications.md
-- CONTRIBUTING.md
-
+The project is built on Django with Postgres 16, DaisyUI. It is dockerized and easy to deploy. It is a security-first project and follows OWASP principles. Sensitive data is encrypted.
 
 ## Quickstart
 
@@ -108,10 +65,10 @@ Local with Docker (recommended):
    cp .env.example .env
    ```
 
-2. Build and start services
+2. Build and start services - a convenience `s` folder of bash scripts supports build of the containers.
 
    ```bash
-   docker compose up --build
+   s/dev
    ```
 
 3. Open <https://localhost:8000>

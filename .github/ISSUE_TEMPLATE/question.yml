@@ -8,6 +8,16 @@ body:
       value: |
         Have a question about Census? We're here to help!
 
+        **💡 Consider using [GitHub Discussions](https://github.com/eatyourpeas/census/discussions) instead!**
+
+        Discussions are often better for:
+        - General questions and community support
+        - Getting help with setup or configuration
+        - Sharing use cases and best practices
+        - "How do I...?" questions
+
+        See our [Getting Help Guide](https://github.com/eatyourpeas/census/blob/main/docs/getting-help.md) for more guidance.
+
         **Before asking**: Please check our documentation in the `/docs` folder and search existing issues first.
 
   - type: dropdown
