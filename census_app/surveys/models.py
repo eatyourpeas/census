@@ -246,6 +246,10 @@ class Survey(models.Model):
         """Check if survey uses Option 2 dual-path encryption."""
         return bool(self.encrypted_kek_password and self.encrypted_kek_recovery)
 
+    def has_dual_encryption(self) -> bool:
+        """Check if survey uses Option 2 dual-path encryption."""
+        return bool(self.encrypted_kek_password and self.encrypted_kek_recovery)
+
 
 class SurveyQuestion(models.Model):
     class Types(models.TextChoices):

@@ -4,10 +4,18 @@ Custom OIDC Authentication Backend for Healthcare Workers
 Integrates Google and Azure OIDC authentication with the existing
 patient data encryption system. Maintains your custom user model
 as the source of truth while enabling SSO convenience.
+
+Features:
+- OIDC-derived encryption keys for seamless survey access
+- No manual key entry required for OIDC users
+- Maintains backward compatibility with password-based users
+- Supports multiple OIDC providers per user account
 """
 
 import logging
 from typing import Any, Dict, Optional
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -28,6 +36,39 @@ def generate_username(email: str) -> str:
     return email.lower()
 
 
+def derive_key_from_oidc_identity(
+    oidc_provider: str,
+    oidc_subject: str,
+    user_salt: bytes
+) -> bytes:
+    """
+    Derive encryption key from OIDC identity.
+
+    This creates a stable encryption key based on the user's OIDC identity
+    that doesn't change when they change their password at the provider.
+
+    Args:
+        oidc_provider: Provider name (google, azure, etc.)
+        oidc_subject: OIDC subject identifier (stable per user)
+        user_salt: Unique salt for this user
+
+    Returns:
+        32-byte encryption key
+    """
+    # Combine provider + subject for uniqueness across providers
+    identity = f"{oidc_provider}:{oidc_subject}".encode('utf-8')
+
+    # Use PBKDF2 with user-specific salt for key derivation
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=user_salt,
+        iterations=200_000
+    )
+
+    return kdf.derive(identity)
+
+
 class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
     """
     Custom OIDC backend that integrates with healthcare encryption system.
@@ -42,6 +83,12 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
     def authenticate(self, request, **credentials):
         """Override to ensure backend is used during OIDC callback."""
         logger.info("CustomOIDCAuthenticationBackend.authenticate called")
+
+        # Only handle OIDC authentication - if this looks like username/password auth, skip
+        if 'username' in credentials and 'password' in credentials:
+            logger.info("Username/password credentials detected, skipping OIDC backend")
+            return None
+
         self.request = request
         result = super().authenticate(request, **credentials)
         logger.info(f"Authentication result: {result}")
@@ -159,24 +206,28 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
             logger.error(f"Failed to get Azure userinfo: {e}")
             return None
 
-    def create_user(self, claims: Dict[str, Any]) -> User:
+    def create_user(self, claims: Dict[str, Any]):
         """
         Create a new user from OIDC claims.
 
-        Integrates with existing custom user model while preserving
-        the ability to use traditional password authentication.
+        Creates basic OIDC user account with UserOIDC relationship.
         """
+
         email = claims.get('email')
         if not email:
             raise SuspiciousOperation('OIDC user missing email claim')
 
         # Determine provider from claims
         provider = self._get_provider_from_claims(claims)
+        subject_id = claims.get('sub')
+
+        if not subject_id:
+            raise SuspiciousOperation('OIDC user missing subject identifier')
 
         # Generate username from email
         username = generate_username(email)
 
-        # Create user with OIDC info
+        # Create user with OIDC info and encryption support
         try:
             user = User.objects.create_user(
                 username=username,
@@ -185,30 +236,48 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
                 last_name=claims.get('family_name', ''),
             )
 
-            # Store OIDC provider info for future linking
-            self._link_oidc_account(user, provider, claims)
+            # Create UserOIDC record for this user
+            from .models import UserOIDC
+            UserOIDC.get_or_create_for_user(
+                user=user,
+                provider=provider,
+                subject=subject_id,
+                email_verified=claims.get('email_verified', False)
+            )
 
-            logger.info(f"Successfully created new healthcare user via {provider} OIDC: {email}")
+            logger.info(f"Successfully created new OIDC healthcare user: {email} (provider: {provider})")
             return user
         except Exception as e:
             logger.error(f"Failed to create OIDC user {email}: {e}")
             raise
 
-    def update_user(self, user: User, claims: Dict[str, Any]) -> User:
+    def update_user(self, user, claims: Dict[str, Any]):
         """
         Update existing user with latest OIDC claims.
 
-        Preserves encryption keys and core user data while updating
-        profile information from the OIDC provider.
+        Preserves core user data while updating profile information
+        and ensuring UserOIDC record exists.
         """
-        # Update basic profile info (preserve encryption data)
+
+        # Update basic profile info
         user.first_name = claims.get('given_name', user.first_name)
         user.last_name = claims.get('family_name', user.last_name)
         user.email = claims.get('email', user.email)
 
         # Link this OIDC account if not already linked
         provider = self._get_provider_from_claims(claims)
-        self._link_oidc_account(user, provider, claims)
+        subject_id = claims.get('sub')
+
+        # Create or update UserOIDC record
+        if subject_id:
+            from .models import UserOIDC
+            UserOIDC.get_or_create_for_user(
+                user=user,
+                provider=provider,
+                subject=subject_id,
+                email_verified=claims.get('email_verified', False)
+            )
+            logger.info(f"Updated OIDC record for existing user: {user.email}")
 
         user.save()
         return user

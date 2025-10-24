@@ -498,11 +498,58 @@ class SurveyCreateForm(forms.ModelForm):
 @login_required
 @require_http_methods(["GET", "POST"])
 def survey_create(request: HttpRequest) -> HttpResponse:
+    """
+    Create a new survey with encryption support.
+
+    Supports traditional dual-path encryption for all users.
+    OIDC integration will be re-added after UserOIDC model integration is complete.
+    """
     if request.method == "POST":
         form = SurveyCreateForm(request.POST)
         if form.is_valid():
             survey: Survey = form.save(commit=False)
             survey.owner = request.user
+
+            # Handle traditional encryption if requested
+            encryption_option = form.cleaned_data.get('encryption_option')
+
+            if encryption_option == 'option2':
+                # Set up dual encryption
+                password = form.cleaned_data.get('password')
+                recovery_phrase = form.cleaned_data.get('recovery_phrase')
+
+                if password and recovery_phrase:
+                    try:
+                        import os
+                        survey_kek = os.urandom(32)
+
+                        # Store hash for legacy API compatibility
+                        from .utils import make_key_hash
+                        digest, salt = make_key_hash(survey_kek)
+                        survey.key_hash = digest
+                        survey.key_salt = salt
+
+                        # Set up dual encryption
+                        recovery_words = recovery_phrase.strip().split()
+                        survey.set_dual_encryption(survey_kek, password, recovery_words)
+
+                        survey.save()
+                        messages.success(
+                            request,
+                            "Survey created with dual-path encryption! "
+                            "Keep your password and recovery phrase safe."
+                        )
+                        return redirect("surveys:groups", slug=survey.slug)
+
+                    except Exception as e:
+                        logger.error(f"Failed to create encrypted survey: {e}")
+                        messages.error(
+                            request,
+                            "Failed to set up encryption. Please check your password and recovery phrase."
+                        )
+                        return render(request, "surveys/create.html", {"form": form})
+
+            # No encryption or other options
             survey.save()
             return redirect("surveys:groups", slug=survey.slug)
     else:
@@ -2854,15 +2901,22 @@ def get_survey_key_from_session(request: HttpRequest, survey_slug: str) -> bytes
 @login_required
 @require_http_methods(["GET", "POST"])
 def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
+    """
+    Survey unlock page for encrypted surveys.
+
+    Supports:
+    1. Dual encryption (password/recovery phrase)
+    2. Legacy key verification (backward compatibility)
+
+    OIDC integration will be re-added after UserOIDC model integration is complete.
+    """
     survey = get_object_or_404(Survey, slug=slug, owner=request.user)
 
     # Ensure we have fresh data from database
     survey.refresh_from_db()
 
     # Determine unlock method based on form data
-    unlock_method = request.POST.get(
-        "unlock_method", "password"
-    )  # 'password' or 'recovery'
+    unlock_method = request.POST.get("unlock_method", "password")  # 'password' or 'recovery'
 
     if request.method == "POST":
         kek = None

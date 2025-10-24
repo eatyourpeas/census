@@ -13,49 +13,44 @@ Census supports multiple authentication methods for healthcare environments:
 - Usernames are equal to email addresses. Use your email as the username when logging in or obtaining tokens.
 
 ### Healthcare SSO (Single Sign-On)
-Census integrates with OIDC providers for healthcare worker convenience:
+
+Census integrates with OIDC providers for seamless healthcare worker authentication:
 
 #### Supported Providers
+
 - **Google OAuth**: For healthcare workers with personal Google accounts
 - **Microsoft Azure AD**: For hospital staff with organizational Microsoft 365 accounts
 - **Multi-provider support**: Same user can authenticate via multiple methods
 
-#### SSO Features
+#### Key Features
+
 - **Email-based linking**: OIDC accounts automatically link to existing users via email address
 - **Preserved encryption**: SSO users maintain the same encryption security as traditional users
 - **Dual authentication**: Users can switch between SSO and password authentication
 - **Organization flexibility**: Supports both personal and organizational accounts
-
-#### Setup Requirements
-To enable OIDC authentication, configure these redirect URIs in your cloud consoles:
-
-**Google Cloud Console:**
-- Production: `https://census.eatyourpeas.dev/oidc/callback/`
-- Development: `http://localhost:8000/oidc/callback/`
-
-**Azure Portal:**
-- Production: `https://census.eatyourpeas.dev/oidc/callback/`
-- Development: `http://localhost:8000/oidc/callback/`
-
-#### Environment Configuration
-OIDC requires these environment variables:
-```bash
-OIDC_RP_CLIENT_ID_AZURE=<azure-client-id>
-OIDC_RP_CLIENT_SECRET_AZURE=<azure-client-secret>
-OIDC_OP_TENANT_ID_AZURE=<azure-tenant-id>
-OIDC_RP_CLIENT_ID_GOOGLE=<google-client-id>
-OIDC_RP_CLIENT_SECRET_GOOGLE=<google-client-secret>
-OIDC_RP_SIGN_ALGO=RS256
-OIDC_OP_JWKS_ENDPOINT_GOOGLE=https://www.googleapis.com/oauth2/v3/certs
-OIDC_OP_JWKS_ENDPOINT_AZURE=https://login.microsoftonline.com/common/discovery/v2.0/keys
-```
+- **External user support**: Handles Azure AD guest accounts and external healthcare workers
 
 #### User Experience
+
 Healthcare workers can choose their preferred authentication method:
+
 1. **SSO Login**: Click "Sign in with Google" or "Sign in with Microsoft"
 2. **Traditional Login**: Use email and password
 3. **Account Linking**: Same email automatically links OIDC and traditional accounts
 4. **Encryption Integration**: All users get the same encryption protection regardless of authentication method
+
+#### Enterprise Setup
+
+For detailed setup instructions including cloud console configuration, environment variables, and troubleshooting, see:
+
+**📋 [OIDC SSO Setup Guide](oidc-sso-setup.md)**
+
+This comprehensive guide covers:
+
+- Step-by-step Azure AD and Google Cloud setup
+- Production environment configuration
+- Security considerations and best practices
+- Troubleshooting common issues
 
 ## Identity and roles
 
