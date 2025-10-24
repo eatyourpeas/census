@@ -3651,6 +3651,7 @@ def builder_group_template_add(
     require_can_edit(request.user, survey)
     group = get_object_or_404(QuestionGroup, id=gid, surveys=survey)
     template_key = request.POST.get("template")
+    required = request.POST.get("required") in ("on", "true", "1")
     message = "Template added."
     if template_key == "patient_details_encrypted":
         if survey.questions.filter(
@@ -3681,7 +3682,7 @@ def builder_group_template_add(
                 text="Patient details (encrypted)",
                 type=SurveyQuestion.Types.TEMPLATE_PATIENT,
                 options=default_options,
-                required=False,
+                required=required,
                 order=order,
             )
     elif template_key == "professional_details":
@@ -3715,7 +3716,7 @@ def builder_group_template_add(
                 text="Professional details",
                 type=SurveyQuestion.Types.TEMPLATE_PROFESSIONAL,
                 options=default_options,
-                required=False,
+                required=required,
                 order=order,
             )
     else:
