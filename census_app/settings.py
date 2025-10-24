@@ -28,6 +28,15 @@ env = environ.Env(
     ),
     HCAPTCHA_SITEKEY=(str, ""),
     HCAPTCHA_SECRET=(str, ""),
+    # OIDC Configuration
+    OIDC_RP_CLIENT_ID_AZURE=(str, ""),
+    OIDC_RP_CLIENT_SECRET_AZURE=(str, ""),
+    OIDC_OP_TENANT_ID_AZURE=(str, ""),
+    OIDC_RP_CLIENT_ID_GOOGLE=(str, ""),
+    OIDC_RP_CLIENT_SECRET_GOOGLE=(str, ""),
+    OIDC_RP_SIGN_ALGO=(str, "RS256"),
+    OIDC_OP_JWKS_ENDPOINT_GOOGLE=(str, "https://www.googleapis.com/oauth2/v3/certs"),
+    OIDC_OP_JWKS_ENDPOINT_AZURE=(str, ""),
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -57,6 +66,7 @@ INSTALLED_APPS = [
     "csp",
     "rest_framework",
     "rest_framework_simplejwt",
+    "mozilla_django_oidc",
     # Local apps
     "census_app.core",
     "census_app.surveys",
@@ -115,6 +125,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Authentication backends: include AxesStandaloneBackend (renamed in django-axes >= 5.0)
 AUTHENTICATION_BACKENDS = [
+    # OIDC authentication backends
+    "census_app.core.auth.CustomOIDCAuthenticationBackend",
     # Prefer the default ModelBackend first so authenticate() can work without a request
     # in test helpers like client.login; Axes middleware and backend will still enforce
     # lockouts for request-aware flows.
@@ -210,12 +222,15 @@ CORS_ALLOWED_ORIGINS = []
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = 1  # hour
 AXES_LOCKOUT_PARAMETERS = ["username"]
+# Disable axes for OIDC callbacks to avoid interference
+AXES_NEVER_LOCKOUT_WHITELIST = True
+AXES_IP_WHITELIST = ["127.0.0.1", "localhost"]
 
 # Ratelimit example (used in views)
 RATELIMIT_ENABLE = True
 
 # Auth redirects
-LOGIN_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = "/surveys/"  # Changed to surveys for healthcare workflow
 LOGOUT_REDIRECT_URL = "/"
 
 # DRF defaults
@@ -325,5 +340,88 @@ LOGGING = {
             "level": "DEBUG" if DEBUG else "INFO",
             "propagate": False,
         },
+        # OIDC debugging
+        "mozilla_django_oidc": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "census_app.core.auth": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
     },
 }
+
+# ===================================================================
+# OIDC Configuration for Healthcare SSO (Google + Azure)
+# ===================================================================
+
+# Load OIDC credentials from environment
+OIDC_RP_CLIENT_ID_AZURE = env("OIDC_RP_CLIENT_ID_AZURE")
+OIDC_RP_CLIENT_SECRET_AZURE = env("OIDC_RP_CLIENT_SECRET_AZURE")
+OIDC_OP_TENANT_ID_AZURE = env("OIDC_OP_TENANT_ID_AZURE")
+OIDC_RP_CLIENT_ID_GOOGLE = env("OIDC_RP_CLIENT_ID_GOOGLE")
+OIDC_RP_CLIENT_SECRET_GOOGLE = env("OIDC_RP_CLIENT_SECRET_GOOGLE")
+OIDC_RP_SIGN_ALGO = env("OIDC_RP_SIGN_ALGO")
+OIDC_OP_JWKS_ENDPOINT_GOOGLE = env("OIDC_OP_JWKS_ENDPOINT_GOOGLE")
+OIDC_OP_JWKS_ENDPOINT_AZURE = env("OIDC_OP_JWKS_ENDPOINT_AZURE")
+
+# Dynamic base URL for development vs production
+if DEBUG:
+    # Local development with Docker
+    OIDC_BASE_URL = "http://localhost:8000"
+else:
+    # Production
+    OIDC_BASE_URL = "https://census.eatyourpeas.dev"
+
+# OIDC Provider Configuration
+OIDC_PROVIDERS = {
+    "google": {
+        "OIDC_RP_CLIENT_ID": OIDC_RP_CLIENT_ID_GOOGLE,
+        "OIDC_RP_CLIENT_SECRET": OIDC_RP_CLIENT_SECRET_GOOGLE,
+        "OIDC_OP_AUTHORIZATION_ENDPOINT": "https://accounts.google.com/o/oauth2/v2/auth",
+        "OIDC_OP_TOKEN_ENDPOINT": "https://oauth2.googleapis.com/token",
+        "OIDC_OP_USER_ENDPOINT": "https://openidconnect.googleapis.com/v1/userinfo",
+        "OIDC_OP_JWKS_ENDPOINT": OIDC_OP_JWKS_ENDPOINT_GOOGLE,
+        "OIDC_RP_SCOPES": "openid email profile",
+    },
+    "azure": {
+        "OIDC_RP_CLIENT_ID": OIDC_RP_CLIENT_ID_AZURE,
+        "OIDC_RP_CLIENT_SECRET": OIDC_RP_CLIENT_SECRET_AZURE,
+        "OIDC_OP_AUTHORIZATION_ENDPOINT": f"https://login.microsoftonline.com/{OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/authorize",
+        "OIDC_OP_TOKEN_ENDPOINT": f"https://login.microsoftonline.com/{OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/token",
+        "OIDC_OP_USER_ENDPOINT": "https://graph.microsoft.com/oidc/userinfo",
+        "OIDC_OP_JWKS_ENDPOINT": OIDC_OP_JWKS_ENDPOINT_AZURE,
+        "OIDC_RP_SCOPES": "openid email profile",
+    },
+}
+
+# Default OIDC settings (will be overridden by custom backend)
+OIDC_RP_CLIENT_ID = OIDC_RP_CLIENT_ID_GOOGLE  # Default to Google
+OIDC_RP_CLIENT_SECRET = OIDC_RP_CLIENT_SECRET_GOOGLE
+OIDC_OP_AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
+OIDC_OP_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
+OIDC_OP_USER_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo"
+OIDC_OP_JWKS_ENDPOINT = OIDC_OP_JWKS_ENDPOINT_GOOGLE
+OIDC_RP_SCOPES = "openid email profile"
+OIDC_RP_SIGN_ALGO = OIDC_RP_SIGN_ALGO
+
+# Dynamic redirect URI based on environment
+OIDC_REDIRECT_URI = f"{OIDC_BASE_URL}/oidc/callback/"
+
+# OIDC Behavior Configuration
+OIDC_STORE_ACCESS_TOKEN = True
+OIDC_STORE_ID_TOKEN = True
+OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 15 * 60  # 15 minutes
+
+# Integration with existing encryption system
+OIDC_CREATE_USER = True  # Allow creating new users via OIDC
+
+# Custom user creation and linking
+# OIDC_USERNAME_ALGO = 'census_app.core.auth.generate_username'  # Temporarily disable custom username algo
+
+# Login/logout redirect URLs - use surveys page for authenticated healthcare workers
+OIDC_LOGIN_REDIRECT_URL = "/surveys/"  # Redirect to surveys after OIDC login
+OIDC_LOGOUT_REDIRECT_URL = "/"  # Where to go after logout

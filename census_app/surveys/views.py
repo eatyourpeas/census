@@ -460,6 +460,32 @@ class SurveyCreateForm(forms.ModelForm):
         required=False, help_text="Leave blank to auto-generate from name"
     )
 
+    # Encryption options
+    ENCRYPTION_CHOICES = [
+        ("none", "No encryption"),
+        ("option2", "Password + Recovery Phrase encryption"),
+    ]
+
+    encryption_option = forms.ChoiceField(
+        choices=ENCRYPTION_CHOICES,
+        required=False,
+        initial="none",
+        widget=forms.RadioSelect,
+        help_text="Choose encryption method for sensitive survey data",
+    )
+
+    password = forms.CharField(
+        widget=forms.PasswordInput,
+        required=False,
+        help_text="Password for unlocking encrypted survey data",
+    )
+
+    recovery_phrase = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 3}),
+        required=False,
+        help_text="12-word recovery phrase as backup unlock method",
+    )
+
     class Meta:
         model = Survey
         fields = ["name", "slug", "description"]
@@ -494,15 +520,109 @@ class SurveyCreateForm(forms.ModelForm):
 
         return slug
 
+    def clean(self):
+        cleaned_data = super().clean()
+        encryption_option = cleaned_data.get("encryption_option")
+        password = cleaned_data.get("password")
+        recovery_phrase = cleaned_data.get("recovery_phrase")
+
+        if encryption_option == "option2":
+            if not password:
+                raise forms.ValidationError("Password is required for encryption")
+            if not recovery_phrase:
+                raise forms.ValidationError(
+                    "Recovery phrase is required for encryption"
+                )
+
+            # Validate recovery phrase has 12 words
+            words = recovery_phrase.strip().split()
+            if len(words) != 12:
+                raise forms.ValidationError("Recovery phrase must be exactly 12 words")
+
+        return cleaned_data
+
 
 @login_required
 @require_http_methods(["GET", "POST"])
 def survey_create(request: HttpRequest) -> HttpResponse:
+    """
+    Create a new survey with encryption support.
+
+    Supports traditional dual-path encryption for all users.
+    OIDC integration will be re-added after UserOIDC model integration is complete.
+    """
     if request.method == "POST":
         form = SurveyCreateForm(request.POST)
         if form.is_valid():
             survey: Survey = form.save(commit=False)
             survey.owner = request.user
+
+            # Handle traditional encryption if requested
+            encryption_option = form.cleaned_data.get("encryption_option")
+
+            if encryption_option == "option2":
+                # Set up dual encryption
+                password = form.cleaned_data.get("password")
+                recovery_phrase = form.cleaned_data.get("recovery_phrase")
+
+                if password and recovery_phrase:
+                    try:
+                        import os
+
+                        survey_kek = os.urandom(32)
+
+                        # Store hash for legacy API compatibility
+                        from .utils import make_key_hash
+
+                        digest, salt = make_key_hash(survey_kek)
+                        survey.key_hash = digest
+                        survey.key_salt = salt
+
+                        # Save the survey first to get a primary key
+                        survey.save()
+
+                        # Set up dual encryption
+                        recovery_words = recovery_phrase.strip().split()
+                        survey.set_dual_encryption(survey_kek, password, recovery_words)
+
+                        # Also set up OIDC encryption if user has OIDC authentication
+                        if hasattr(request.user, "oidc"):
+                            try:
+                                survey.set_oidc_encryption(survey_kek, request.user)
+                                logger.info(
+                                    f"Added OIDC encryption for survey {survey.slug} (provider: {request.user.oidc.provider})"
+                                )
+                            except Exception as e:
+                                logger.warning(
+                                    f"Failed to add OIDC encryption to survey {survey.slug}: {e}"
+                                )
+                                # Don't fail the entire survey creation if OIDC encryption fails
+
+                        # Determine success message based on encryption methods
+                        if hasattr(request.user, "oidc"):
+                            provider_name = request.user.oidc.provider.title()
+                            messages.success(
+                                request,
+                                f"Survey created with dual-path encryption + automatic {provider_name} unlock! "
+                                "Keep your password and recovery phrase safe.",
+                            )
+                        else:
+                            messages.success(
+                                request,
+                                "Survey created with dual-path encryption! "
+                                "Keep your password and recovery phrase safe.",
+                            )
+                        return redirect("surveys:groups", slug=survey.slug)
+
+                    except Exception as e:
+                        logger.error(f"Failed to create encrypted survey: {e}")
+                        messages.error(
+                            request,
+                            "Failed to set up encryption. Please check your password and recovery phrase.",
+                        )
+                        return render(request, "surveys/create.html", {"form": form})
+
+            # No encryption or other options
             survey.save()
             return redirect("surveys:groups", slug=survey.slug)
     else:
@@ -2854,10 +2974,71 @@ def get_survey_key_from_session(request: HttpRequest, survey_slug: str) -> bytes
 @login_required
 @require_http_methods(["GET", "POST"])
 def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
+    """
+    Survey unlock page for encrypted surveys.
+
+    Supports:
+    1. OIDC automatic unlock (for SSO users)
+    2. Dual encryption (password/recovery phrase)
+    3. Legacy key verification (backward compatibility)
+    """
     survey = get_object_or_404(Survey, slug=slug, owner=request.user)
 
     # Ensure we have fresh data from database
     survey.refresh_from_db()
+
+    # Try OIDC automatic unlock first (if available and not already unlocked)
+    if (
+        survey.has_oidc_encryption()
+        and survey.can_user_unlock_automatically(request.user)
+        and request.session.get("unlock_survey_slug") != slug
+    ):
+
+        kek = survey.unlock_with_oidc(request.user)
+        if kek:
+            # Log OIDC automatic unlock
+            from .models import AuditLog
+
+            AuditLog.objects.create(
+                actor=request.user,
+                scope=AuditLog.Scope.SURVEY,
+                action=AuditLog.Action.UPDATE,
+                survey=survey,
+                target_user=request.user,
+                metadata={"unlock_method": "oidc_automatic"},
+            )
+
+            # Store OIDC unlock credentials for session
+            import base64
+
+            from django.utils import timezone
+
+            from .utils import encrypt_sensitive
+
+            session_key = request.session.session_key or request.session.create()
+
+            # Store OIDC identity for re-derivation
+            oidc_record = request.user.oidc
+            encrypted_creds = encrypt_sensitive(
+                session_key.encode("utf-8"),
+                {
+                    "oidc_provider": oidc_record.provider,
+                    "oidc_subject": oidc_record.subject,
+                    "survey_slug": slug,
+                },
+            )
+            request.session["unlock_credentials"] = base64.b64encode(
+                encrypted_creds
+            ).decode("ascii")
+            request.session["unlock_method"] = "oidc"
+            request.session["unlock_verified_at"] = timezone.now().isoformat()
+            request.session["unlock_survey_slug"] = slug
+
+            messages.success(
+                request,
+                f"Survey automatically unlocked with your {oidc_record.provider.title()} account.",
+            )
+            return redirect("surveys:dashboard", slug=slug)
 
     # Determine unlock method based on form data
     unlock_method = request.POST.get(
@@ -3007,6 +3188,8 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
     context = {
         "survey": survey,
         "has_dual_encryption": survey.has_dual_encryption(),
+        "has_oidc_encryption": survey.has_oidc_encryption(),
+        "can_auto_unlock": survey.can_user_unlock_automatically(request.user),
         "recovery_hint": (
             survey.recovery_code_hint if survey.has_dual_encryption() else None
         ),

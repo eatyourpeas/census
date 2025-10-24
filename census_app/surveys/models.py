@@ -118,6 +118,13 @@ class Survey(models.Model):
         blank=True,
         help_text="First and last word of recovery phrase (e.g., 'apple...zebra')",
     )
+    # Option 3: OIDC-derived encryption for SSO users
+    encrypted_kek_oidc = models.BinaryField(
+        blank=True,
+        null=True,
+        editable=False,
+        help_text="Survey encryption key encrypted with OIDC-derived key for automatic unlock",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def is_live(self) -> bool:
@@ -245,6 +252,99 @@ class Survey(models.Model):
     def has_dual_encryption(self) -> bool:
         """Check if survey uses Option 2 dual-path encryption."""
         return bool(self.encrypted_kek_password and self.encrypted_kek_recovery)
+
+    def set_oidc_encryption(self, kek: bytes, user) -> None:
+        """
+        Set up OIDC encryption for automatic survey unlocking.
+
+        Args:
+            kek: 32-byte survey encryption key (same as dual encryption)
+            user: User with associated UserOIDC record
+
+        This encrypts the KEK with the user's OIDC-derived key,
+        enabling automatic unlock when they're authenticated via SSO.
+        """
+        from .utils import encrypt_kek_with_oidc
+
+        # Get user's OIDC record
+        if not hasattr(user, "oidc"):
+            raise ValueError(
+                f"User {user.username} does not have OIDC authentication configured"
+            )
+
+        oidc_record = user.oidc
+
+        # Encrypt KEK with OIDC-derived key
+        salt = oidc_record.key_derivation_salt
+        if isinstance(salt, memoryview):
+            salt = salt.tobytes()
+        elif not isinstance(salt, bytes):
+            salt = bytes(salt)
+
+        self.encrypted_kek_oidc = encrypt_kek_with_oidc(
+            kek, oidc_record.provider, oidc_record.subject, salt
+        )
+
+        self.save(update_fields=["encrypted_kek_oidc"])
+
+    def has_oidc_encryption(self) -> bool:
+        """Check if survey has OIDC encryption enabled."""
+        return bool(self.encrypted_kek_oidc)
+
+    def unlock_with_oidc(self, user) -> bytes | None:
+        """
+        Unlock survey using OIDC authentication (automatic unlock).
+
+        Args:
+            user: User with OIDC authentication
+
+        Returns:
+            32-byte KEK if successful, None if decryption fails
+
+        This attempts to decrypt encrypted_kek_oidc using the user's OIDC identity.
+        """
+        from cryptography.exceptions import InvalidTag
+
+        from .utils import decrypt_kek_with_oidc
+
+        if not self.encrypted_kek_oidc:
+            return None
+
+        # Check if user has OIDC authentication
+        if not hasattr(user, "oidc"):
+            return None
+
+        oidc_record = user.oidc
+
+        try:
+            salt = oidc_record.key_derivation_salt
+            if isinstance(salt, memoryview):
+                salt = salt.tobytes()
+            elif not isinstance(salt, bytes):
+                salt = bytes(salt)
+
+            kek = decrypt_kek_with_oidc(
+                self.encrypted_kek_oidc, oidc_record.provider, oidc_record.subject, salt
+            )
+            return kek
+        except (InvalidTag, Exception):
+            return None
+
+    def can_user_unlock_automatically(self, user) -> bool:
+        """
+        Check if user can automatically unlock this survey via OIDC.
+
+        Args:
+            user: User to check
+
+        Returns:
+            True if automatic unlock is possible, False otherwise
+        """
+        return (
+            self.has_oidc_encryption()
+            and hasattr(user, "oidc")
+            and user.is_authenticated
+        )
 
 
 class SurveyQuestion(models.Model):

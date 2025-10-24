@@ -3,7 +3,7 @@ FROM python:3.12-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    POETRY_VERSION=1.8.3
+    POETRY_VERSION=2.2.1
 
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential curl nodejs npm gettext && rm -rf /var/lib/apt/lists/*
 

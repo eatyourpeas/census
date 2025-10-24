@@ -31,6 +31,7 @@ pygments = "^2.18.0"
 inflection = "^0.5.1"
 uritemplate = "^4.1.1"
 ggshield = "^1.43.0"
+mozilla-django-oidc = "^4.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"

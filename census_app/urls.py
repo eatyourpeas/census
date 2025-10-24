@@ -61,6 +61,8 @@ urlpatterns = [
     path("", include("census_app.core.urls")),
     path("surveys/", include("census_app.surveys.urls")),
     path("api/", include("census_app.api.urls")),
+    # OIDC authentication for healthcare SSO - ensure callback is accessible
+    path("oidc/", include("census_app.core.oidc_urls")),
 ]
 
 # Serve uploaded media (icons) in development
