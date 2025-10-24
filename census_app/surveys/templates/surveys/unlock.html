@@ -8,7 +8,25 @@
   {% include 'components/breadcrumbs.html' with crumb1_label=crumb1_text crumb1_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb2_label=crumb2_text %}
   <h1>{% trans "Unlock" %} {{ survey.name }}</h1>
 
-  {% if has_dual_encryption %}
+  {% if has_oidc_encryption and can_auto_unlock %}
+    <div class="alert alert-success max-w-2xl mb-6">
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      <div>
+        <h3 class="font-bold">{% trans "Automatic Encryption Access" %}</h3>
+        <div class="text-sm">
+          {% if user.oidc %}
+            {% blocktrans with provider=user.oidc.provider|title %}
+            This survey is automatically accessible with your {{ provider }} account. No manual key entry required!
+            {% endblocktrans %}
+          {% else %}
+            {% trans "This survey supports automatic unlock with your SSO account." %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <p>{% trans "Your survey uses automatic encryption that unlocks seamlessly when you're signed in. If automatic unlock fails, you can still use manual methods below." %}</p>
+  {% elif has_dual_encryption %}
     <p>{% trans "Unlock this survey using your password or recovery phrase. The encryption key will be stored securely in your session." %}</p>
   {% else %}
     <p>{% trans "Enter the one-time survey key to decrypt sensitive fields for this session." %}</p>

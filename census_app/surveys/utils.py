@@ -466,3 +466,97 @@ def create_recovery_hint(phrase_words: list[str]) -> str:
     if len(phrase_words) == 1:
         return phrase_words[0]
     return f"{phrase_words[0]}...{phrase_words[-1]}"
+
+
+# OIDC Encryption Integration
+def derive_key_from_oidc_identity(
+    oidc_provider: str, oidc_subject: str, user_salt: bytes
+) -> bytes:
+    """
+    Derive encryption key from OIDC identity for automatic survey unlocking.
+
+    This creates a stable encryption key based on the user's OIDC identity
+    that doesn't change when they change their password at the provider.
+
+    Args:
+        oidc_provider: Provider name (e.g., 'google', 'azure')
+        oidc_subject: OIDC subject identifier (stable per user)
+        user_salt: Unique salt for this user from UserOIDC.key_derivation_salt
+
+    Returns:
+        32-byte encryption key
+    """
+    # Combine provider + subject for uniqueness across providers
+    identity = f"{oidc_provider}:{oidc_subject}".encode("utf-8")
+
+    # Use PBKDF2 with the user's unique salt for key derivation
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=user_salt,
+        iterations=100000,  # Same as password-based encryption
+    )
+
+    return kdf.derive(identity)
+
+
+def encrypt_kek_with_oidc(
+    kek: bytes, oidc_provider: str, oidc_subject: str, user_salt: bytes
+) -> bytes:
+    """
+    Encrypt a Key Encryption Key (KEK) with OIDC-derived key for automatic unlock.
+
+    Args:
+        kek: The 32-byte survey encryption key to protect
+        oidc_provider: OIDC provider name
+        oidc_subject: OIDC subject identifier
+        user_salt: User's unique salt from UserOIDC
+
+    Returns:
+        Binary blob containing encrypted KEK (nonce + ciphertext)
+    """
+    # Derive encryption key from OIDC identity
+    derived_key = derive_key_from_oidc_identity(oidc_provider, oidc_subject, user_salt)
+
+    # Encrypt the KEK
+    aesgcm = AESGCM(derived_key)
+    nonce = os.urandom(12)
+    ciphertext = aesgcm.encrypt(nonce, kek, None)
+
+    # Return: nonce | ciphertext (no salt needed since user_salt is stored separately)
+    return nonce + ciphertext
+
+
+def decrypt_kek_with_oidc(
+    encrypted_blob: bytes, oidc_provider: str, oidc_subject: str, user_salt: bytes
+) -> bytes:
+    """
+    Decrypt a Key Encryption Key (KEK) using OIDC-derived key.
+
+    Args:
+        encrypted_blob: Binary blob from encrypt_kek_with_oidc
+        oidc_provider: OIDC provider name
+        oidc_subject: OIDC subject identifier
+        user_salt: User's unique salt from UserOIDC
+
+    Returns:
+        32-byte decrypted survey encryption key (KEK)
+
+    Raises:
+        cryptography.exceptions.InvalidTag: If OIDC identity doesn't match
+    """
+    # Convert memoryview to bytes (PostgreSQL BinaryField returns memoryview)
+    if isinstance(encrypted_blob, memoryview):
+        encrypted_blob = bytes(encrypted_blob)
+
+    # Parse blob: nonce (12) | ciphertext
+    nonce, ciphertext = encrypted_blob[:12], encrypted_blob[12:]
+
+    # Derive decryption key from OIDC identity
+    derived_key = derive_key_from_oidc_identity(oidc_provider, oidc_subject, user_salt)
+
+    # Decrypt the KEK
+    aesgcm = AESGCM(derived_key)
+    kek = aesgcm.decrypt(nonce, ciphertext, None)
+
+    return kek

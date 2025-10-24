@@ -378,34 +378,34 @@ else:
 
 # OIDC Provider Configuration
 OIDC_PROVIDERS = {
-    'google': {
-        'OIDC_RP_CLIENT_ID': OIDC_RP_CLIENT_ID_GOOGLE,
-        'OIDC_RP_CLIENT_SECRET': OIDC_RP_CLIENT_SECRET_GOOGLE,
-        'OIDC_OP_AUTHORIZATION_ENDPOINT': 'https://accounts.google.com/o/oauth2/v2/auth',
-        'OIDC_OP_TOKEN_ENDPOINT': 'https://oauth2.googleapis.com/token',
-        'OIDC_OP_USER_ENDPOINT': 'https://openidconnect.googleapis.com/v1/userinfo',
-        'OIDC_OP_JWKS_ENDPOINT': OIDC_OP_JWKS_ENDPOINT_GOOGLE,
-        'OIDC_RP_SCOPES': 'openid email profile',
+    "google": {
+        "OIDC_RP_CLIENT_ID": OIDC_RP_CLIENT_ID_GOOGLE,
+        "OIDC_RP_CLIENT_SECRET": OIDC_RP_CLIENT_SECRET_GOOGLE,
+        "OIDC_OP_AUTHORIZATION_ENDPOINT": "https://accounts.google.com/o/oauth2/v2/auth",
+        "OIDC_OP_TOKEN_ENDPOINT": "https://oauth2.googleapis.com/token",
+        "OIDC_OP_USER_ENDPOINT": "https://openidconnect.googleapis.com/v1/userinfo",
+        "OIDC_OP_JWKS_ENDPOINT": OIDC_OP_JWKS_ENDPOINT_GOOGLE,
+        "OIDC_RP_SCOPES": "openid email profile",
     },
-    'azure': {
-        'OIDC_RP_CLIENT_ID': OIDC_RP_CLIENT_ID_AZURE,
-        'OIDC_RP_CLIENT_SECRET': OIDC_RP_CLIENT_SECRET_AZURE,
-        'OIDC_OP_AUTHORIZATION_ENDPOINT': f'https://login.microsoftonline.com/{OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/authorize',
-        'OIDC_OP_TOKEN_ENDPOINT': f'https://login.microsoftonline.com/{OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/token',
-        'OIDC_OP_USER_ENDPOINT': 'https://graph.microsoft.com/oidc/userinfo',
-        'OIDC_OP_JWKS_ENDPOINT': OIDC_OP_JWKS_ENDPOINT_AZURE,
-        'OIDC_RP_SCOPES': 'openid email profile',
-    }
+    "azure": {
+        "OIDC_RP_CLIENT_ID": OIDC_RP_CLIENT_ID_AZURE,
+        "OIDC_RP_CLIENT_SECRET": OIDC_RP_CLIENT_SECRET_AZURE,
+        "OIDC_OP_AUTHORIZATION_ENDPOINT": f"https://login.microsoftonline.com/{OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/authorize",
+        "OIDC_OP_TOKEN_ENDPOINT": f"https://login.microsoftonline.com/{OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/token",
+        "OIDC_OP_USER_ENDPOINT": "https://graph.microsoft.com/oidc/userinfo",
+        "OIDC_OP_JWKS_ENDPOINT": OIDC_OP_JWKS_ENDPOINT_AZURE,
+        "OIDC_RP_SCOPES": "openid email profile",
+    },
 }
 
 # Default OIDC settings (will be overridden by custom backend)
 OIDC_RP_CLIENT_ID = OIDC_RP_CLIENT_ID_GOOGLE  # Default to Google
 OIDC_RP_CLIENT_SECRET = OIDC_RP_CLIENT_SECRET_GOOGLE
-OIDC_OP_AUTHORIZATION_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth'
-OIDC_OP_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token'
-OIDC_OP_USER_ENDPOINT = 'https://openidconnect.googleapis.com/v1/userinfo'
+OIDC_OP_AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
+OIDC_OP_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
+OIDC_OP_USER_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo"
 OIDC_OP_JWKS_ENDPOINT = OIDC_OP_JWKS_ENDPOINT_GOOGLE
-OIDC_RP_SCOPES = 'openid email profile'
+OIDC_RP_SCOPES = "openid email profile"
 OIDC_RP_SIGN_ALGO = OIDC_RP_SIGN_ALGO
 
 # Dynamic redirect URI based on environment
@@ -423,5 +423,5 @@ OIDC_CREATE_USER = True  # Allow creating new users via OIDC
 # OIDC_USERNAME_ALGO = 'census_app.core.auth.generate_username'  # Temporarily disable custom username algo
 
 # Login/logout redirect URLs - use surveys page for authenticated healthcare workers
-OIDC_LOGIN_REDIRECT_URL = '/surveys/'  # Redirect to surveys after OIDC login
-OIDC_LOGOUT_REDIRECT_URL = '/'         # Where to go after logout
+OIDC_LOGIN_REDIRECT_URL = "/surveys/"  # Redirect to surveys after OIDC login
+OIDC_LOGOUT_REDIRECT_URL = "/"  # Where to go after logout

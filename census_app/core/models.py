@@ -154,21 +154,18 @@ class UserOIDC(models.Model):
     Only created for users who use OIDC authentication.
     """
 
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="oidc"
-    )
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="oidc")
     provider = models.CharField(
-        max_length=100,
-        help_text="OIDC provider identifier (e.g., 'google', 'azure')"
+        max_length=100, help_text="OIDC provider identifier (e.g., 'google', 'azure')"
     )
     subject = models.CharField(
         max_length=255,
         unique=True,
-        help_text="Unique subject identifier from the OIDC provider"
+        help_text="Unique subject identifier from the OIDC provider",
     )
     email_verified = models.BooleanField(
         default=False,
-        help_text="Whether the email address has been verified by the OIDC provider"
+        help_text="Whether the email address has been verified by the OIDC provider",
     )
     key_derivation_salt = models.BinaryField(
         help_text="Unique salt for deriving encryption keys from OIDC identity"
@@ -181,7 +178,7 @@ class UserOIDC(models.Model):
         verbose_name = "User OIDC Authentication"
         verbose_name_plural = "User OIDC Authentications"
         indexes = [
-            models.Index(fields=['provider', 'subject']),
+            models.Index(fields=["provider", "subject"]),
         ]
 
     def __str__(self) -> str:  # pragma: no cover
@@ -191,6 +188,7 @@ class UserOIDC(models.Model):
     def get_or_create_for_user(cls, user, provider, subject, email_verified=False):
         """Get or create OIDC record for a user with default salt generation."""
         import os
+
         oidc_record, created = cls.objects.get_or_create(
             user=user,
             defaults={
@@ -198,6 +196,6 @@ class UserOIDC(models.Model):
                 "subject": subject,
                 "email_verified": email_verified,
                 "key_derivation_salt": os.urandom(32),
-            }
+            },
         )
         return oidc_record, created

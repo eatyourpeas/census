@@ -169,6 +169,102 @@ Copy the generated:
    - Authenticate with a Microsoft 365 account
    - Verify user creation and login
 
+## OIDC Encryption Integration
+
+### Automatic Survey Unlocking
+
+Census now supports **automatic survey unlocking** for OIDC users. This feature:
+
+- **Eliminates manual key entry** for SSO users
+- **Seamlessly integrates** with existing password/recovery phrase encryption
+- **Maintains security** through OIDC identity-based key derivation
+- **Preserves backward compatibility** with traditional encryption methods
+
+### How It Works
+
+When creating an encrypted survey:
+
+1. **Dual encryption is set up** with password + recovery phrase (as usual)
+2. **OIDC encryption is automatically added** if the user has SSO authentication
+3. **Same survey key** is encrypted three ways:
+   - With user's password
+   - With recovery phrase
+   - With OIDC identity (automatic)
+
+When unlocking a survey:
+
+1. **OIDC users** are automatically unlocked when they sign in
+2. **Fallback options** remain available (password/recovery phrase)
+3. **Non-OIDC users** use traditional unlock methods
+
+### User Experience
+
+**For OIDC Users:**
+- Create survey → Automatic encryption setup
+- Access survey → Automatic unlock (no manual key entry)
+- Green success message: "Survey automatically unlocked with your Google/Microsoft account"
+
+**For Traditional Users:**
+- Standard password/recovery phrase workflow unchanged
+- Can upgrade to OIDC authentication to gain automatic unlock
+
+### Security Model
+
+**Key Derivation:**
+```
+OIDC Key = PBKDF2(
+    provider:subject,    # "google:12345" or "azure:user@hospital.org"
+    user_salt,          # Unique 32-byte salt per user
+    100000 iterations   # Same strength as password encryption
+)
+```
+
+**Encryption Flow:**
+1. Survey KEK encrypts all patient data
+2. KEK is encrypted with OIDC-derived key
+3. Encrypted KEK stored in `survey.encrypted_kek_oidc`
+4. User's salt stored in `UserOIDC.key_derivation_salt`
+
+**Access Control:**
+- Only the exact OIDC identity can decrypt
+- Provider + subject must match exactly
+- Different providers/accounts cannot cross-decrypt
+
+### Implementation Details
+
+**Model Changes:**
+- `Survey.encrypted_kek_oidc`: OIDC-encrypted survey key
+- `Survey.has_oidc_encryption()`: Check if OIDC unlock available
+- `Survey.unlock_with_oidc(user)`: Automatic unlock method
+- `UserOIDC.key_derivation_salt`: Unique salt per OIDC user
+
+**View Integration:**
+- `survey_create`: Automatically adds OIDC encryption for SSO users
+- `survey_unlock`: Attempts automatic unlock before manual methods
+- Audit logging for all unlock methods including OIDC
+
+**Template Updates:**
+- Automatic unlock notification for OIDC users
+- Visual indicators for encryption methods available
+- Fallback UI for manual unlock when needed
+
+### Migration and Compatibility
+
+**Existing Surveys:**
+- Continue to work with password/recovery phrase
+- OIDC encryption can be added retroactively
+- No disruption to existing workflows
+
+**Mixed Authentication:**
+- Users can have both OIDC and password authentication
+- All unlock methods work independently
+- Users can switch between authentication types
+
+**Backward Compatibility:**
+- Traditional encryption fully preserved
+- API endpoints unchanged
+- Existing integrations unaffected
+
 ## Security Considerations
 
 ### Production Requirements
