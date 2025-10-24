@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🛡️ Security Vulnerability (Private)
+    url: https://github.com/eatyourpeas/census/security/advisories/new
+    about: Report sensitive security vulnerabilities privately
+  - name: 📖 Documentation
+    url: https://github.com/eatyourpeas/census/tree/main/docs
+    about: Browse the complete documentation
+  - name: 🌐 Hosted Demo
+    url: https://census.eatyourpeas.dev
+    about: Try Census online (demo environment)
+  - name: 💬 Discussions
+    url: https://github.com/eatyourpeas/census/discussions
+    about: Community discussions, Q&A, and announcements

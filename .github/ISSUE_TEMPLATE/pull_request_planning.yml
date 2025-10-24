@@ -1,0 +1,215 @@
+name: 🚀 Pull Request
+description: Contribute code, documentation, or other improvements to Census
+title: "[PR]: "
+labels: ["contribution"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing to Census! Please ensure you've read our [CONTRIBUTING.md](../CONTRIBUTING.md) guide first.
+
+        **Note**: This template is for planning PRs. Actual pull requests should be submitted via GitHub's standard PR interface.
+
+  - type: dropdown
+    id: pr-type
+    attributes:
+      label: Type of Contribution
+      description: What type of changes are you planning?
+      options:
+        - Bug Fix
+        - New Feature
+        - Enhancement/Improvement
+        - Documentation
+        - Performance Optimization
+        - Security Fix
+        - Test Coverage
+        - Code Refactoring
+        - CI/CD Improvement
+        - Dependency Update
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe what changes you're planning to make
+      placeholder: "What will this PR accomplish? What problem does it solve?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: related-issues
+    attributes:
+      label: Related Issues
+      description: Link any related issues
+      placeholder: |
+        Fixes #123
+        Relates to #456
+        Part of #789
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component/Area
+      description: Which part of the application will be affected?
+      options:
+        - Backend (Django/Python)
+        - Frontend (HTML/CSS/JS)
+        - API (DRF endpoints)
+        - Database (models/migrations)
+        - Authentication/Security
+        - Tests
+        - Documentation
+        - CI/CD
+        - Docker/Deployment
+        - External Integrations
+        - Multiple Components
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation-plan
+    attributes:
+      label: Implementation Plan
+      description: Outline your approach to implementing these changes
+      placeholder: |
+        1. Update models in...
+        2. Add new views for...
+        3. Create templates for...
+        4. Add tests for...
+        5. Update documentation...
+
+  - type: checkboxes
+    id: changes-checklist
+    attributes:
+      label: Planned Changes
+      options:
+        - label: Code changes (Python/Django)
+          required: false
+        - label: Frontend changes (HTML/CSS/JS)
+          required: false
+        - label: Database migrations
+          required: false
+        - label: API changes
+          required: false
+        - label: New dependencies
+          required: false
+        - label: Configuration changes
+          required: false
+        - label: Documentation updates
+          required: false
+        - label: Test additions/updates
+          required: false
+
+  - type: dropdown
+    id: breaking-changes
+    attributes:
+      label: Breaking Changes
+      description: Will this introduce any breaking changes?
+      options:
+        - No breaking changes
+        - Minor breaking changes (with migration path)
+        - Major breaking changes
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: breaking-details
+    attributes:
+      label: Breaking Changes Details
+      description: If you selected breaking changes above, please describe them
+      placeholder: "Describe what will break and how users can migrate"
+
+  - type: textarea
+    id: testing-plan
+    attributes:
+      label: Testing Plan
+      description: How will you test these changes?
+      placeholder: |
+        - Unit tests for...
+        - Integration tests for...
+        - Manual testing of...
+        - Security testing...
+
+  - type: dropdown
+    id: security-impact
+    attributes:
+      label: Security Impact
+      description: Does this change affect security?
+      options:
+        - No security impact
+        - Improves security
+        - Minor security considerations
+        - Significant security changes
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: security-details
+    attributes:
+      label: Security Considerations
+      description: If you indicated security impact, please elaborate
+      placeholder: "Describe any security implications, authentication changes, data handling, etc."
+
+  - type: checkboxes
+    id: healthcare-compliance
+    attributes:
+      label: Healthcare/Medical Compliance
+      options:
+        - label: Changes maintain GDPR compliance
+          required: false
+        - label: Changes maintain healthcare data security standards
+          required: false
+        - label: Changes preserve audit trail functionality
+          required: false
+        - label: Changes maintain encryption for sensitive fields
+          required: false
+
+  - type: textarea
+    id: additional-notes
+    attributes:
+      label: Additional Notes
+      description: Any other information about your planned contribution
+      placeholder: |
+        - Timeline for completion
+        - Help needed from maintainers
+        - Questions about implementation
+        - Dependencies on other work
+
+  - type: checkboxes
+    id: contributor-checklist
+    attributes:
+      label: Contributor Checklist
+      options:
+        - label: I have read and agree to follow the CONTRIBUTING.md guidelines
+          required: true
+        - label: I will follow the code style (ruff/black/isort)
+          required: true
+        - label: I will add/update tests for my changes
+          required: true
+        - label: I will update documentation as needed
+          required: true
+        - label: I will avoid committing secrets or sensitive data
+          required: true
+        - label: I will use appropriate dummy data in tests
+          required: true
+        - label: I will run the test suite before submitting
+          required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Next Steps
+
+        1. **Wait for feedback** on this issue before starting significant work
+        2. **Fork the repository** and create a feature branch
+        3. **Implement your changes** following our coding standards
+        4. **Run tests** locally: `docker compose exec web python -m pytest -q`
+        5. **Run linting**: `s/lint` or manually with ruff/black/isort
+        6. **Submit your PR** with a clear description and reference to this issue
+
+        Questions? Feel free to ask in this issue or check our documentation in the `/docs` folder.

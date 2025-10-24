@@ -1,0 +1,139 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior in Census
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please search existing issues first to avoid duplicates.
+
+        **Note**: If you're using the hosted version at https://census.eatyourpeas.dev and dealing with sensitive data, please ensure you don't include any patient information or real survey data in this report.
+
+  - type: dropdown
+    id: deployment-type
+    attributes:
+      label: Deployment Type
+      description: Are you using the hosted version or self-hosting?
+      options:
+        - Hosted version (census.eatyourpeas.dev)
+        - Self-hosted (Docker)
+        - Self-hosted (other)
+        - Local development
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: "Describe what happened and what you expected to happen instead"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Fill out '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: "Describe what you expected to happen"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component/Area
+      description: Which part of the application is affected?
+      options:
+        - Survey Builder (drag-and-drop interface)
+        - Survey Taking (respondent experience)
+        - User Management/Authentication
+        - Organization Management
+        - API (REST endpoints)
+        - Admin Interface
+        - Email Notifications
+        - External Datasets
+        - Data Export/Import
+        - Security/Encryption
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - Critical (application unusable, data loss)
+        - High (major feature broken)
+        - Medium (feature partially broken)
+        - Low (minor inconvenience)
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Please provide environment information
+      placeholder: |
+        - Browser: [e.g. Chrome 118, Safari 17]
+        - Device: [e.g. Desktop, Mobile]
+        - OS: [e.g. macOS 14, Windows 11, iOS 17]
+        - Census Version: [if self-hosting, git commit or tag]
+        - Docker Version: [if self-hosting]
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs/Error Messages
+      description: Any relevant log output or error messages (remove sensitive information)
+      render: shell
+      placeholder: "Paste any error messages or relevant log output here"
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots/Videos
+      description: If applicable, add screenshots or videos to help explain the problem
+      placeholder: "Drag and drop images here or paste URLs"
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here
+      placeholder: "Any additional information that might help us understand the issue"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues for duplicates
+          required: true
+        - label: I have removed any sensitive/patient data from this report
+          required: true
+        - label: I can reproduce this issue consistently
+          required: false
+        - label: I have checked the documentation at `/docs`
+          required: false
