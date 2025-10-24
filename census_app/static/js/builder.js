@@ -939,4 +939,165 @@
     // Initial state
     refresh();
   }
+
+  // Template functionality for Special Templates tab
+  function initTemplateHandling() {
+    const form = document.getElementById("create-question-form");
+    if (!form) return;
+
+    const templateRadios = document.querySelectorAll('input[name="template"]');
+    const questionTypeRadios = document.querySelectorAll('input[name="type"]');
+    const addButton = form.querySelector('button[type="submit"]');
+    const addButtonText = form.querySelector(
+      '[data-editor-label="submit-add"]'
+    );
+    const tabRadios = document.querySelectorAll(
+      'input[name="add_question_tabs"]'
+    );
+    if (
+      !templateRadios.length ||
+      !addButton ||
+      !tabRadios.length ||
+      !addButtonText
+    )
+      return;
+
+    function getCurrentTab() {
+      const activeTab = Array.from(tabRadios).find((tab) => tab.checked);
+      return activeTab ? activeTab.getAttribute("aria-label") : null;
+    }
+
+    function updateFormAction() {
+      const currentTab = getCurrentTab();
+      const isTemplateTab = currentTab === "Special Templates";
+      const isQuestionTab = currentTab === "Build question";
+      const textInput = form.querySelector('input[name="text"]');
+
+      if (isTemplateTab) {
+        // Special Templates tab
+        const isTemplateSelected = Array.from(templateRadios).some(
+          (radio) => radio.checked
+        );
+
+        addButtonText.textContent = "Add Template";
+        addButton.disabled = !isTemplateSelected;
+
+        // Update button styling based on disabled state
+        if (!isTemplateSelected) {
+          addButton.classList.add("btn-disabled");
+          addButton.setAttribute("aria-disabled", "true");
+        } else {
+          addButton.classList.remove("btn-disabled");
+          addButton.removeAttribute("aria-disabled");
+        }
+
+        if (isTemplateSelected) {
+          const templateUrl = form.dataset.templateUrl;
+          form.setAttribute("hx-post", templateUrl);
+        } else {
+          // Don't set form action if no template selected
+          form.removeAttribute("hx-post");
+        }
+
+        // Remove required attribute from text input when using templates
+        if (textInput) {
+          textInput.removeAttribute("required");
+        }
+      } else if (isQuestionTab) {
+        // Build question tab
+        const isQuestionTypeSelected = Array.from(questionTypeRadios).some(
+          (radio) => radio.checked
+        );
+        const hasQuestionText = textInput && textInput.value.trim() !== "";
+        const isFormValid = isQuestionTypeSelected && hasQuestionText;
+
+        addButtonText.textContent = "Add Question";
+        addButton.disabled = !isFormValid;
+
+        // Update button styling based on disabled state
+        if (!isFormValid) {
+          addButton.classList.add("btn-disabled");
+          addButton.setAttribute("aria-disabled", "true");
+        } else {
+          addButton.classList.remove("btn-disabled");
+          addButton.removeAttribute("aria-disabled");
+        }
+
+        if (isFormValid) {
+          const createUrl = form.dataset.createUrl;
+          form.setAttribute("hx-post", createUrl);
+        } else {
+          // Don't set form action if requirements not met
+          form.removeAttribute("hx-post");
+        }
+
+        // Add required attribute back to text input for regular questions
+        if (textInput) {
+          textInput.setAttribute("required", "");
+        }
+      } else {
+        // Fallback state
+        addButtonText.textContent = "Add";
+        addButton.disabled = true;
+        addButton.classList.add("btn-disabled");
+        addButton.setAttribute("aria-disabled", "true");
+        form.removeAttribute("hx-post");
+      }
+
+      // Reinitialize htmx for the form only if it has an action
+      if (window.htmx && form.hasAttribute("hx-post")) {
+        window.htmx.process(form);
+      }
+    }
+
+    // Prevent form submission when button is disabled
+    form.addEventListener("submit", function (e) {
+      if (addButton.disabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    });
+
+    // Listen for template radio changes
+    templateRadios.forEach((radio) => {
+      radio.addEventListener("change", updateFormAction);
+    });
+
+    // Listen for question type radio changes
+    questionTypeRadios.forEach((radio) => {
+      radio.addEventListener("change", updateFormAction);
+    });
+
+    // Listen for text input changes
+    const textInput = form.querySelector('input[name="text"]');
+    if (textInput) {
+      textInput.addEventListener("input", updateFormAction);
+    }
+
+    // Listen for tab changes
+    tabRadios.forEach((tab) => {
+      tab.addEventListener("change", function () {
+        // Clear selections when switching tabs for cleaner UX
+        if (this.getAttribute("aria-label") === "Build question") {
+          templateRadios.forEach((radio) => {
+            radio.checked = false;
+          });
+        } else if (this.getAttribute("aria-label") === "Special Templates") {
+          // Don't clear question selections as user might switch back
+        }
+
+        // Small delay to ensure tab content is visible before checking
+        setTimeout(updateFormAction, 10);
+      });
+    });
+
+    // Initial check
+    updateFormAction();
+  }
+
+  // Initialize template handling when DOM is ready
+  document.addEventListener("DOMContentLoaded", function () {
+    initTemplateHandling();
+  });
 })();

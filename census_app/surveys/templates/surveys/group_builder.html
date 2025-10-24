@@ -60,7 +60,7 @@
               <span data-editor-label="headline-edit" class="hidden">Edit Question</span>
             </h2>
             <p class="text-sm opacity-60 hidden" data-editor-label="edit-hint">Editing an existing question. Save to apply your changes or cancel to restore the original.</p>
-            <form id="create-question-form" hx-post="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/create" hx-target="#questions-list" hx-swap="outerHTML" data-create-url="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/create" data-create-target="#questions-list" data-create-swap="outerHTML" data-edit-url-base="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/">
+            <form id="create-question-form" hx-post="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/create" hx-target="#questions-list" hx-swap="outerHTML" data-create-url="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/create" data-create-target="#questions-list" data-create-swap="outerHTML" data-edit-url-base="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/questions/" data-template-url="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/templates/add">
               {% csrf_token %}
 
               <div role="tablist" class="tabs tabs-lift">
@@ -185,8 +185,8 @@ Option B" data-options-textarea></textarea>
                         </div>
                       </div>
                     </div>
+                  </div>
                 </div>
-              </div>
 
                 {% if user.is_authenticated and user == survey.owner %}
                 <input type="radio" name="add_question_tabs" role="tab" class="tab" aria-label="Special Templates" />
@@ -195,24 +195,29 @@ Option B" data-options-textarea></textarea>
                     <p class="text-sm opacity-60 leading-snug">
                       Templates are predefined sets of questions for common use cases. They can form part of question groups or be used on their own.
                     </p>
-                    <div class="space-y-3">
-                      <div class="space-y-2">
-                        <button type="submit" form="create-template-patient-form" class="link link-primary font-semibold inline-flex justify-start text-left">
-                          Patient details (encrypted)
-                        </button>
-                        <p class="text-sm opacity-60 leading-snug max-w-prose">
-                          Customisable set of patient identifier questions, with answers stored encrypted, viewable only to the person that entered the data.
-                        </p>
+                    <fieldset>
+                      <legend class="label">Template type</legend>
+                      <div class="space-y-3">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                          <input type="radio" name="template" value="patient_details_encrypted" class="radio radio-primary mt-1" />
+                          <div class="space-y-1">
+                            <span class="font-semibold">Patient details (encrypted)</span>
+                            <p class="text-sm opacity-60 leading-snug max-w-prose">
+                              Customisable set of patient identifier questions, with answers stored encrypted, viewable only to the person that entered the data.
+                            </p>
+                          </div>
+                        </label>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                          <input type="radio" name="template" value="professional_details" class="radio radio-primary mt-1" />
+                          <div class="space-y-1">
+                            <span class="font-semibold">Professional details</span>
+                            <p class="text-sm opacity-60 leading-snug max-w-prose">
+                              Customisable set of professional identifier questions. Answers are stored in clear (non-encrypted) and can be exported.
+                            </p>
+                          </div>
+                        </label>
                       </div>
-                      <div class="space-y-2">
-                        <button type="submit" form="create-template-professional-form" class="link link-primary font-semibold inline-flex justify-start text-left">
-                          Professional details
-                        </button>
-                        <p class="text-sm opacity-60 leading-snug max-w-prose">
-                          Customisable set of professional identifier questions. Answers are stored in clear (non-encrypted) and can be exported.
-                        </p>
-                      </div>
-                    </div>
+                    </fieldset>
                   </div>
                 </div>
                 {% endif %}
@@ -237,16 +242,6 @@ Option B" data-options-textarea></textarea>
         </div>
       </div>
 
-      {% if user.is_authenticated and user == survey.owner %}
-      <form id="create-template-patient-form" method="post" action="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/templates/add" class="hidden" hx-post="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/templates/add" hx-target="#questions-list" hx-swap="outerHTML">
-        {% csrf_token %}
-        <input type="hidden" name="template" value="patient_details_encrypted" />
-      </form>
-      <form id="create-template-professional-form" method="post" action="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/templates/add" class="hidden" hx-post="/surveys/{{ survey.slug }}/builder/groups/{{ group.id }}/templates/add" hx-target="#questions-list" hx-swap="outerHTML">
-        {% csrf_token %}
-        <input type="hidden" name="template" value="professional_details" />
-      </form>
-      {% endif %}
     {% endif %}
   </div>
 </div>
