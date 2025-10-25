@@ -557,6 +557,59 @@ class TestPublishUpdate:
         basic_survey.refresh_from_db()
         assert basic_survey.status == Survey.Status.CLOSED
 
+    def test_publish_auto_sets_start_at_when_not_provided(
+        self, client, survey_owner, basic_survey
+    ):
+        """First publish should set start_at to now if not provided."""
+        from django.utils import timezone
+
+        client.login(username="owner@example.com", password="testpass123")
+
+        assert basic_survey.start_at is None
+
+        before_publish = timezone.now()
+
+        url = reverse("surveys:publish_update", kwargs={"slug": basic_survey.slug})
+        client.post(url, {
+            "status": "published",
+            "visibility": "authenticated",
+        })
+
+        after_publish = timezone.now()
+
+        basic_survey.refresh_from_db()
+
+        # start_at should be automatically set
+        assert basic_survey.start_at is not None
+        # Should be set to approximately now
+        assert before_publish <= basic_survey.start_at <= after_publish
+
+    def test_publish_respects_provided_start_at(
+        self, client, survey_owner, basic_survey
+    ):
+        """Publish should use provided start_at if given."""
+        from django.utils import timezone
+        from datetime import timedelta
+
+        client.login(username="owner@example.com", password="testpass123")
+
+        # Set start date to tomorrow
+        tomorrow = timezone.now() + timedelta(days=1)
+
+        url = reverse("surveys:publish_update", kwargs={"slug": basic_survey.slug})
+        client.post(url, {
+            "status": "published",
+            "visibility": "authenticated",
+            "start_at": tomorrow.isoformat(),
+        })
+
+        basic_survey.refresh_from_db()
+
+        # start_at should be the one we provided
+        assert basic_survey.start_at is not None
+        # Allow 1 second tolerance for rounding
+        assert abs((basic_survey.start_at - tomorrow).total_seconds()) < 1
+
 
 # ============================================================================
 # Cross-Visibility Edge Cases

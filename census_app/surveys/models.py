@@ -143,6 +143,20 @@ class Survey(models.Model):
                 return False
         return status_ok and time_ok
 
+    def days_remaining(self) -> int | None:
+        """
+        Calculate days remaining until survey end date.
+
+        Returns:
+            Number of days remaining (can be negative if expired),
+            or None if no end date is set.
+        """
+        if self.end_at is None:
+            return None
+        now = timezone.now()
+        delta = self.end_at - now
+        return delta.days
+
     def __str__(self) -> str:  # pragma: no cover
         return self.name
 

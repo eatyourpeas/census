@@ -1837,13 +1837,16 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
     survey.max_responses = max_responses
     survey.captcha_required = captcha_required
     survey.no_patient_data_ack = no_patient_data_ack
-    # On first publish, set published_at
+    # On first publish, set published_at and start_at if not provided
     if (
         prev_status != Survey.Status.PUBLISHED
         and status == Survey.Status.PUBLISHED
         and not survey.published_at
     ):
         survey.published_at = timezone.now()
+        # If start_at not provided, set it to now
+        if not survey.start_at:
+            survey.start_at = timezone.now()
     # Generate unlisted key if needed
     if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
         survey.unlisted_key = secrets.token_urlsafe(24)
