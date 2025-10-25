@@ -129,6 +129,24 @@ These records enable traceability of who changed which memberships and when.
 - Organization admins cannot remove themselves as admins via the UI or the API; requests to remove self-admin are rejected.
 - Sensitive demographics remain encrypted per-survey and are unaffected by membership operations.
 
+### Account Deletion Security
+
+For security and data integrity reasons, account deletion is restricted:
+
+- **User account deletion**: Only superusers can delete user accounts through the Django Admin interface (`/admin/`).
+- **Regular users cannot delete their own accounts** to prevent accidental data loss and maintain audit trails.
+- **Organization deletion**: Only superusers can delete organizations through the Django Admin interface.
+- **Survey deletion**: Survey owners and organization admins can delete surveys they manage, following proper confirmation workflows.
+
+**Rationale**: User and organization deletion can have cascading effects that permanently remove data belonging to multiple users. This restriction ensures:
+
+1. **Data protection**: Prevents accidental loss of surveys and responses that may be shared with other users
+2. **Audit compliance**: Maintains proper audit trails for account management actions
+3. **Security**: Prevents malicious or compromised accounts from destroying organizational data
+4. **Intentionality**: Ensures deletion decisions are made by administrators with full context
+
+**For users needing account deletion**: Contact your system administrator, who can safely perform the deletion through the admin interface after confirming the impact on shared data.
+
 ## Testing
 
 The test suite includes:

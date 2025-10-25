@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from django.conf import settings
@@ -23,6 +24,8 @@ from census_app.surveys.models import (
 
 from .forms import SignupForm, UserEmailPreferencesForm, UserLanguagePreferenceForm
 from .models import UserLanguagePreference
+
+logger = logging.getLogger(__name__)
 
 try:
     from .models import SiteBranding, UserEmailPreferences
@@ -171,6 +174,9 @@ def profile(request):
             user=user, role=SurveyMembership.Role.VIEWER
         ).count(),
         "groups_owned": QuestionGroup.objects.filter(owner=user).count(),
+        "question_groups_owned": QuestionGroup.objects.filter(
+            owner=user
+        ).count(),  # Alias for template clarity
         "responses_submitted": SurveyResponse.objects.filter(submitted_by=user).count(),
         "tokens_created": SurveyAccessToken.objects.filter(created_by=user).count(),
     }
@@ -191,6 +197,7 @@ def profile(request):
             "org": org,
             "language_form": language_form,
             "email_prefs_form": email_prefs_form,
+            "can_safely_delete_account": can_user_safely_delete_own_account(user),
         },
     )
 
@@ -592,3 +599,96 @@ class BrandedPasswordResetView(auth_views.PasswordResetView):
 
 
 ## Removed DirectPasswordResetConfirmView to use Django's standard confirm flow.
+
+
+# Note: User and organization deletion is handled through Django Admin interface
+# by superusers only. Regular users cannot delete accounts for security reasons.
+# This protects against accidental data loss and maintains audit trails.
+
+
+def can_user_safely_delete_own_account(user):
+    """
+    Check if a user can safely delete their own account without affecting others.
+
+    Users can delete their account if:
+    - They are not in any organizations
+    - None of their surveys have collaborators
+    - They are not collaborators on others' surveys
+    """
+    if not user.is_authenticated:
+        return False
+
+    # Check org memberships
+    has_org_memberships = OrganizationMembership.objects.filter(user=user).exists()
+    if has_org_memberships:
+        return False
+
+    # Check if any of their surveys have collaborators
+    user_surveys = Survey.objects.filter(owner=user)
+    for survey in user_surveys:
+        has_collaborators = (
+            SurveyMembership.objects.filter(survey=survey).exclude(user=user).exists()
+        )
+        if has_collaborators:
+            return False
+
+    # Check if they are a collaborator on others' surveys
+    is_collaborator = SurveyMembership.objects.filter(user=user).exists()
+    if is_collaborator:
+        return False
+
+    return True
+
+
+@login_required
+def delete_account(request):
+    """
+    Allow individual users to delete their own account if it's safe to do so.
+    Safe deletion means no impact on other users or shared data.
+    """
+    if request.method != "POST":
+        return redirect("core:profile")
+
+    user = request.user
+
+    # Check if user can safely delete their account
+    if not can_user_safely_delete_own_account(user):
+        messages.error(
+            request,
+            _(
+                "Cannot delete account. You are either part of an organization, "
+                "have surveys with collaborators, or are a collaborator on other surveys. "
+                "Please contact an administrator for assistance."
+            ),
+        )
+        return redirect("core:profile")
+
+    try:
+        with transaction.atomic():
+            # Get count of surveys for confirmation message
+            survey_count = Survey.objects.filter(owner=user).count()
+
+            # Delete user (CASCADE will handle owned surveys and responses)
+            user.delete()
+
+            # Add success message to session
+            messages.success(
+                request,
+                _(
+                    f"Your account and {survey_count} survey(s) have been permanently deleted. "
+                    "Thank you for using Census."
+                ),
+            )
+
+        # Redirect to home page after successful deletion
+        return redirect("/")
+
+    except Exception as e:
+        messages.error(
+            request,
+            _(
+                "An error occurred while deleting your account. Please try again or contact support."
+            ),
+        )
+        logger.error(f"Error deleting user account {user.id}: {e}")
+        return redirect("core:profile")

@@ -54,30 +54,60 @@ This comprehensive guide covers:
 
 ## Identity and roles
 
-There are three key models in `census_app.surveys.models`:
+There are four key models in `census_app.surveys.models`:
 
 - Organization: a container for users and surveys.
 - OrganizationMembership: links a user to an organization with a role.
   - Roles: ADMIN, CREATOR, VIEWER
 - Survey: owned by a user and optionally associated with an organization.
+- SurveyMembership: links a user to a specific survey with a role.
+  - Roles: CREATOR, EDITOR, VIEWER
 
-Role semantics used by the app:
+### Organization Roles
 
-- Owner: The user who created the survey. Owners can view/edit their own surveys.
-- Org ADMIN: Can view/edit all surveys that belong to their organization.
-- Org CREATOR or VIEWER: No additional rights beyond their personal ownership. They cannot access other members' surveys.
-- Participant (no membership): Can only submit responses via public links; cannot access builder or API survey objects.
+Organization-level role semantics:
+
+- **Owner**: The user who created the survey. Owners can view/edit their own surveys.
+- **Org ADMIN**: Can view/edit all surveys that belong to their organization.
+- **Org CREATOR or VIEWER**: No additional rights beyond their personal ownership. They cannot access other members' surveys.
+- **Participant** (no membership): Can only submit responses via public links; cannot access builder or API survey objects.
+
+### Survey Collaboration Roles
+
+Individual surveys can have collaborators with specific roles through SurveyMembership:
+
+| Role | Content Editing | User Management | Survey Creation |
+|------|----------------|-----------------|-----------------|
+| **CREATOR** | Yes | Yes | Yes |
+| **EDITOR** | Yes | No | No |
+| **VIEWER** | No | No | No |
+
+- **CREATOR**: Full access to survey content and collaborator management. Can edit questions, groups, and manage other users' access to the survey.
+- **EDITOR**: Can modify survey content (questions, groups, settings) but cannot manage collaborators or create new surveys.
+- **VIEWER**: Read-only access to surveys for monitoring and preview purposes.
 
 Single-organisation admin model:
 
 - A user can be an ADMIN of at most one organisation. The user management hub (`/surveys/manage/users/`) focuses on that single organisation context for each admin user.
 
+### Survey Collaboration Features
+
+Survey creators can invite collaborators to work on specific surveys through the "Manage collaborators" feature:
+
+- **Adding collaborators**: Survey CREATORs can add users by email address and assign roles
+- **Role management**: CREATORs can change collaborator roles or remove access
+- **Dashboard integration**: The survey dashboard shows a "Manage collaborators" button only to users who can manage survey users (CREATORs)
+- **Permission boundaries**: EDITORs can modify survey content but cannot see or access user management features
+
+This enables teams to collaborate on survey design while maintaining clear boundaries between content editing and access control.
+
 ## Enforcement in server-side views (SSR)
 
 The central authorization checks live in `census_app/surveys/permissions.py`:
 
-- `can_view_survey(user, survey)` — True if user is the survey owner or an ADMIN of the survey's organization
-- `can_edit_survey(user, survey)` — Same policy as view for now
+- `can_view_survey(user, survey)` — True if user is the survey owner, an ADMIN of the survey's organization, or has survey membership (CREATOR, EDITOR, or VIEWER)
+- `can_edit_survey(user, survey)` — True if user is the survey owner, an ADMIN of the survey's organization, or has survey membership as CREATOR or EDITOR
+- `can_manage_survey_users(user, survey)` — True if user is the survey owner, an ADMIN of the survey's organization, or has survey membership as CREATOR (only CREATORs can manage collaborators)
 - `require_can_view(user, survey)` — Raises 403 if not allowed
 - `require_can_edit(user, survey)` — Raises 403 if not allowed
 
@@ -87,10 +117,12 @@ All builder/dashboard/preview endpoints call these helpers before proceeding. Un
 
 The API mirrors the same rules using a DRF permission class and scoped querysets:
 
-- Listing: returns only the surveys the user can see (their own plus any in orgs where they are ADMIN). Anonymous users see an empty list.
-- Retrieve: allowed only if `can_view_survey` is true.
-- Create: authenticated users can create surveys. The creator becomes the owner.
-- Update/Delete/Custom actions: allowed only if `can_edit_survey` is true.
+- **Listing**: returns only the surveys the user can see (their own, any in orgs where they are ADMIN, plus surveys they are members of via SurveyMembership). Anonymous users see an empty list.
+- **Retrieve**: allowed only if `can_view_survey` is true.
+- **Create**: authenticated users can create surveys. The creator becomes the owner.
+- **Update/Delete/Custom actions**: allowed only if `can_edit_survey` is true (CREATOR and EDITOR roles for survey members).
+
+User management operations (adding/removing collaborators) require `can_manage_survey_users` permission, which is restricted to survey CREATORs, organization ADMINs, and survey owners.
 
 Error behavior:
 
@@ -99,10 +131,27 @@ Error behavior:
 
 Additional protections:
 
-- Object-level permissions are enforced for detail endpoints (retrieve/update/delete) and custom actions like `seed`. Authenticated users will receive 403 (Forbidden) if they don’t have rights on an existing object, rather than 404.
-- Querysets are scoped to reduce exposure: list endpoints only return what you’re allowed to see (owned + org-admin).
+- Object-level permissions are enforced for detail endpoints (retrieve/update/delete) and custom actions like `seed`. Authenticated users will receive 403 (Forbidden) if they don't have rights on an existing object, rather than 404.
+- Querysets are scoped to reduce exposure: list endpoints only return what you're allowed to see (owned + org-admin).
 - Throttling is enabled (AnonRateThrottle, UserRateThrottle). See `REST_FRAMEWORK.DEFAULT_THROTTLE_RATES` in `settings.py`.
 - CORS is disabled by default (`CORS_ALLOWED_ORIGINS = []`). Enable explicit origins before using the API cross-site.
+
+### Account Deletion Restrictions
+
+For security and data integrity, account deletion is strictly controlled:
+
+- **User accounts**: Only superusers can delete user accounts via Django Admin (`/admin/auth/user/`)
+- **Organizations**: Only superusers can delete organizations via Django Admin (`/admin/surveys/organization/`)
+- **Regular users cannot delete their own accounts** to prevent data loss and maintain security
+
+This protects against:
+
+- Accidental deletion of surveys shared with other users
+- Malicious or compromised account actions
+- Loss of audit trails and organizational data
+- Cascade deletion effects that impact multiple users
+
+Survey creators and organization admins retain full control over survey access and membership management, but cannot perform destructive account-level operations.
 
 ### Using the API with curl (JWT)
 

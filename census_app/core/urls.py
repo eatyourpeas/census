@@ -11,4 +11,5 @@ urlpatterns = [
     path("signup/", views.signup, name="signup"),
     path("docs/", views.docs_index, name="docs_index"),
     path("docs/<slug:slug>/", views.docs_page, name="docs_page"),
+    path("delete-account/", views.delete_account, name="delete_account"),
 ]

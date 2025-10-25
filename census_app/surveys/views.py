@@ -1643,6 +1643,7 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
         "last7_count": last7_count,
         "day_counts": list(day_counts.values()),
         "spark_points": spark_points,
+        "can_manage_users": can_manage_survey_users(request.user, survey),
     }
     if any(
         v for k, v in brand_overrides.items() if k != "primary_hex"
@@ -2284,7 +2285,7 @@ from the Groups UI and bulk upload. Collections remain as backend entities only.
 @login_required
 def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
-    require_can_view(request.user, survey)
+    require_can_edit(request.user, survey)
     can_edit = can_edit_survey(request.user, survey)
     groups_qs = survey.question_groups.annotate(
         q_count=models.Count(
@@ -2651,9 +2652,9 @@ def org_users(request: HttpRequest, org_id: int) -> HttpResponse:
 def survey_users(request: HttpRequest, slug: str) -> HttpResponse:
     User = get_user_model()
     survey = get_object_or_404(Survey, slug=slug)
-    # Creator, org admin, or owner can manage; viewers can only view
+    # Only users who can manage survey users should access this view
     can_manage = can_manage_survey_users(request.user, survey)
-    if not can_manage and not can_view_survey(request.user, survey):
+    if not can_manage:
         raise Http404
 
     if request.method == "POST":

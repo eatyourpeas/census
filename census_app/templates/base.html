@@ -118,7 +118,7 @@
             </div>
             <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
               <li class="menu-title">
-                <span class="text-base-content">{{ user.username }}</span>
+                <span class="text-base-content break-words text-xs leading-tight max-w-full overflow-hidden">{{ user.username }}</span>
               </li>
               <li><a href="/profile" class="justify-items-start">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -151,7 +151,7 @@
       {% if messages %}
         <div class="space-y-2">
           {% for message in messages %}
-            <div class="alert alert-info">{{ message }}</div>
+            <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %}">{{ message }}</div>
           {% endfor %}
         </div>
       {% endif %}

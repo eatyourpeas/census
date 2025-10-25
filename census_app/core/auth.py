@@ -290,6 +290,7 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
             logger.info(f"Updated OIDC record for existing user: {user.email}")
 
         user.save()
+        logger.info(f"Saved updated user: {user.email}, is_active={user.is_active}")
         return user
 
     def get_or_create_user(
@@ -303,6 +304,7 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         2. Create new accounts via OIDC
         3. Use multiple OIDC providers with same account
         """
+        logger.info("CustomOIDCAuthenticationBackend.get_or_create_user called")
         try:
             claims = self.get_userinfo(access_token, id_token, payload)
             email = claims.get("email")
@@ -315,12 +317,25 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
             try:
                 user = User.objects.get(email=email)
                 logger.info(f"Found existing user for OIDC login: {email}")
-                return self.update_user(user, claims)
+                # Mark that this user already existed
+                user._oidc_user_existed = True
+                updated_user = self.update_user(user, claims)
+                logger.info(
+                    f"Successfully updated existing user: {email}, active={updated_user.is_active}"
+                )
+                return updated_user
             except User.DoesNotExist:
                 # Create new user if allowed
                 if getattr(settings, "OIDC_CREATE_USER", True):
                     logger.info(f"Creating new user via OIDC: {email}")
-                    return self.create_user(claims)
+                    user = self.create_user(claims)
+                    # Mark that this user was newly created
+                    if user:
+                        user._oidc_user_existed = False
+                        logger.info(
+                            f"Successfully created new user: {email}, active={user.is_active}"
+                        )
+                    return user
                 else:
                     logger.warning(f"OIDC user creation disabled, rejecting: {email}")
                     return None

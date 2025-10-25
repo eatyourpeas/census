@@ -490,6 +490,7 @@ class SurveyQuestionCondition(models.Model):
 class SurveyMembership(models.Model):
     class Role(models.TextChoices):
         CREATOR = "creator", "Creator"
+        EDITOR = "editor", "Editor"
         VIEWER = "viewer", "Viewer"
 
     survey = models.ForeignKey(

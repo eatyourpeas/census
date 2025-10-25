@@ -31,7 +31,10 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
 
         # Get provider from session and configure accordingly
         provider = request.session.get("oidc_provider", "google")
-        logger.info(f"Processing callback for provider: {provider}")
+        signup_mode = request.session.get("oidc_signup_mode", False)
+        logger.info(
+            f"Processing callback for provider: {provider}, signup_mode: {signup_mode}"
+        )
 
         # Temporarily modify Django settings for this request
         original_settings = {}
@@ -68,7 +71,78 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
                     f"Set Azure token endpoint: {settings.OIDC_OP_TOKEN_ENDPOINT}"
                 )
 
-            response = super().get(request)
+            # Store signup mode flag for callback processing
+            if signup_mode:
+                try:
+                    request.session["oidc_signup_attempt"] = True
+                except Exception as e:
+                    logger.warning(f"Could not set signup attempt flag: {e}")
+
+            try:
+                response = super().get(request)
+                logger.info(
+                    f"OIDC parent callback response: status={response.status_code}, user_authenticated={request.user.is_authenticated}"
+                )
+
+                if not request.user.is_authenticated:
+                    logger.warning(
+                        "OIDC authentication failed - user not authenticated after callback"
+                    )
+                    # Check if there are any error parameters
+                    error = request.GET.get("error")
+                    error_description = request.GET.get("error_description")
+                    if error:
+                        logger.error(
+                            f"OIDC error: {error}, description: {error_description}"
+                        )
+
+            except Exception as e:
+                logger.error(f"OIDC parent callback failed with exception: {e}")
+                return redirect("/accounts/login/?error=oidc_callback_failed")
+
+            # Check if this was a signup attempt and provide appropriate messaging
+            if signup_mode and request.user.is_authenticated:
+                from django.contrib import messages
+                from django.utils.translation import gettext as _
+
+                # Check if this user already existed (set by authentication backend)
+                user_existed = getattr(request.user, "_oidc_user_existed", None)
+
+                if user_existed is True:
+                    # Existing user was found and linked
+                    messages.info(
+                        request,
+                        _(
+                            "Welcome back! We found your existing account and linked your {} account to it."
+                        ).format(provider.title()),
+                    )
+                    logger.info(
+                        f"Added existing user message for {request.user.email} - provider: {provider}"
+                    )
+                elif user_existed is False:
+                    # New user was created
+                    messages.success(
+                        request,
+                        _(
+                            "Account created successfully! Your {} account has been linked."
+                        ).format(provider.title()),
+                    )
+                    logger.info(
+                        f"Added new user message for {request.user.email} - provider: {provider}"
+                    )
+                else:
+                    # Fallback message if flag is not set
+                    messages.info(
+                        request,
+                        _("Successfully signed in with {}.").format(provider.title()),
+                    )
+                    logger.info(
+                        f"Added fallback message for {request.user.email} - provider: {provider}, user_existed: {user_existed}"
+                    )
+
+                # Clean up session data
+                request.session.pop("oidc_signup_mode", None)
+
             logger.info(
                 f"OIDC callback processed, redirecting to: {response.get('Location', 'unknown')}"
             )
@@ -96,10 +170,15 @@ class HealthcareOIDCAuthView(OIDCAuthenticationRequestView):
         Initiate OIDC authentication for specified provider.
         """
         provider = request.GET.get("provider", "google")
-        logger.info(f"Starting OIDC authentication for provider: {provider}")
+        signup_mode = request.GET.get("signup") == "true"
+        logger.info(
+            f"Starting OIDC authentication for provider: {provider}, signup_mode: {signup_mode}"
+        )
 
-        # Store provider in session for callback processing
+        # Store provider and signup mode in session for callback processing
         request.session["oidc_provider"] = provider
+        if signup_mode:
+            request.session["oidc_signup_mode"] = True
 
         # Configure OIDC settings based on provider - use instance variables
         if provider == "azure":

@@ -27,7 +27,7 @@ def can_view_survey(user, survey: Survey) -> bool:
 
 
 def can_edit_survey(user, survey: Survey) -> bool:
-    # Edit requires: owner, org admin, or survey-level creator
+    # Edit requires: owner, org admin, or survey-level creator/editor
     if not user.is_authenticated:
         return False
     if survey.owner_id == getattr(user, "id", None):
@@ -35,7 +35,9 @@ def can_edit_survey(user, survey: Survey) -> bool:
     if survey.organization_id and is_org_admin(user, survey.organization):
         return True
     return SurveyMembership.objects.filter(
-        user=user, survey=survey, role=SurveyMembership.Role.CREATOR
+        user=user,
+        survey=survey,
+        role__in=[SurveyMembership.Role.CREATOR, SurveyMembership.Role.EDITOR],
     ).exists()
 
 
@@ -44,11 +46,12 @@ def can_manage_org_users(user, org: Organization) -> bool:
 
 
 def can_manage_survey_users(user, survey: Survey) -> bool:
-    # Only survey creators (or org admins/owner) can manage users on a survey
+    # Only survey creators (not editors), org admins, or owner can manage users on a survey
     if survey.organization_id and is_org_admin(user, survey.organization):
         return True
     if survey.owner_id == getattr(user, "id", None):
         return True
+    # Only CREATOR role can manage users, EDITOR cannot
     return SurveyMembership.objects.filter(
         user=user, survey=survey, role=SurveyMembership.Role.CREATOR
     ).exists()
