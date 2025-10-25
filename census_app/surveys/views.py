@@ -1999,7 +1999,19 @@ def survey_take(request: HttpRequest, slug: str) -> HttpResponse:
     """
     survey = get_object_or_404(Survey, slug=slug)
     if not survey.is_live():
-        raise Http404()
+        # Determine specific reason for being closed
+        from django.utils import timezone
+        now = timezone.now()
+        if survey.status != Survey.Status.PUBLISHED:
+            return redirect("surveys:closed", slug=slug)
+        elif survey.start_at and survey.start_at > now:
+            return redirect(f"/surveys/{slug}/closed/?reason=not_started")
+        elif survey.end_at and now > survey.end_at:
+            return redirect(f"/surveys/{slug}/closed/?reason=ended")
+        elif survey.max_responses and hasattr(survey, "responses"):
+            if survey.responses.count() >= survey.max_responses:
+                return redirect(f"/surveys/{slug}/closed/?reason=max_responses")
+        return redirect("surveys:closed", slug=slug)
     if survey.visibility == Survey.Visibility.UNLISTED:
         raise Http404()
     if survey.visibility == Survey.Visibility.TOKEN:
@@ -2035,6 +2047,20 @@ def survey_take_unlisted(request: HttpRequest, slug: str, key: str) -> HttpRespo
         or survey.visibility != Survey.Visibility.UNLISTED
         or survey.unlisted_key != key
     ):
+        # Determine specific reason if survey exists but is closed
+        if survey.visibility == Survey.Visibility.UNLISTED and survey.unlisted_key == key:
+            if not survey.is_live():
+                from django.utils import timezone
+                now = timezone.now()
+                if survey.status != Survey.Status.PUBLISHED:
+                    return redirect("surveys:closed", slug=slug)
+                elif survey.start_at and survey.start_at > now:
+                    return redirect(f"/surveys/{slug}/closed/?reason=not_started")
+                elif survey.end_at and now > survey.end_at:
+                    return redirect(f"/surveys/{slug}/closed/?reason=ended")
+                elif survey.max_responses and hasattr(survey, "responses"):
+                    if survey.responses.count() >= survey.max_responses:
+                        return redirect(f"/surveys/{slug}/closed/?reason=max_responses")
         raise Http404()
     if (
         request.method == "POST"
@@ -2052,11 +2078,27 @@ def survey_take_unlisted(request: HttpRequest, slug: str, key: str) -> HttpRespo
 def survey_take_token(request: HttpRequest, slug: str, token: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     if not survey.is_live() or survey.visibility != Survey.Visibility.TOKEN:
+        if survey.visibility == Survey.Visibility.TOKEN and not survey.is_live():
+            # Survey exists and has correct visibility but is closed
+            from django.utils import timezone
+            now = timezone.now()
+            if survey.status != Survey.Status.PUBLISHED:
+                return redirect("surveys:closed", slug=slug)
+            elif survey.start_at and survey.start_at > now:
+                return redirect(f"/surveys/{slug}/closed/?reason=not_started")
+            elif survey.end_at and now > survey.end_at:
+                return redirect(f"/surveys/{slug}/closed/?reason=ended")
+            elif survey.max_responses and hasattr(survey, "responses"):
+                if survey.responses.count() >= survey.max_responses:
+                    return redirect(f"/surveys/{slug}/closed/?reason=max_responses")
         raise Http404()
     tok = get_object_or_404(SurveyAccessToken, survey=survey, token=token)
     if not tok.is_valid():
-        messages.error(request, "This invite link has expired or already been used.")
-        raise Http404()
+        # Token expired or already used - redirect to closed page
+        if tok.used_at:
+            return redirect(f"/surveys/{slug}/closed/?reason=token_used")
+        else:
+            return redirect(f"/surveys/{slug}/closed/?reason=token_expired")
     if (
         request.method == "POST"
         and not request.user.is_authenticated
@@ -2095,8 +2137,7 @@ def _handle_participant_submission(
     if request.method == "POST":
         # Prevent duplicate submission for tokenized link
         if token_obj and SurveyResponse.objects.filter(access_token=token_obj).exists():
-            messages.error(request, "This invite link was already used.")
-            raise Http404()
+            return redirect(f"/surveys/{survey.slug}/closed/?reason=token_used")
 
         answers = {}
         for q in survey.questions.all():
@@ -2198,6 +2239,22 @@ def _handle_participant_submission(
         "is_preview": False,  # Flag to indicate this is public submission
     }
     return render(request, "surveys/detail.html", ctx)
+
+
+@require_http_methods(["GET"])
+def survey_closed(request: HttpRequest, slug: str) -> HttpResponse:
+    """Landing page for surveys that are closed, ended, or at capacity.
+
+    Provides user-friendly messaging instead of 404 errors.
+    Accepts optional 'reason' query parameter to customize the message.
+    """
+    survey = Survey.objects.filter(slug=slug).first()
+    reason = request.GET.get('reason', 'closed')
+    return render(
+        request,
+        "surveys/survey_closed.html",
+        {"survey": survey, "reason": reason}
+    )
 
 
 @require_http_methods(["GET"])

@@ -45,6 +45,7 @@ urlpatterns = [
         name="take_token",
     ),
     path("<slug:slug>/thank-you/", views.survey_thank_you, name="thank_you"),
+    path("<slug:slug>/closed/", views.survey_closed, name="closed"),
     path("<slug:slug>/", views.survey_detail, name="detail"),
     path("<slug:slug>/dashboard/", views.survey_dashboard, name="dashboard"),
     path("<slug:slug>/delete/", views.survey_delete, name="delete"),
