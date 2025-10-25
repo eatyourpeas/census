@@ -2199,6 +2199,7 @@ def survey_thank_you(request: HttpRequest, slug: str) -> HttpResponse:
     return render(request, "surveys/thank_you.html", {"survey": survey})
 
 
+@login_required
 @require_http_methods(["GET"])
 def survey_preview_thank_you(request: HttpRequest, slug: str) -> HttpResponse:
     """Thank you page for preview mode - no data is saved."""
