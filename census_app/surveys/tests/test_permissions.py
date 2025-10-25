@@ -227,7 +227,7 @@ def test_editor_role_dashboard_buttons(client, users, org, surveys):
 
     content = res.content.decode()
     # EDITOR should see the manage groups button
-    assert "Manage groups" in content
+    assert "Manage question groups" in content
     # EDITOR should NOT see the manage collaborators button
     assert "Manage collaborators" not in content
 
@@ -244,7 +244,7 @@ def test_creator_role_dashboard_buttons(client, users, org, surveys):
 
     content = res.content.decode()
     # CREATOR should see both buttons
-    assert "Manage groups" in content
+    assert "Manage question groups" in content
     assert "Manage collaborators" in content
 
 
