@@ -1919,9 +1919,12 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
         survey.captcha_required = pending.get("captcha_required", False)
         survey.no_patient_data_ack = pending.get("no_patient_data_ack", False)
 
-        # Set published_at if first publish
+        # Set published_at and start_at if first publish
         if survey.status == Survey.Status.PUBLISHED and not survey.published_at:
             survey.published_at = timezone.now()
+            # If start_at not provided, set it to now
+            if not survey.start_at:
+                survey.start_at = timezone.now()
 
         # Generate unlisted key if needed
         if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
