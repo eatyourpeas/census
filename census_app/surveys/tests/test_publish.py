@@ -6,12 +6,12 @@ from census_app.surveys.models import QuestionGroup, Survey, SurveyAccessToken
 
 @pytest.mark.django_db
 def test_authenticated_required_when_patient_data(client, django_user_model):
-    user = django_user_model.objects.create_user(username="u", password="p")
-    client.login(username="u", password="p")
-    s = Survey.objects.create(owner=user, name="S", slug="s")
+    owner = django_user_model.objects.create_user(username="owner", password="p")
+    participant = django_user_model.objects.create_user(username="participant", password="p")
+    s = Survey.objects.create(owner=owner, name="S", slug="s")
     # Attach a patient details group with fields
     g = QuestionGroup.objects.create(
-        owner=user,
+        owner=owner,
         name="Patient details",
         schema={"template": "patient_details_encrypted", "fields": ["first_name"]},
     )
@@ -22,6 +22,8 @@ def test_authenticated_required_when_patient_data(client, django_user_model):
     s.no_patient_data_ack = False
     s.save()
 
+    # Login as participant (not owner)
+    client.login(username="participant", password="p")
     # Public take should 404 due to patient data and no ack
     resp = client.get(reverse("surveys:take", kwargs={"slug": s.slug}))
     assert resp.status_code == 404
