@@ -1,4 +1,4 @@
-{% extends is_preview|yesno:'base.html,base_minimal.html' %}
+{% extends is_preview|default:False|yesno:'base.html,base_minimal.html' %}
 {% load i18n %}
 {% load static %}
 {% block title %}{% trans "Thank you" %} - Census{% endblock %}
