@@ -2068,6 +2068,14 @@ def survey_take_token(request: HttpRequest, slug: str, token: str) -> HttpRespon
 def _handle_participant_submission(
     request: HttpRequest, survey: Survey, token_obj: SurveyAccessToken | None
 ) -> HttpResponse:
+    # Block survey owner from taking their own survey
+    if request.user.is_authenticated and survey.owner_id == request.user.id:
+        messages.info(
+            request,
+            "You cannot submit responses to your own survey. Use Preview to test the survey.",
+        )
+        return redirect("surveys:dashboard", slug=survey.slug)
+
     # Disallow collecting patient data on non-authenticated visibilities unless explicitly acknowledged at publish.
     collects_patient = _survey_collects_patient_data(survey)
     if (
@@ -2150,9 +2158,9 @@ def _handle_participant_submission(
                 token_obj.used_by = request.user
             token_obj.save(update_fields=["used_at", "used_by"])
 
-    messages.success(request, "Thank you for your response.")
-    # Redirect to thank-you page
-    return redirect("surveys:thank_you", slug=survey.slug)
+        messages.success(request, "Thank you for your response.")
+        # Redirect to thank-you page
+        return redirect("surveys:thank_you", slug=survey.slug)
 
     # GET: render using existing detail template
     _prepare_question_rendering(survey)
