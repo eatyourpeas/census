@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Server Error" %} - {{ block.super }}{% endblock %}
+{% block content %}
+<div class="hero min-h-[60vh] bg-base-100">
+  <div class="hero-content text-center">
+    <div class="max-w-2xl">
+      <div class="flex justify-center mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      </div>
+      <h1 class="text-5xl font-bold text-error mb-4">500</h1>
+      <h2 class="text-3xl font-bold mb-4">{% trans "Internal Server Error" %}</h2>
+      <p class="py-6 text-lg opacity-80">
+        {% trans "Something went wrong on our end. We've been notified and are working to fix it." %}
+      </p>
+      <div class="alert alert-error max-w-md mx-auto mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{% trans "Please try again in a few moments. If the problem persists, contact support." %}</span>
+      </div>
+      <div class="flex gap-3 justify-center">
+        <a href="/" class="btn btn-primary">{% trans "Go Home" %}</a>
+        {% if user.is_authenticated %}
+          <a href="/surveys/" class="btn btn-ghost">{% trans "My Surveys" %}</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

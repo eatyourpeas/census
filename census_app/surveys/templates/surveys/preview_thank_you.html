@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Preview Complete" %} - Census{% endblock %}
+{% block content %}
+<div class="hero min-h-[40vh] bg-base-100 rounded-box">
+  <div class="hero-content text-center">
+    <div class="max-w-xl">
+      <div class="alert alert-info mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-6 w-6 shrink-0 stroke-current">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{% trans "This was a preview - no data was saved" %}</span>
+      </div>
+      <h1 class="text-3xl font-bold">{% trans "Preview Complete" %}</h1>
+      <p class="py-4 opacity-80">{% trans "You have completed the preview of this survey. No responses were recorded." %}</p>
+      {% if survey %}
+        <div class="flex gap-3 justify-center">
+          <a href="/surveys/{{ survey.slug }}/preview/" class="btn btn-primary">{% trans "Preview Again" %}</a>
+          <a href="/surveys/{{ survey.slug }}/dashboard/" class="btn btn-ghost">{% trans "Back to Dashboard" %}</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

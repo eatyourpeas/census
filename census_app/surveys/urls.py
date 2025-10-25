@@ -27,6 +27,11 @@ urlpatterns = [
         name="groups_create_from_template",
     ),
     path("<slug:slug>/preview/", views.survey_preview, name="preview"),
+    path(
+        "<slug:slug>/preview/thank-you/",
+        views.survey_preview_thank_you,
+        name="preview_thank_you",
+    ),
     # Participant routes
     path("<slug:slug>/take/", views.survey_take, name="take"),
     path(

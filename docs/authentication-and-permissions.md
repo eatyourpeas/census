@@ -183,6 +183,28 @@ curl -s -X POST -H "Content-Type: application/json" \
 - Public participant pages are SSR and respect survey live windows. Submissions are accepted without an account.
 - Sensitive demographics are encrypted per-survey using an AES-GCM key derived for that survey. The key is shown once upon survey creation. Viewing decrypted demographics requires the survey key (handled server-side and not exposed via API).
 
+## Error Pages and User Experience
+
+Census provides styled error pages for common authentication and permission failures, ensuring users receive helpful feedback when access is denied or issues occur:
+
+### Custom Error Templates
+
+- **403 Forbidden**: Displayed when authenticated users lack permission to access a resource. Shows clear messaging about access restrictions and provides navigation options back to safe areas.
+- **404 Not Found**: Friendly page-not-found experience with suggestions to return to the dashboard or home page.
+- **405 Method Not Allowed**: Technical error page for HTTP method mismatches.
+- **500 Internal Server Error**: Reassuring message when server errors occur, encouraging users to try again or contact support.
+- **Account Lockout**: Displayed after 5 failed login attempts (via django-axes). Informs users of the 1-hour cooldown period and offers password reset options.
+
+All error templates extend the base template and use DaisyUI components, maintaining consistent branding and styling throughout the application. They include helpful actions like "Back to Dashboard", "Go to Home Page", and "Reset Password" to guide users toward resolution.
+
+### Testing Error Pages in Development
+
+When `DEBUG=True`, developers can preview all error pages at `/debug/errors/` to verify styling and user experience. These debug routes are automatically disabled in production (when `DEBUG=False`).
+
+### Brute Force Protection
+
+The django-axes integration tracks failed login attempts and locks accounts after 5 failures. The lockout period is 1 hour, after which users can attempt to log in again. The custom lockout template (`403_lockout.html`) provides clear guidance during this period.
+
 ## Security posture highlights
 
 - CSRF and session security enabled; cookies are Secure/HttpOnly in production.
