@@ -115,9 +115,7 @@ class SurveyViewSet(viewsets.ModelViewSet):
             organization__memberships__role=OrganizationMembership.Role.ADMIN,
         )
         # Survey membership: surveys where user has explicit membership
-        survey_member = Survey.objects.filter(
-            memberships__user=user
-        )
+        survey_member = Survey.objects.filter(memberships__user=user)
         return (owned | org_admin | survey_member).distinct()
 
     def get_object(self):

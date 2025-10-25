@@ -1,5 +1,5 @@
-from pathlib import Path
 import logging
+from pathlib import Path
 
 from django.conf import settings
 from django.contrib import messages
@@ -174,7 +174,9 @@ def profile(request):
             user=user, role=SurveyMembership.Role.VIEWER
         ).count(),
         "groups_owned": QuestionGroup.objects.filter(owner=user).count(),
-        "question_groups_owned": QuestionGroup.objects.filter(owner=user).count(),  # Alias for template clarity
+        "question_groups_owned": QuestionGroup.objects.filter(
+            owner=user
+        ).count(),  # Alias for template clarity
         "responses_submitted": SurveyResponse.objects.filter(submitted_by=user).count(),
         "tokens_created": SurveyAccessToken.objects.filter(created_by=user).count(),
     }
@@ -624,7 +626,9 @@ def can_user_safely_delete_own_account(user):
     # Check if any of their surveys have collaborators
     user_surveys = Survey.objects.filter(owner=user)
     for survey in user_surveys:
-        has_collaborators = SurveyMembership.objects.filter(survey=survey).exclude(user=user).exists()
+        has_collaborators = (
+            SurveyMembership.objects.filter(survey=survey).exclude(user=user).exists()
+        )
         if has_collaborators:
             return False
 
@@ -643,7 +647,7 @@ def delete_account(request):
     Safe deletion means no impact on other users or shared data.
     """
     if request.method != "POST":
-        return redirect('core:profile')
+        return redirect("core:profile")
 
     user = request.user
 
@@ -655,9 +659,9 @@ def delete_account(request):
                 "Cannot delete account. You are either part of an organization, "
                 "have surveys with collaborators, or are a collaborator on other surveys. "
                 "Please contact an administrator for assistance."
-            )
+            ),
         )
-        return redirect('core:profile')
+        return redirect("core:profile")
 
     try:
         with transaction.atomic():
@@ -673,16 +677,18 @@ def delete_account(request):
                 _(
                     f"Your account and {survey_count} survey(s) have been permanently deleted. "
                     "Thank you for using Census."
-                )
+                ),
             )
 
         # Redirect to home page after successful deletion
-        return redirect('/')
+        return redirect("/")
 
     except Exception as e:
         messages.error(
             request,
-            _("An error occurred while deleting your account. Please try again or contact support.")
+            _(
+                "An error occurred while deleting your account. Please try again or contact support."
+            ),
         )
         logger.error(f"Error deleting user account {user.id}: {e}")
-        return redirect('core:profile')
+        return redirect("core:profile")

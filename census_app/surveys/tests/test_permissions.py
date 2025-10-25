@@ -4,7 +4,12 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 import pytest
 
-from census_app.surveys.models import Organization, OrganizationMembership, Survey, SurveyMembership
+from census_app.surveys.models import (
+    Organization,
+    OrganizationMembership,
+    Survey,
+    SurveyMembership,
+)
 
 
 @pytest.fixture
@@ -176,15 +181,32 @@ def test_editor_role_permissions(client, users, org, surveys):
     login(client, editor)
 
     # EDITOR can access content editing views
-    assert client.get(reverse("surveys:dashboard", kwargs={"slug": s1.slug})).status_code == 200
-    assert client.get(reverse("surveys:preview", kwargs={"slug": s1.slug})).status_code == 200
-    assert client.get(reverse("surveys:groups", kwargs={"slug": s1.slug})).status_code == 200
+    assert (
+        client.get(reverse("surveys:dashboard", kwargs={"slug": s1.slug})).status_code
+        == 200
+    )
+    assert (
+        client.get(reverse("surveys:preview", kwargs={"slug": s1.slug})).status_code
+        == 200
+    )
+    assert (
+        client.get(reverse("surveys:groups", kwargs={"slug": s1.slug})).status_code
+        == 200
+    )
 
     # EDITOR cannot access user management views
-    assert client.get(reverse("surveys:survey_users", kwargs={"slug": s1.slug})).status_code == 404
+    assert (
+        client.get(
+            reverse("surveys:survey_users", kwargs={"slug": s1.slug})
+        ).status_code
+        == 404
+    )
 
     # EDITOR cannot access surveys they're not a member of
-    assert client.get(reverse("surveys:dashboard", kwargs={"slug": s2.slug})).status_code == 403
+    assert (
+        client.get(reverse("surveys:dashboard", kwargs={"slug": s2.slug})).status_code
+        == 403
+    )
 
 
 @pytest.mark.django_db
@@ -240,12 +262,26 @@ def test_viewer_role_dashboard_limited_access(client, users, org, surveys):
     login(client, viewer)
 
     # VIEWER can access dashboard and preview (read-only)
-    assert client.get(reverse("surveys:dashboard", kwargs={"slug": s1.slug})).status_code == 200
-    assert client.get(reverse("surveys:preview", kwargs={"slug": s1.slug})).status_code == 200
+    assert (
+        client.get(reverse("surveys:dashboard", kwargs={"slug": s1.slug})).status_code
+        == 200
+    )
+    assert (
+        client.get(reverse("surveys:preview", kwargs={"slug": s1.slug})).status_code
+        == 200
+    )
 
     # VIEWER cannot access editing views
-    assert client.get(reverse("surveys:groups", kwargs={"slug": s1.slug})).status_code == 403
-    assert client.get(reverse("surveys:survey_users", kwargs={"slug": s1.slug})).status_code == 404
+    assert (
+        client.get(reverse("surveys:groups", kwargs={"slug": s1.slug})).status_code
+        == 403
+    )
+    assert (
+        client.get(
+            reverse("surveys:survey_users", kwargs={"slug": s1.slug})
+        ).status_code
+        == 404
+    )
 
 
 @pytest.mark.django_db

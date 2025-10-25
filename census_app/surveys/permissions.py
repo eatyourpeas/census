@@ -37,7 +37,7 @@ def can_edit_survey(user, survey: Survey) -> bool:
     return SurveyMembership.objects.filter(
         user=user,
         survey=survey,
-        role__in=[SurveyMembership.Role.CREATOR, SurveyMembership.Role.EDITOR]
+        role__in=[SurveyMembership.Role.CREATOR, SurveyMembership.Role.EDITOR],
     ).exists()
 
 

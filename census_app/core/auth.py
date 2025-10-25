@@ -320,7 +320,9 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
                 # Mark that this user already existed
                 user._oidc_user_existed = True
                 updated_user = self.update_user(user, claims)
-                logger.info(f"Successfully updated existing user: {email}, active={updated_user.is_active}")
+                logger.info(
+                    f"Successfully updated existing user: {email}, active={updated_user.is_active}"
+                )
                 return updated_user
             except User.DoesNotExist:
                 # Create new user if allowed
@@ -330,7 +332,9 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
                     # Mark that this user was newly created
                     if user:
                         user._oidc_user_existed = False
-                        logger.info(f"Successfully created new user: {email}, active={user.is_active}")
+                        logger.info(
+                            f"Successfully created new user: {email}, active={user.is_active}"
+                        )
                     return user
                 else:
                     logger.warning(f"OIDC user creation disabled, rejecting: {email}")

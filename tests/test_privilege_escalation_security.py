@@ -4,6 +4,7 @@ Security tests to verify privilege escalation protection.
 These tests verify that users cannot escalate their own privileges
 or access resources they shouldn't have access to.
 """
+
 import json
 
 from django.contrib.auth import get_user_model
@@ -39,8 +40,12 @@ def test_survey_creator_cannot_access_user_management_hub_without_org_admin(clie
     cannot access the user management hub.
     """
     # Create org admin and survey creator
-    org_admin = User.objects.create_user(username="admin@test.com", email="admin@test.com", password=TEST_PASSWORD)
-    survey_creator = User.objects.create_user(username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD)
+    org_admin = User.objects.create_user(
+        username="admin@test.com", email="admin@test.com", password=TEST_PASSWORD
+    )
+    survey_creator = User.objects.create_user(
+        username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD
+    )
 
     # Create organization with admin
     org = Organization.objects.create(name="Test Org", owner=org_admin)
@@ -77,8 +82,12 @@ def test_survey_creator_cannot_escalate_org_membership_roles(client):
     for themselves or others through the user management hub.
     """
     # Create org admin and survey creator
-    org_admin = User.objects.create_user(username="admin@test.com", email="admin@test.com", password=TEST_PASSWORD)
-    survey_creator = User.objects.create_user(username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD)
+    org_admin = User.objects.create_user(
+        username="admin@test.com", email="admin@test.com", password=TEST_PASSWORD
+    )
+    survey_creator = User.objects.create_user(
+        username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD
+    )
 
     # Create organization
     org = Organization.objects.create(name="Test Org", owner=org_admin)
@@ -110,15 +119,25 @@ def test_survey_editor_cannot_manage_survey_users(client):
     on that survey (cannot add/edit/remove collaborators).
     """
     # Create users
-    creator = User.objects.create_user(username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD)
-    editor = User.objects.create_user(username="editor@test.com", email="editor@test.com", password=TEST_PASSWORD)
-    target_user = User.objects.create_user(username="target@test.com", email="target@test.com", password=TEST_PASSWORD)
+    creator = User.objects.create_user(
+        username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD
+    )
+    editor = User.objects.create_user(
+        username="editor@test.com", email="editor@test.com", password=TEST_PASSWORD
+    )
+    target_user = User.objects.create_user(
+        username="target@test.com", email="target@test.com", password=TEST_PASSWORD
+    )
 
     # Create survey
-    survey = Survey.objects.create(owner=creator, name="Test Survey", slug="test-survey")
+    survey = Survey.objects.create(
+        owner=creator, name="Test Survey", slug="test-survey"
+    )
 
     # Add editor as EDITOR
-    SurveyMembership.objects.create(survey=survey, user=editor, role=SurveyMembership.Role.EDITOR)
+    SurveyMembership.objects.create(
+        survey=survey, user=editor, role=SurveyMembership.Role.EDITOR
+    )
 
     # Editor tries to add target_user to survey via user management hub
     client.force_login(editor)
@@ -144,14 +163,22 @@ def test_survey_editor_cannot_access_survey_users_view(client):
     Test that EDITOR cannot access the survey users management page.
     """
     # Create users
-    creator = User.objects.create_user(username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD)
-    editor = User.objects.create_user(username="editor@test.com", email="editor@test.com", password=TEST_PASSWORD)
+    creator = User.objects.create_user(
+        username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD
+    )
+    editor = User.objects.create_user(
+        username="editor@test.com", email="editor@test.com", password=TEST_PASSWORD
+    )
 
     # Create survey
-    survey = Survey.objects.create(owner=creator, name="Test Survey", slug="test-survey")
+    survey = Survey.objects.create(
+        owner=creator, name="Test Survey", slug="test-survey"
+    )
 
     # Add editor as EDITOR
-    SurveyMembership.objects.create(survey=survey, user=editor, role=SurveyMembership.Role.EDITOR)
+    SurveyMembership.objects.create(
+        survey=survey, user=editor, role=SurveyMembership.Role.EDITOR
+    )
 
     # Editor tries to access survey users management page
     client.force_login(editor)
@@ -167,10 +194,14 @@ def test_survey_creator_cannot_escalate_their_own_survey_role(client):
     memberships for themselves.
     """
     # Create users
-    creator = User.objects.create_user(username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD)
+    creator = User.objects.create_user(
+        username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD
+    )
 
     # Create survey
-    survey = Survey.objects.create(owner=creator, name="Test Survey", slug="test-survey")
+    survey = Survey.objects.create(
+        owner=creator, name="Test Survey", slug="test-survey"
+    )
 
     # Creator tries to add themselves as CREATOR via user management hub
     # (This would be redundant but tests the boundary)
@@ -200,9 +231,15 @@ def test_survey_member_cannot_access_other_surveys_in_org(client):
     surveys in the same organization.
     """
     # Create users
-    org_admin = User.objects.create_user(username="admin@test.com", email="admin@test.com", password=TEST_PASSWORD)
-    survey_creator = User.objects.create_user(username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD)
-    editor = User.objects.create_user(username="editor@test.com", email="editor@test.com", password=TEST_PASSWORD)
+    org_admin = User.objects.create_user(
+        username="admin@test.com", email="admin@test.com", password=TEST_PASSWORD
+    )
+    survey_creator = User.objects.create_user(
+        username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD
+    )
+    editor = User.objects.create_user(
+        username="editor@test.com", email="editor@test.com", password=TEST_PASSWORD
+    )
 
     # Create organization
     org = Organization.objects.create(name="Test Org", owner=org_admin)
@@ -219,7 +256,9 @@ def test_survey_member_cannot_access_other_surveys_in_org(client):
     )
 
     # Add editor as EDITOR to survey1 only
-    SurveyMembership.objects.create(survey=survey1, user=editor, role=SurveyMembership.Role.EDITOR)
+    SurveyMembership.objects.create(
+        survey=survey1, user=editor, role=SurveyMembership.Role.EDITOR
+    )
 
     # Editor should be able to access survey1
     client.force_login(editor)
@@ -237,16 +276,24 @@ def test_api_survey_member_cannot_access_other_surveys(client):
     Test that survey membership doesn't grant API access to other surveys.
     """
     # Create users
-    creator1 = User.objects.create_user(username="creator1@test.com", password=TEST_PASSWORD)
-    creator2 = User.objects.create_user(username="creator2@test.com", password=TEST_PASSWORD)
-    editor = User.objects.create_user(username="editor@test.com", password=TEST_PASSWORD)
+    creator1 = User.objects.create_user(
+        username="creator1@test.com", password=TEST_PASSWORD
+    )
+    creator2 = User.objects.create_user(
+        username="creator2@test.com", password=TEST_PASSWORD
+    )
+    editor = User.objects.create_user(
+        username="editor@test.com", password=TEST_PASSWORD
+    )
 
     # Create surveys by different creators
     survey1 = Survey.objects.create(owner=creator1, name="Survey 1", slug="survey-1")
     survey2 = Survey.objects.create(owner=creator2, name="Survey 2", slug="survey-2")
 
     # Add editor as EDITOR to survey1 only
-    SurveyMembership.objects.create(survey=survey1, user=editor, role=SurveyMembership.Role.EDITOR)
+    SurveyMembership.objects.create(
+        survey=survey1, user=editor, role=SurveyMembership.Role.EDITOR
+    )
 
     # Editor should see only survey1 in API list
     hdrs = auth_hdr(client, "editor@test.com", TEST_PASSWORD)
@@ -271,23 +318,31 @@ def test_api_survey_member_cannot_manage_memberships(client):
     Test that EDITOR users cannot manage survey memberships via API.
     """
     # Create users
-    creator = User.objects.create_user(username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD)
-    editor = User.objects.create_user(username="editor@test.com", email="editor@test.com", password=TEST_PASSWORD)
-    target_user = User.objects.create_user(username="target@test.com", email="target@test.com", password=TEST_PASSWORD)
+    creator = User.objects.create_user(
+        username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD
+    )
+    editor = User.objects.create_user(
+        username="editor@test.com", email="editor@test.com", password=TEST_PASSWORD
+    )
+    target_user = User.objects.create_user(
+        username="target@test.com", email="target@test.com", password=TEST_PASSWORD
+    )
 
     # Create survey and add editor
-    survey = Survey.objects.create(owner=creator, name="Test Survey", slug="test-survey")
-    SurveyMembership.objects.create(survey=survey, user=editor, role=SurveyMembership.Role.EDITOR)
+    survey = Survey.objects.create(
+        owner=creator, name="Test Survey", slug="test-survey"
+    )
+    SurveyMembership.objects.create(
+        survey=survey, user=editor, role=SurveyMembership.Role.EDITOR
+    )
 
     # Editor tries to create a new survey membership via API
     hdrs = auth_hdr(client, "editor@test.com", TEST_PASSWORD)
     resp = client.post(
         "/api/survey-memberships/",
-        data=json.dumps({
-            "survey": survey.id,
-            "user": target_user.id,
-            "role": "viewer"
-        }),
+        data=json.dumps(
+            {"survey": survey.id, "user": target_user.id, "role": "viewer"}
+        ),
         content_type="application/json",
         **hdrs,
     )
@@ -301,10 +356,18 @@ def test_privilege_escalation_prevention_comprehensive(client):
     Comprehensive test ensuring no privilege escalation paths exist.
     """
     # Create a complex org structure
-    org_admin = User.objects.create_user(username="admin@test.com", email="admin@test.com", password=TEST_PASSWORD)
-    survey_creator = User.objects.create_user(username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD)
-    editor = User.objects.create_user(username="editor@test.com", email="editor@test.com", password=TEST_PASSWORD)
-    viewer = User.objects.create_user(username="viewer@test.com", email="viewer@test.com", password=TEST_PASSWORD)
+    org_admin = User.objects.create_user(
+        username="admin@test.com", email="admin@test.com", password=TEST_PASSWORD
+    )
+    survey_creator = User.objects.create_user(
+        username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD
+    )
+    editor = User.objects.create_user(
+        username="editor@test.com", email="editor@test.com", password=TEST_PASSWORD
+    )
+    viewer = User.objects.create_user(
+        username="viewer@test.com", email="viewer@test.com", password=TEST_PASSWORD
+    )
 
     # Create organization
     org = Organization.objects.create(name="Test Org", owner=org_admin)
@@ -321,8 +384,12 @@ def test_privilege_escalation_prevention_comprehensive(client):
     )
 
     # Add memberships
-    SurveyMembership.objects.create(survey=survey, user=editor, role=SurveyMembership.Role.EDITOR)
-    SurveyMembership.objects.create(survey=survey, user=viewer, role=SurveyMembership.Role.VIEWER)
+    SurveyMembership.objects.create(
+        survey=survey, user=editor, role=SurveyMembership.Role.EDITOR
+    )
+    SurveyMembership.objects.create(
+        survey=survey, user=viewer, role=SurveyMembership.Role.VIEWER
+    )
 
     # Test 1: EDITOR cannot become CREATOR
     client.force_login(editor)
@@ -369,5 +436,7 @@ def test_privilege_escalation_prevention_comprehensive(client):
     viewer_membership = SurveyMembership.objects.get(survey=survey, user=viewer)
     assert viewer_membership.role == SurveyMembership.Role.VIEWER
 
-    creator_org_membership = OrganizationMembership.objects.get(organization=org, user=survey_creator)
+    creator_org_membership = OrganizationMembership.objects.get(
+        organization=org, user=survey_creator
+    )
     assert creator_org_membership.role == OrganizationMembership.Role.CREATOR

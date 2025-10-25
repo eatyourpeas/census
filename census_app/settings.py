@@ -420,7 +420,7 @@ OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 15 * 60  # 15 minutes
 OIDC_CREATE_USER = True  # Allow creating new users via OIDC
 
 # Use our custom authentication backend for OIDC
-OIDC_AUTHENTICATION_BACKEND = 'census_app.core.auth.CustomOIDCAuthenticationBackend'
+OIDC_AUTHENTICATION_BACKEND = "census_app.core.auth.CustomOIDCAuthenticationBackend"
 
 # Custom user creation and linking
 # OIDC_USERNAME_ALGO = 'census_app.core.auth.generate_username'  # Temporarily disable custom username algo

@@ -32,7 +32,9 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
         # Get provider from session and configure accordingly
         provider = request.session.get("oidc_provider", "google")
         signup_mode = request.session.get("oidc_signup_mode", False)
-        logger.info(f"Processing callback for provider: {provider}, signup_mode: {signup_mode}")
+        logger.info(
+            f"Processing callback for provider: {provider}, signup_mode: {signup_mode}"
+        )
 
         # Temporarily modify Django settings for this request
         original_settings = {}
@@ -78,15 +80,21 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
 
             try:
                 response = super().get(request)
-                logger.info(f"OIDC parent callback response: status={response.status_code}, user_authenticated={request.user.is_authenticated}")
+                logger.info(
+                    f"OIDC parent callback response: status={response.status_code}, user_authenticated={request.user.is_authenticated}"
+                )
 
                 if not request.user.is_authenticated:
-                    logger.warning(f"OIDC authentication failed - user not authenticated after callback")
+                    logger.warning(
+                        "OIDC authentication failed - user not authenticated after callback"
+                    )
                     # Check if there are any error parameters
-                    error = request.GET.get('error')
-                    error_description = request.GET.get('error_description')
+                    error = request.GET.get("error")
+                    error_description = request.GET.get("error_description")
                     if error:
-                        logger.error(f"OIDC error: {error}, description: {error_description}")
+                        logger.error(
+                            f"OIDC error: {error}, description: {error_description}"
+                        )
 
             except Exception as e:
                 logger.error(f"OIDC parent callback failed with exception: {e}")
@@ -98,33 +106,39 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
                 from django.utils.translation import gettext as _
 
                 # Check if this user already existed (set by authentication backend)
-                user_existed = getattr(request.user, '_oidc_user_existed', None)
+                user_existed = getattr(request.user, "_oidc_user_existed", None)
 
                 if user_existed is True:
                     # Existing user was found and linked
                     messages.info(
                         request,
-                        _("Welcome back! We found your existing account and linked your {} account to it.").format(
-                            provider.title()
-                        )
+                        _(
+                            "Welcome back! We found your existing account and linked your {} account to it."
+                        ).format(provider.title()),
                     )
-                    logger.info(f"Added existing user message for {request.user.email} - provider: {provider}")
+                    logger.info(
+                        f"Added existing user message for {request.user.email} - provider: {provider}"
+                    )
                 elif user_existed is False:
                     # New user was created
                     messages.success(
                         request,
-                        _("Account created successfully! Your {} account has been linked.").format(
-                            provider.title()
-                        )
+                        _(
+                            "Account created successfully! Your {} account has been linked."
+                        ).format(provider.title()),
                     )
-                    logger.info(f"Added new user message for {request.user.email} - provider: {provider}")
+                    logger.info(
+                        f"Added new user message for {request.user.email} - provider: {provider}"
+                    )
                 else:
                     # Fallback message if flag is not set
                     messages.info(
                         request,
-                        _("Successfully signed in with {}.").format(provider.title())
+                        _("Successfully signed in with {}.").format(provider.title()),
                     )
-                    logger.info(f"Added fallback message for {request.user.email} - provider: {provider}, user_existed: {user_existed}")
+                    logger.info(
+                        f"Added fallback message for {request.user.email} - provider: {provider}, user_existed: {user_existed}"
+                    )
 
                 # Clean up session data
                 request.session.pop("oidc_signup_mode", None)
@@ -157,7 +171,9 @@ class HealthcareOIDCAuthView(OIDCAuthenticationRequestView):
         """
         provider = request.GET.get("provider", "google")
         signup_mode = request.GET.get("signup") == "true"
-        logger.info(f"Starting OIDC authentication for provider: {provider}, signup_mode: {signup_mode}")
+        logger.info(
+            f"Starting OIDC authentication for provider: {provider}, signup_mode: {signup_mode}"
+        )
 
         # Store provider and signup mode in session for callback processing
         request.session["oidc_provider"] = provider
