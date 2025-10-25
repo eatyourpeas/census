@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 import pytest
 
-from census_app.surveys.models import Organization, OrganizationMembership, Survey
+from census_app.surveys.models import Organization, OrganizationMembership, Survey, SurveyMembership
 
 
 @pytest.fixture
@@ -159,3 +159,121 @@ def test_preview_requires_permission(client, users, org, surveys):
         client.get(reverse("surveys:preview", kwargs={"slug": s2.slug})).status_code
         == 403
     )
+
+
+@pytest.mark.django_db
+def test_editor_role_permissions(client, users, org, surveys):
+    """Test that EDITOR role can edit content but cannot manage users."""
+    admin, creator, viewer, outsider, participant = users
+    s1, s2 = surveys
+
+    # Create an editor user and add them as EDITOR to s1
+    editor = User.objects.create_user(username="editor", password="x")
+    SurveyMembership.objects.create(
+        survey=s1, user=editor, role=SurveyMembership.Role.EDITOR
+    )
+
+    login(client, editor)
+
+    # EDITOR can access content editing views
+    assert client.get(reverse("surveys:dashboard", kwargs={"slug": s1.slug})).status_code == 200
+    assert client.get(reverse("surveys:preview", kwargs={"slug": s1.slug})).status_code == 200
+    assert client.get(reverse("surveys:groups", kwargs={"slug": s1.slug})).status_code == 200
+
+    # EDITOR cannot access user management views
+    assert client.get(reverse("surveys:survey_users", kwargs={"slug": s1.slug})).status_code == 404
+
+    # EDITOR cannot access surveys they're not a member of
+    assert client.get(reverse("surveys:dashboard", kwargs={"slug": s2.slug})).status_code == 403
+
+
+@pytest.mark.django_db
+def test_editor_role_dashboard_buttons(client, users, org, surveys):
+    """Test that EDITOR sees manage groups button but not manage collaborators button."""
+    admin, creator, viewer, outsider, participant = users
+    s1, s2 = surveys
+
+    # Create an editor user and add them as EDITOR to s1
+    editor = User.objects.create_user(username="editor", password="x")
+    SurveyMembership.objects.create(
+        survey=s1, user=editor, role=SurveyMembership.Role.EDITOR
+    )
+
+    login(client, editor)
+    res = client.get(reverse("surveys:dashboard", kwargs={"slug": s1.slug}))
+    assert res.status_code == 200
+
+    content = res.content.decode()
+    # EDITOR should see the manage groups button
+    assert "Manage groups" in content
+    # EDITOR should NOT see the manage collaborators button
+    assert "Manage collaborators" not in content
+
+
+@pytest.mark.django_db
+def test_creator_role_dashboard_buttons(client, users, org, surveys):
+    """Test that CREATOR sees both manage groups and manage collaborators buttons."""
+    admin, creator, viewer, outsider, participant = users
+    s1, s2 = surveys
+
+    login(client, creator)
+    res = client.get(reverse("surveys:dashboard", kwargs={"slug": s1.slug}))
+    assert res.status_code == 200
+
+    content = res.content.decode()
+    # CREATOR should see both buttons
+    assert "Manage groups" in content
+    assert "Manage collaborators" in content
+
+
+@pytest.mark.django_db
+def test_viewer_role_dashboard_limited_access(client, users, org, surveys):
+    """Test that VIEWER has limited access to surveys."""
+    admin, creator, viewer, outsider, participant = users
+    s1, s2 = surveys
+
+    # Add viewer as VIEWER to s1
+    SurveyMembership.objects.create(
+        survey=s1, user=viewer, role=SurveyMembership.Role.VIEWER
+    )
+
+    login(client, viewer)
+
+    # VIEWER can access dashboard and preview (read-only)
+    assert client.get(reverse("surveys:dashboard", kwargs={"slug": s1.slug})).status_code == 200
+    assert client.get(reverse("surveys:preview", kwargs={"slug": s1.slug})).status_code == 200
+
+    # VIEWER cannot access editing views
+    assert client.get(reverse("surveys:groups", kwargs={"slug": s1.slug})).status_code == 403
+    assert client.get(reverse("surveys:survey_users", kwargs={"slug": s1.slug})).status_code == 404
+
+
+@pytest.mark.django_db
+def test_permission_functions_with_editor_role(db, users, org, surveys):
+    """Test the permission functions directly with EDITOR role."""
+    from census_app.surveys.permissions import can_edit_survey, can_manage_survey_users
+
+    admin, creator, viewer, outsider, participant = users
+    s1, s2 = surveys
+
+    # Create an editor user and add them as EDITOR to s1
+    editor = User.objects.create_user(username="editor", password="x")
+    SurveyMembership.objects.create(
+        survey=s1, user=editor, role=SurveyMembership.Role.EDITOR
+    )
+
+    # EDITOR can edit survey content
+    assert can_edit_survey(editor, s1) is True
+    # EDITOR cannot manage survey users
+    assert can_manage_survey_users(editor, s1) is False
+
+    # CREATOR can do both
+    assert can_edit_survey(creator, s1) is True
+    assert can_manage_survey_users(creator, s1) is True
+
+    # VIEWER can do neither
+    SurveyMembership.objects.create(
+        survey=s1, user=viewer, role=SurveyMembership.Role.VIEWER
+    )
+    assert can_edit_survey(viewer, s1) is False
+    assert can_manage_survey_users(viewer, s1) is False

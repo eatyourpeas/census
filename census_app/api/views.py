@@ -114,7 +114,11 @@ class SurveyViewSet(viewsets.ModelViewSet):
             organization__memberships__user=user,
             organization__memberships__role=OrganizationMembership.Role.ADMIN,
         )
-        return (owned | org_admin).distinct()
+        # Survey membership: surveys where user has explicit membership
+        survey_member = Survey.objects.filter(
+            memberships__user=user
+        )
+        return (owned | org_admin | survey_member).distinct()
 
     def get_object(self):
         """Fetch object without scoping to queryset, then run object permissions.
