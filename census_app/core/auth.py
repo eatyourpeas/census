@@ -224,7 +224,9 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         subject_id = claims.get("sub") or claims.get("id")
 
         if not subject_id:
-            logger.error(f"OIDC user missing subject identifier. Available claims: {list(claims.keys())}")
+            logger.error(
+                f"OIDC user missing subject identifier. Available claims: {list(claims.keys())}"
+            )
             raise SuspiciousOperation("OIDC user missing subject identifier")
 
         # Generate username from email
