@@ -82,7 +82,7 @@
       </div>
 
       <div class="card-actions justify-end mt-4 no-print">
-        <button class="btn btn-sm btn-outline" onclick="copyRecoveryPhrase()">
+        <button class="btn btn-sm btn-outline" id="copyRecoveryPhraseBtn">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
@@ -105,7 +105,7 @@
       <div class="mockup-code text-xs">
         <pre><code>{{ kek_hex }}</code></pre>
       </div>
-      <button class="btn btn-sm btn-outline mt-3" onclick="copyKey()">
+      <button class="btn btn-sm btn-outline mt-3" id="copyKeyBtn">
         {% trans "Copy Key" %}
       </button>
     </div>
@@ -117,14 +117,14 @@
       <h3 class="font-bold text-lg mb-3">{% trans "Next Steps" %}</h3>
 
       <div class="flex flex-wrap gap-3 mb-4">
-        <button class="btn btn-outline btn-sm" onclick="window.print()">
+        <button class="btn btn-outline btn-sm" id="printBtn">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
           </svg>
           {% trans "Print This Page" %}
         </button>
 
-        <button class="btn btn-outline btn-sm" onclick="downloadAsText()">
+        <button class="btn btn-outline btn-sm" id="downloadBtn">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
@@ -149,39 +149,85 @@
   </div>
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
+// Translated strings for i18n support
+const i18n = {
+  recoveryPhraseCopied: "{% trans 'Recovery phrase copied to clipboard!' %}",
+  encryptionKeyCopied: "{% trans 'Encryption key copied to clipboard!' %}",
+  copyFailed: "{% trans 'Failed to copy. Please copy manually.' %}",
+  surveyLabel: "{% trans 'Survey:' %}",
+  surveySlugLabel: "{% trans 'Survey Slug:' %}",
+  generatedLabel: "{% trans 'Generated:' %}",
+  recoveryPhraseHeader: "{% trans '=== RECOVERY PHRASE (12 words) ===' %}",
+  recoveryHintLabel: "{% trans 'Recovery Hint:' %}",
+  encryptionKeyHeader: "{% trans '=== ENCRYPTION KEY (Hexadecimal) ===' %}",
+  importantHeader: "{% trans '=== IMPORTANT ===' %}",
+  keepSafe: "{% trans '- Keep this information safe and secure' %}",
+  needPassword: "{% trans '- You need your password OR recovery phrase to unlock your survey' %}",
+  cannotRecover: "{% trans '- If you lose both, your data cannot be recovered' %}",
+  storeSecure: "{% trans '- Store this in a secure location (password manager, safe, etc.)' %}"
+};
+
+function copyToClipboard(text, successMessage) {
+  // Try modern Clipboard API first
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert(successMessage);
+    }).catch((err) => {
+      console.error('Clipboard API failed:', err);
+      fallbackCopy(text, successMessage);
+    });
+  } else {
+    // Fallback for older browsers
+    fallbackCopy(text, successMessage);
+  }
+}
+
+function fallbackCopy(text, successMessage) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    alert(successMessage);
+  } catch (err) {
+    console.error('Fallback copy failed:', err);
+    alert(i18n.copyFailed);
+  }
+  document.body.removeChild(textarea);
+}
+
 function copyRecoveryPhrase() {
   const phrase = "{{ recovery_phrase }}";
-  navigator.clipboard.writeText(phrase).then(() => {
-    alert("{% trans 'Recovery phrase copied to clipboard!' %}");
-  });
+  copyToClipboard(phrase, i18n.recoveryPhraseCopied);
 }
 
 function copyKey() {
   const key = "{{ kek_hex }}";
-  navigator.clipboard.writeText(key).then(() => {
-    alert("{% trans 'Encryption key copied to clipboard!' %}");
-  });
+  copyToClipboard(key, i18n.encryptionKeyCopied);
 }
 
 function downloadAsText() {
-  const content = `Survey: {{ survey.name }}
-Survey Slug: {{ survey.slug }}
-Generated: {{ survey.published_at|date:"Y-m-d H:i:s" }}
+  const content = `${i18n.surveyLabel} {{ survey.name }}
+${i18n.surveySlugLabel} {{ survey.slug }}
+${i18n.generatedLabel} {{ survey.published_at|date:"Y-m-d H:i:s" }}
 
-=== RECOVERY PHRASE (12 words) ===
+${i18n.recoveryPhraseHeader}
 {{ recovery_phrase }}
 
-Recovery Hint: {{ recovery_hint }}
+${i18n.recoveryHintLabel} {{ recovery_hint }}
 
-=== ENCRYPTION KEY (Hexadecimal) ===
+${i18n.encryptionKeyHeader}
 {{ kek_hex }}
 
-=== IMPORTANT ===
-- Keep this information safe and secure
-- You need your password OR recovery phrase to unlock your survey
-- If you lose both, your data cannot be recovered
-- Store this in a secure location (password manager, safe, etc.)
+${i18n.importantHeader}
+${i18n.keepSafe}
+${i18n.needPassword}
+${i18n.cannotRecover}
+${i18n.storeSecure}
 `;
 
   const blob = new Blob([content], { type: 'text/plain' });
@@ -194,5 +240,15 @@ Recovery Hint: {{ recovery_hint }}
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// Add event listeners when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('copyRecoveryPhraseBtn').addEventListener('click', copyRecoveryPhrase);
+  document.getElementById('copyKeyBtn').addEventListener('click', copyKey);
+  document.getElementById('printBtn').addEventListener('click', function() {
+    window.print();
+  });
+  document.getElementById('downloadBtn').addEventListener('click', downloadAsText);
+});
 </script>
 {% endblock %}

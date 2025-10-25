@@ -210,6 +210,7 @@ CSP_SCRIPT_SRC = (
     # hCaptcha widget script
     "https://js.hcaptcha.com",
 )
+CSP_INCLUDE_NONCE_IN = ["script-src"]
 CSP_IMG_SRC = ("'self'", "data:")
 CSP_CONNECT_SRC = ("'self'", "https://hcaptcha.com", "https://*.hcaptcha.com")
 CSPO_FRAME_SRC = ("'self'", "https://hcaptcha.com", "https://*.hcaptcha.com")
