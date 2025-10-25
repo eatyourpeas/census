@@ -161,9 +161,9 @@ def profile(request):
 
     # Check if user has any surveys with encryption enabled
     has_encryption_setup = Survey.objects.filter(
-        owner=user
-    ).exclude(
-        encrypted_kek_password="", encrypted_kek_recovery=""
+        owner=user,
+        encrypted_kek_password__isnull=False,
+        encrypted_kek_recovery__isnull=False
     ).exists()
 
     stats = {
