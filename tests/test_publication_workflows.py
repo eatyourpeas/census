@@ -128,7 +128,9 @@ class TestAuthenticatedPublication:
         url = reverse("surveys:take", kwargs={"slug": basic_survey.slug})
         response = client.get(url)
 
-        assert response.status_code == 404
+        # Should redirect to closed page
+        assert response.status_code == 302
+        assert "/closed/" in response.url
 
     def test_authenticated_closed_survey_returns_404(self, client, basic_survey, participant):
         """CLOSED surveys should not accept new submissions."""
@@ -140,7 +142,9 @@ class TestAuthenticatedPublication:
         url = reverse("surveys:take", kwargs={"slug": basic_survey.slug})
         response = client.get(url)
 
-        assert response.status_code == 404
+        # Should redirect to closed page
+        assert response.status_code == 302
+        assert "/closed/" in response.url
 
     def test_authenticated_survey_owner_cannot_submit_own_survey(
         self, client, basic_survey, survey_owner
@@ -240,7 +244,9 @@ class TestPublicPublication:
         url = reverse("surveys:take", kwargs={"slug": basic_survey.slug})
         response = client.get(url)
 
-        assert response.status_code == 404
+        # Should redirect to closed page
+        assert response.status_code == 302
+        assert "/closed/" in response.url
 
     def test_public_survey_submission_creates_response(
         self, client, basic_survey
@@ -443,15 +449,19 @@ class TestTokenPublication:
         token.refresh_from_db()
         assert token.used_at is not None
 
-        # Second access - should fail
+        # Second access - should redirect to closed page
         response = client.get(url)
-        assert response.status_code == 404
+        assert response.status_code == 302
+        assert "/closed/" in response.url
+        assert "reason=token_used" in response.url
 
-        # Second submission attempt - should also fail
+        # Second submission attempt - should also redirect
         response = client.post(url, {
             f"q_{basic_survey.questions.first().id}": "Another Answer"
         })
-        assert response.status_code == 404
+        assert response.status_code == 302
+        assert "/closed/" in response.url
+        assert "reason=token_used" in response.url
 
     def test_token_visibility_blocks_unlisted_access(
         self, client, basic_survey
@@ -665,6 +675,7 @@ class TestPublicationEdgeCases:
 
         # Third attempt should be blocked (survey is full)
         response = client.get(url)
-        # Exact behavior depends on implementation - might be 404 or show message
-        # For now, just check we can't submit
-        assert response.status_code in (200, 404)  # May show "survey full" message
+        # Should redirect to closed page with max_responses reason
+        assert response.status_code == 302
+        assert "/closed/" in response.url
+        assert "reason=max_responses" in response.url

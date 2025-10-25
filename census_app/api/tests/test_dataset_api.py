@@ -140,9 +140,10 @@ def test_list_datasets_requires_authentication(client):
 
 @pytest.mark.django_db
 def test_get_dataset_requires_authentication(client):
-    """Anonymous users cannot get dataset details."""
+    """Anonymous users CAN get dataset details (needed for public surveys)."""
     resp = client.get("/api/datasets/hospitals_england_wales/")
-    assert resp.status_code in (401, 403)
+    # Changed to AllowAny to support professional field dropdowns in public surveys
+    assert resp.status_code == 200
 
 
 @pytest.mark.django_db

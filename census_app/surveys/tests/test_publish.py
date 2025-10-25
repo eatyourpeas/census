@@ -75,8 +75,10 @@ def test_token_one_time_use(client, django_user_model):
     tok.refresh_from_db()
     assert tok.used_at is not None
 
-    # Second submit should 404
+    # Second submit should redirect to closed page
     resp = client.post(
         reverse("surveys:take_token", kwargs={"slug": s.slug, "token": tok.token}), {}
     )
-    assert resp.status_code in (404,)
+    assert resp.status_code == 302
+    assert "/closed/" in resp.url
+    assert "reason=token_used" in resp.url
