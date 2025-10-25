@@ -98,13 +98,13 @@ def test_survey_creator_cannot_escalate_org_membership_roles(client):
         organization=org, user=survey_creator, role=OrganizationMembership.Role.CREATOR
     )
 
-    # Survey creator tries to escalate other user to ADMIN via user management hub
+    # Survey creator tries to escalate themselves to ADMIN via user management hub
     client.force_login(survey_creator)
     resp = client.post(
         reverse("surveys:user_management_hub"),
         data={
             "scope": "org",
-            "email": "other@test.com",
+            "email": "creator@test.com",  # trying to escalate themselves
             "role": "admin",
         },
     )
