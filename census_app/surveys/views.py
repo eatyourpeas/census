@@ -2195,6 +2195,7 @@ def _handle_participant_submission(
         "professional_defs": PROFESSIONAL_FIELD_DEFS,
         "professional_ods": professional_ods,
         "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
+        "is_preview": False,  # Flag to indicate this is public submission
     }
     return render(request, "surveys/detail.html", ctx)
 
@@ -2207,7 +2208,9 @@ def survey_thank_you(request: HttpRequest, slug: str) -> HttpResponse:
     """
     survey = Survey.objects.filter(slug=slug).first()
     # Render generic thank you even if survey missing to avoid information leakage
-    return render(request, "surveys/thank_you.html", {"survey": survey})
+    return render(
+        request, "surveys/thank_you.html", {"survey": survey, "is_preview": False}
+    )
 
 
 @login_required

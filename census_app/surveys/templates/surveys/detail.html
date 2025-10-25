@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends is_preview|yesno:'base.html,base_minimal.html' %}
 {% block head_theme_overrides %}
   {% if survey.style.theme_css_light or survey.style.theme_css_dark %}
   <style>

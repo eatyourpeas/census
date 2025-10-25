@@ -1,0 +1,52 @@
+{% load static %}
+{% load i18n %}
+<!doctype html>
+<html lang="en" data-theme="{{ brand.theme_name|default:'census-light' }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}{{ brand.title }}{% endblock %}</title>
+    <link rel="icon" href="{% static 'icons/census_brand_favicon.svg' %}" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    {% if brand.font_css_url %}<link href="{{ brand.font_css_url }}" rel="stylesheet">{% endif %}
+    {% block head_fonts %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'build/styles.css' %}">
+    {% if brand.theme_css_light or brand.theme_css_dark %}
+    <style>
+      {% if brand.theme_css_light %}
+      [data-theme="census-light"] {
+        {{ brand.theme_css_light|safe }}
+      }
+      {% endif %}
+      {% if brand.theme_css_dark %}
+      [data-theme="census-dark"] {
+        {{ brand.theme_css_dark|safe }}
+      }
+      {% endif %}
+    </style>
+    {% endif %}
+    {% block head_theme_overrides %}{% endblock %}
+    <style>
+      :root {
+        --font-heading: {{ brand.font_heading }};
+        --font-body: {{ brand.font_body }};
+      }
+      h1,h2,h3,h4,h5,h6,.font-heading { font-family: var(--font-heading); }
+      body, .font-body { font-family: var(--font-body); }
+    </style>
+    {% block icon_link %}
+      {# Only render favicon link when an explicit icon URL is provided #}
+      {% if brand.icon_url %}
+        <link rel="icon" href="{{ brand.icon_url }}" />
+      {% endif %}
+    {% endblock %}
+  </head>
+  <body class="min-h-screen bg-base-200">
+    <div class="container mx-auto px-4 py-8">
+      {% block content %}{% endblock %}
+    </div>
+    <script src="{% static 'js/theme-toggle.js' %}"></script>
+    <script src="{% static 'js/toast.js' %}?v=2ba505d"></script>
+  </body>
+</html>
