@@ -20,7 +20,16 @@ class SignupForm(UserCreationForm):
         if not email:
             raise forms.ValidationError("Email is required")
         if User.objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError("An account with this email already exists")
+            from django.utils.safestring import mark_safe
+            from django.urls import reverse
+            login_url = reverse('login')
+            raise forms.ValidationError(
+                mark_safe(
+                    f'An account with this email already exists. '
+                    f'<a href="{login_url}" class="link link-primary font-medium">Sign in instead</a> '
+                    f'or use a different email address.'
+                )
+            )
         return email
 
     def save(self, commit=True):
