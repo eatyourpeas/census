@@ -7,7 +7,7 @@ from census_app.surveys.models import QuestionGroup, Survey, SurveyAccessToken
 @pytest.mark.django_db
 def test_authenticated_required_when_patient_data(client, django_user_model):
     owner = django_user_model.objects.create_user(username="owner", password="p")
-    participant = django_user_model.objects.create_user(username="participant", password="p")
+    _ = django_user_model.objects.create_user(username="participant", password="p")
     s = Survey.objects.create(owner=owner, name="S", slug="s")
     # Attach a patient details group with fields
     g = QuestionGroup.objects.create(

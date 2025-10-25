@@ -1643,7 +1643,7 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
                 spark_labels = [
                     {"date": dates[0], "label": "Start"},
                     {"date": dates[-1], "label": "Today"},
-                    {"max_count": max_v}
+                    {"max_count": max_v},
                 ]
     # Derived status
     is_live = survey.is_live()
@@ -1841,7 +1841,9 @@ def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
                     request,
                     "To use public, unlisted, or tokenized visibility, confirm that no patient data is collected.",
                 )
-                return render(request, "surveys/publish_settings.html", {"survey": survey})
+                return render(
+                    request, "surveys/publish_settings.html", {"survey": survey}
+                )
 
         # Handle different actions
         if action == "close":
@@ -1894,7 +1896,10 @@ def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
                     survey.start_at = timezone.now()
 
             # Generate unlisted key if needed
-            if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
+            if (
+                survey.visibility == Survey.Visibility.UNLISTED
+                and not survey.unlisted_key
+            ):
                 import secrets
 
                 survey.unlisted_key = secrets.token_urlsafe(24)
@@ -1913,7 +1918,10 @@ def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
             survey.no_patient_data_ack = no_patient_data_ack
 
             # Generate unlisted key if needed
-            if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
+            if (
+                survey.visibility == Survey.Visibility.UNLISTED
+                and not survey.unlisted_key
+            ):
                 import secrets
 
                 survey.unlisted_key = secrets.token_urlsafe(24)
@@ -2173,6 +2181,7 @@ def survey_take(request: HttpRequest, slug: str) -> HttpResponse:
     if not survey.is_live():
         # Determine specific reason for being closed
         from django.utils import timezone
+
         now = timezone.now()
         if survey.status != Survey.Status.PUBLISHED:
             return redirect("surveys:closed", slug=slug)
@@ -2220,9 +2229,13 @@ def survey_take_unlisted(request: HttpRequest, slug: str, key: str) -> HttpRespo
         or survey.unlisted_key != key
     ):
         # Determine specific reason if survey exists but is closed
-        if survey.visibility == Survey.Visibility.UNLISTED and survey.unlisted_key == key:
+        if (
+            survey.visibility == Survey.Visibility.UNLISTED
+            and survey.unlisted_key == key
+        ):
             if not survey.is_live():
                 from django.utils import timezone
+
                 now = timezone.now()
                 if survey.status != Survey.Status.PUBLISHED:
                     return redirect("surveys:closed", slug=slug)
@@ -2253,6 +2266,7 @@ def survey_take_token(request: HttpRequest, slug: str, token: str) -> HttpRespon
         if survey.visibility == Survey.Visibility.TOKEN and not survey.is_live():
             # Survey exists and has correct visibility but is closed
             from django.utils import timezone
+
             now = timezone.now()
             if survey.status != Survey.Status.PUBLISHED:
                 return redirect("surveys:closed", slug=slug)
@@ -2421,11 +2435,9 @@ def survey_closed(request: HttpRequest, slug: str) -> HttpResponse:
     Accepts optional 'reason' query parameter to customize the message.
     """
     survey = Survey.objects.filter(slug=slug).first()
-    reason = request.GET.get('reason', 'closed')
+    reason = request.GET.get("reason", "closed")
     return render(
-        request,
-        "surveys/survey_closed.html",
-        {"survey": survey, "reason": reason}
+        request, "surveys/survey_closed.html", {"survey": survey, "reason": reason}
     )
 
 

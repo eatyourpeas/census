@@ -163,7 +163,7 @@ def profile(request):
     has_encryption_setup = Survey.objects.filter(
         owner=user,
         encrypted_kek_password__isnull=False,
-        encrypted_kek_recovery__isnull=False
+        encrypted_kek_recovery__isnull=False,
     ).exists()
 
     stats = {

@@ -8,9 +8,9 @@ Tests all three publication options:
 4. TOKEN - one-time use tokens via /surveys/<slug>/take/token/<token>/
 """
 
-import pytest
-from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.urls import reverse
+import pytest
 
 from census_app.surveys.models import (
     Organization,
@@ -118,7 +118,9 @@ class TestAuthenticatedPublication:
         assert response.status_code == 200
         assert b"What is your name?" in response.content
 
-    def test_authenticated_draft_survey_returns_404(self, client, basic_survey, participant):
+    def test_authenticated_draft_survey_returns_404(
+        self, client, basic_survey, participant
+    ):
         """DRAFT surveys should not be accessible even to authenticated users."""
         basic_survey.status = Survey.Status.DRAFT
         basic_survey.visibility = Survey.Visibility.AUTHENTICATED
@@ -132,7 +134,9 @@ class TestAuthenticatedPublication:
         assert response.status_code == 302
         assert "/closed/" in response.url
 
-    def test_authenticated_closed_survey_returns_404(self, client, basic_survey, participant):
+    def test_authenticated_closed_survey_returns_404(
+        self, client, basic_survey, participant
+    ):
         """CLOSED surveys should not accept new submissions."""
         basic_survey.status = Survey.Status.CLOSED
         basic_survey.visibility = Survey.Visibility.AUTHENTICATED
@@ -248,9 +252,7 @@ class TestPublicPublication:
         assert response.status_code == 302
         assert "/closed/" in response.url
 
-    def test_public_survey_submission_creates_response(
-        self, client, basic_survey
-    ):
+    def test_public_survey_submission_creates_response(self, client, basic_survey):
         """Anonymous users should be able to submit PUBLIC surveys."""
         basic_survey.status = Survey.Status.PUBLISHED
         basic_survey.visibility = Survey.Visibility.PUBLIC
@@ -259,13 +261,15 @@ class TestPublicPublication:
         url = reverse("surveys:take", kwargs={"slug": basic_survey.slug})
 
         # Submit the survey
-        response = client.post(url, {
-            f"q_{basic_survey.questions.first().id}": "John Doe"
-        })
+        response = client.post(
+            url, {f"q_{basic_survey.questions.first().id}": "John Doe"}
+        )
 
         # Should redirect to thank you page
         assert response.status_code == 302
-        assert "thank-you" in response.url or response.url.endswith(f"/surveys/{basic_survey.slug}/")
+        assert "thank-you" in response.url or response.url.endswith(
+            f"/surveys/{basic_survey.slug}/"
+        )
 
         # Check response was created
         assert basic_survey.responses.count() == 1
@@ -295,9 +299,7 @@ class TestUnlistedPublication:
         # Should return 404 (not accessible via regular URL)
         assert response.status_code == 404
 
-    def test_unlisted_survey_accessible_with_correct_key(
-        self, client, basic_survey
-    ):
+    def test_unlisted_survey_accessible_with_correct_key(self, client, basic_survey):
         """UNLISTED surveys should be accessible with the secret key."""
         basic_survey.status = Survey.Status.PUBLISHED
         basic_survey.visibility = Survey.Visibility.UNLISTED
@@ -339,10 +341,13 @@ class TestUnlistedPublication:
 
         # Publish with UNLISTED visibility
         url = reverse("surveys:publish_update", kwargs={"slug": basic_survey.slug})
-        client.post(url, {
-            "status": "published",
-            "visibility": "unlisted",
-        })
+        client.post(
+            url,
+            {
+                "status": "published",
+                "visibility": "unlisted",
+            },
+        )
 
         basic_survey.refresh_from_db()
 
@@ -398,9 +403,7 @@ class TestTokenPublication:
         assert response.status_code == 200
         assert b"What is your name?" in response.content
 
-    def test_token_survey_invalid_token_returns_404(
-        self, client, basic_survey
-    ):
+    def test_token_survey_invalid_token_returns_404(self, client, basic_survey):
         """Invalid tokens should return 404."""
         basic_survey.status = Survey.Status.PUBLISHED
         basic_survey.visibility = Survey.Visibility.TOKEN
@@ -414,9 +417,7 @@ class TestTokenPublication:
 
         assert response.status_code == 404
 
-    def test_token_one_time_use_enforcement(
-        self, client, survey_owner, basic_survey
-    ):
+    def test_token_one_time_use_enforcement(self, client, survey_owner, basic_survey):
         """Tokens should only work once."""
         basic_survey.status = Survey.Status.PUBLISHED
         basic_survey.visibility = Survey.Visibility.TOKEN
@@ -438,9 +439,9 @@ class TestTokenPublication:
         assert response.status_code == 200
 
         # Submit the survey
-        response = client.post(url, {
-            f"q_{basic_survey.questions.first().id}": "Test Answer"
-        })
+        response = client.post(
+            url, {f"q_{basic_survey.questions.first().id}": "Test Answer"}
+        )
 
         # Should redirect after submission
         assert response.status_code == 302
@@ -456,16 +457,14 @@ class TestTokenPublication:
         assert "reason=token_used" in response.url
 
         # Second submission attempt - should also redirect
-        response = client.post(url, {
-            f"q_{basic_survey.questions.first().id}": "Another Answer"
-        })
+        response = client.post(
+            url, {f"q_{basic_survey.questions.first().id}": "Another Answer"}
+        )
         assert response.status_code == 302
         assert "/closed/" in response.url
         assert "reason=token_used" in response.url
 
-    def test_token_visibility_blocks_unlisted_access(
-        self, client, basic_survey
-    ):
+    def test_token_visibility_blocks_unlisted_access(self, client, basic_survey):
         """TOKEN surveys should not be accessible via unlisted URL."""
         basic_survey.status = Survey.Status.PUBLISHED
         basic_survey.visibility = Survey.Visibility.TOKEN
@@ -518,10 +517,13 @@ class TestPublishUpdate:
         assert basic_survey.status == Survey.Status.DRAFT
 
         url = reverse("surveys:publish_update", kwargs={"slug": basic_survey.slug})
-        response = client.post(url, {
-            "status": "published",
-            "visibility": "public",
-        })
+        response = client.post(
+            url,
+            {
+                "status": "published",
+                "visibility": "public",
+            },
+        )
 
         # Should redirect to dashboard
         assert response.status_code == 302
@@ -539,10 +541,13 @@ class TestPublishUpdate:
         assert basic_survey.published_at is None
 
         url = reverse("surveys:publish_update", kwargs={"slug": basic_survey.slug})
-        client.post(url, {
-            "status": "published",
-            "visibility": "authenticated",
-        })
+        client.post(
+            url,
+            {
+                "status": "published",
+                "visibility": "authenticated",
+            },
+        )
 
         basic_survey.refresh_from_db()
         assert basic_survey.published_at is not None
@@ -557,10 +562,13 @@ class TestPublishUpdate:
 
         # Then close
         url = reverse("surveys:publish_update", kwargs={"slug": basic_survey.slug})
-        response = client.post(url, {
-            "status": "closed",
-            "visibility": "authenticated",
-        })
+        response = client.post(
+            url,
+            {
+                "status": "closed",
+                "visibility": "authenticated",
+            },
+        )
 
         assert response.status_code == 302
 
@@ -580,10 +588,13 @@ class TestPublishUpdate:
         before_publish = timezone.now()
 
         url = reverse("surveys:publish_update", kwargs={"slug": basic_survey.slug})
-        client.post(url, {
-            "status": "published",
-            "visibility": "authenticated",
-        })
+        client.post(
+            url,
+            {
+                "status": "published",
+                "visibility": "authenticated",
+            },
+        )
 
         after_publish = timezone.now()
 
@@ -598,8 +609,9 @@ class TestPublishUpdate:
         self, client, survey_owner, basic_survey
     ):
         """Publish should use provided start_at if given."""
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
 
         client.login(username="owner@example.com", password="testpass123")
 
@@ -607,11 +619,14 @@ class TestPublishUpdate:
         tomorrow = timezone.now() + timedelta(days=1)
 
         url = reverse("surveys:publish_update", kwargs={"slug": basic_survey.slug})
-        client.post(url, {
-            "status": "published",
-            "visibility": "authenticated",
-            "start_at": tomorrow.isoformat(),
-        })
+        client.post(
+            url,
+            {
+                "status": "published",
+                "visibility": "authenticated",
+                "start_at": tomorrow.isoformat(),
+            },
+        )
 
         basic_survey.refresh_from_db()
 
@@ -664,14 +679,10 @@ class TestPublicationEdgeCases:
         url = reverse("surveys:take", kwargs={"slug": basic_survey.slug})
 
         # Submit first response
-        client.post(url, {
-            f"q_{basic_survey.questions.first().id}": "Response 1"
-        })
+        client.post(url, {f"q_{basic_survey.questions.first().id}": "Response 1"})
 
         # Submit second response
-        client.post(url, {
-            f"q_{basic_survey.questions.first().id}": "Response 2"
-        })
+        client.post(url, {f"q_{basic_survey.questions.first().id}": "Response 2"})
 
         # Third attempt should be blocked (survey is full)
         response = client.get(url)
