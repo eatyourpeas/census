@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends is_preview|default:False|yesno:'base.html,base_minimal.html' %}
 {% block head_theme_overrides %}
   {% if survey.style.theme_css_light or survey.style.theme_css_dark %}
   <style>
@@ -50,6 +50,15 @@
     {% endif %}
         </div>
 </div>
+
+{% if survey.captcha_required and settings.HCAPTCHA_SITEKEY %}
+<div role="alert" class="alert alert-info mb-4">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-6 w-6 shrink-0 stroke-current">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+  </svg>
+  <span>{% trans "This survey requires CAPTCHA verification to prevent spam. You'll need to complete the CAPTCHA challenge before submitting." %}</span>
+</div>
+{% endif %}
 
 {# Template dropdown moved below with HR and label per UX #}
 
@@ -163,11 +172,15 @@
               <div class="flex items-center gap-4">
                 {% if meta.left %}<span class="text-sm opacity-70 min-w-16 text-right">{{ meta.left }}</span>{% endif %}
                 <div class="flex-1">
-                  <input type="range" class="range range-primary w-full" min="{{ meta.min|default:1 }}" max="{{ meta.max|default:5 }}" step="1" name="q_{{ q.id }}" />
-                  <div class="flex justify-between text-[11px] opacity-70 mt-1">
-                    <span>{{ meta.min|default:1 }}</span>
-                    <span>{{ meta.max|default:5 }}</span>
-                  </div>
+                  {% with min_val=meta.min|default:1 max_val=meta.max|default:5 %}
+                    {% widthratio min_val|add:max_val 2 1 as mid_val %}
+                    <input type="range" class="range range-primary w-full" min="{{ min_val }}" max="{{ max_val }}" step="1" value="{{ mid_val }}" name="q_{{ q.id }}" id="range_q_{{ q.id }}" />
+                    <div class="flex justify-between text-[11px] opacity-70 mt-1">
+                      <span>{{ min_val }}</span>
+                      <span id="range_value_q_{{ q.id }}" class="font-semibold text-primary">{{ mid_val }}</span>
+                      <span>{{ max_val }}</span>
+                    </div>
+                  {% endwith %}
                 </div>
                 {% if meta.right %}<span class="text-sm opacity-70 min-w-16">{{ meta.right }}</span>{% endif %}
               </div>
@@ -364,5 +377,23 @@
 {# Load professional fields script if we have group-level OR question-level professional details #}
 <script src="{% static 'js/professional-fields.js' %}"></script>
 <script src="{% static 'js/followup-fields.js' %}"></script>
+
+<script nonce="{{ request.csp_nonce }}">
+  // Update displayed value for Likert scale range sliders
+  document.addEventListener('DOMContentLoaded', function() {
+    const rangeInputs = document.querySelectorAll('input[type="range"]');
+    rangeInputs.forEach(function(input) {
+      const questionId = input.id.replace('range_q_', '');
+      const valueDisplay = document.getElementById('range_value_q_' + questionId);
+
+      if (valueDisplay) {
+        // Update on input (real-time as user drags)
+        input.addEventListener('input', function() {
+          valueDisplay.textContent = this.value;
+        });
+      }
+    });
+  });
+</script>
 
 {% endblock %}

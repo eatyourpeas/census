@@ -144,6 +144,17 @@
             </div>
           </div>
         {% endif %}
+        {% if stats.has_encryption_setup %}
+          {% trans "You have encryption enabled on your surveys for secure data collection" as tooltip_encryption %}
+          <div class="tooltip" data-tip="{{ tooltip_encryption }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-success text-xs">{% trans "Encrypted" %}</span>
+              <div class="bg-success text-success-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/lock.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
       </div>
     </div>
   </div>

@@ -210,6 +210,7 @@ CSP_SCRIPT_SRC = (
     # hCaptcha widget script
     "https://js.hcaptcha.com",
 )
+CSP_INCLUDE_NONCE_IN = ["script-src"]
 CSP_IMG_SRC = ("'self'", "data:")
 CSP_CONNECT_SRC = ("'self'", "https://hcaptcha.com", "https://*.hcaptcha.com")
 CSPO_FRAME_SRC = ("'self'", "https://hcaptcha.com", "https://*.hcaptcha.com")
@@ -369,6 +370,10 @@ OIDC_RP_CLIENT_SECRET_GOOGLE = env("OIDC_RP_CLIENT_SECRET_GOOGLE")
 OIDC_RP_SIGN_ALGO = env("OIDC_RP_SIGN_ALGO")
 OIDC_OP_JWKS_ENDPOINT_GOOGLE = env("OIDC_OP_JWKS_ENDPOINT_GOOGLE")
 OIDC_OP_JWKS_ENDPOINT_AZURE = env("OIDC_OP_JWKS_ENDPOINT_AZURE")
+
+# hCaptcha Configuration
+HCAPTCHA_SITEKEY = env("HCAPTCHA_SITEKEY")
+HCAPTCHA_SECRET = env("HCAPTCHA_SECRET")
 
 # Dynamic base URL for development vs production
 if DEBUG:

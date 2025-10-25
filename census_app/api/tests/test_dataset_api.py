@@ -140,9 +140,17 @@ def test_list_datasets_requires_authentication(client):
 
 @pytest.mark.django_db
 def test_get_dataset_requires_authentication(client):
-    """Anonymous users cannot get dataset details."""
-    resp = client.get("/api/datasets/hospitals_england_wales/")
-    assert resp.status_code in (401, 403)
+    """Anonymous users CAN get dataset details (needed for public surveys)."""
+    # Mock the external API call with realistic response
+    with patch("census_app.surveys.external_datasets.requests.get") as mock_get:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = get_mock_hospital_response()
+        mock_get.return_value = mock_response
+
+        resp = client.get("/api/datasets/hospitals_england_wales/")
+        # Changed to AllowAny to support professional field dropdowns in public surveys
+        assert resp.status_code == 200
 
 
 @pytest.mark.django_db

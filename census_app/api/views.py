@@ -769,13 +769,13 @@ def list_datasets(request):
 
 
 @api_view(["GET"])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny])
 def get_dataset(request, dataset_key):
     """
     Fetch options for a specific dataset from external API.
 
     Returns cached data when available to minimize external API calls.
-    Requires authentication to prevent abuse.
+    Allows anonymous access to support public survey submissions.
     """
     try:
         options = fetch_dataset(dataset_key)

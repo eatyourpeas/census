@@ -1589,29 +1589,62 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
     # Sparkline data: last 14 full days (oldest -> newest)
     from collections import OrderedDict
 
-    start_14 = start_today - timezone.timedelta(days=13)
-    day_counts = OrderedDict()
-    for i in range(14):
-        day = start_14 + timezone.timedelta(days=i)
-        next_day = day + timezone.timedelta(days=1)
-        day_counts[day.date().isoformat()] = survey.responses.filter(
-            submitted_at__gte=day, submitted_at__lt=next_day
-        ).count()
-    # Build sparkline polyline points (0..100 width, 0..24 height)
-    values = list(day_counts.values())
     spark_points = ""
-    if values:
-        max_v = max(values) or 1
-        n = len(values)
-        width = 100.0
-        height = 24.0
-        dx = width / (n - 1) if n > 1 else width
-        pts = []
-        for i, v in enumerate(values):
-            x = dx * i
-            y = height - (float(v) / float(max_v)) * height
-            pts.append(f"{x:.1f},{y:.1f}")
-        spark_points = " ".join(pts)
+    spark_labels = []
+    survey_not_started = survey.start_at and survey.start_at > now
+
+    if not survey_not_started:
+        # Show from publication date (or last 14 days, whichever is more recent)
+        # This gives a complete picture of the survey's lifetime submissions
+        if survey.start_at:
+            # Use the survey's publication start date
+            survey_start_day = survey.start_at.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            start_date = survey_start_day
+        else:
+            # No start date specified - show last 14 days as fallback
+            start_date = start_today - timezone.timedelta(days=13)
+
+        # Ensure we always show at least 2 days for a proper line graph
+        if start_date == start_today:
+            start_date = start_today - timezone.timedelta(days=1)
+
+        day_counts = OrderedDict()
+        current_day = start_date
+        # Always include at least up to and including today
+        end_day = start_today + timezone.timedelta(days=1)
+        while current_day < end_day:
+            next_day = current_day + timezone.timedelta(days=1)
+            day_counts[current_day.date().isoformat()] = survey.responses.filter(
+                submitted_at__gte=current_day, submitted_at__lt=next_day
+            ).count()
+            current_day = next_day
+
+        # Build sparkline polyline points (0..100 width, 0..24 height)
+        values = list(day_counts.values())
+        dates = list(day_counts.keys())
+
+        if values:  # Create sparkline even if all zeros
+            max_v = max(values) if max(values) > 0 else 1
+            n = len(values)
+            width = 100.0
+            height = 24.0
+            dx = width / (n - 1) if n > 1 else width
+            pts = []
+            for i, v in enumerate(values):
+                x = dx * i
+                y = height - (float(v) / float(max_v)) * height
+                pts.append(f"{x:.1f},{y:.1f}")
+            spark_points = " ".join(pts)
+
+            # Create labels for axis
+            if n > 0:
+                spark_labels = [
+                    {"date": dates[0], "label": "Start"},
+                    {"date": dates[-1], "label": "Today"},
+                    {"max_count": max_v},
+                ]
     # Derived status
     is_live = survey.is_live()
     visible = (
@@ -1647,8 +1680,9 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
         "visible": visible,
         "today_count": today_count,
         "last7_count": last7_count,
-        "day_counts": list(day_counts.values()),
         "spark_points": spark_points,
+        "spark_labels": spark_labels,
+        "survey_not_started": survey_not_started,
         "can_manage_users": can_manage_survey_users(request.user, survey),
     }
     if any(
@@ -1759,6 +1793,148 @@ def survey_delete(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
+def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
+    """
+    Dedicated publish settings page with clearer UX.
+    Handles both initial publish and editing published surveys.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+
+    if request.method == "POST":
+        action = request.POST.get("action", "publish")
+
+        # Parse fields
+        visibility = request.POST.get("visibility") or survey.visibility
+        start_at_str = request.POST.get("start_at") or None
+        end_at_str = request.POST.get("end_at") or None
+        max_responses = request.POST.get("max_responses") or None
+        captcha_required = bool(request.POST.get("captcha_required"))
+        no_patient_data_ack = bool(request.POST.get("no_patient_data_ack"))
+
+        # Parse dates
+        from django.utils.dateparse import parse_datetime
+
+        start_at = parse_datetime(start_at_str) if start_at_str else None
+        end_at = parse_datetime(end_at_str) if end_at_str else None
+
+        if max_responses:
+            try:
+                max_responses = int(max_responses)
+            except ValueError:
+                max_responses = None
+
+        # Validate patient data acknowledgment for non-auth visibility
+        collects_patient = _survey_collects_patient_data(survey)
+        if (
+            visibility
+            in {
+                Survey.Visibility.PUBLIC,
+                Survey.Visibility.UNLISTED,
+                Survey.Visibility.TOKEN,
+            }
+            and collects_patient
+        ):
+            if not no_patient_data_ack:
+                messages.error(
+                    request,
+                    "To use public, unlisted, or tokenized visibility, confirm that no patient data is collected.",
+                )
+                return render(
+                    request, "surveys/publish_settings.html", {"survey": survey}
+                )
+
+        # Handle different actions
+        if action == "close":
+            # Close the survey
+            survey.status = Survey.Status.CLOSED
+            survey.save()
+            messages.success(request, "Survey has been closed.")
+            return redirect("surveys:dashboard", slug=slug)
+
+        elif action == "publish":
+            # Publishing for the first time
+            prev_status = survey.status
+
+            # Check if encryption setup is needed
+            needs_encryption_setup = (
+                prev_status != Survey.Status.PUBLISHED
+                and not survey.has_dual_encryption()
+                and request.user.groups.filter(name="Individual Users").exists()
+            )
+
+            if needs_encryption_setup:
+                # Store pending publish settings in session
+                request.session["pending_publish"] = {
+                    "slug": slug,
+                    "visibility": visibility,
+                    "start_at": start_at.isoformat() if start_at else None,
+                    "end_at": end_at.isoformat() if end_at else None,
+                    "max_responses": max_responses,
+                    "captcha_required": captcha_required,
+                    "no_patient_data_ack": no_patient_data_ack,
+                }
+                return redirect("surveys:encryption_setup", slug=slug)
+
+            # Apply settings
+            survey.visibility = visibility
+            survey.start_at = start_at
+            survey.end_at = end_at
+            survey.max_responses = max_responses
+            survey.captcha_required = captcha_required
+            survey.no_patient_data_ack = no_patient_data_ack
+
+            # Set status to PUBLISHED
+            survey.status = Survey.Status.PUBLISHED
+
+            # On first publish, set published_at and start_at if not provided
+            if prev_status != Survey.Status.PUBLISHED and not survey.published_at:
+                survey.published_at = timezone.now()
+                # If start_at not provided, set it to now (survey starts immediately)
+                if not survey.start_at:
+                    survey.start_at = timezone.now()
+
+            # Generate unlisted key if needed
+            if (
+                survey.visibility == Survey.Visibility.UNLISTED
+                and not survey.unlisted_key
+            ):
+                import secrets
+
+                survey.unlisted_key = secrets.token_urlsafe(24)
+
+            survey.save()
+            messages.success(request, "Survey has been published successfully!")
+            return redirect("surveys:dashboard", slug=slug)
+
+        elif action == "save":
+            # Saving changes to already-published survey
+            survey.visibility = visibility
+            survey.start_at = start_at
+            survey.end_at = end_at
+            survey.max_responses = max_responses
+            survey.captcha_required = captcha_required
+            survey.no_patient_data_ack = no_patient_data_ack
+
+            # Generate unlisted key if needed
+            if (
+                survey.visibility == Survey.Visibility.UNLISTED
+                and not survey.unlisted_key
+            ):
+                import secrets
+
+                survey.unlisted_key = secrets.token_urlsafe(24)
+
+            survey.save()
+            messages.success(request, "Publication settings updated.")
+            return redirect("surveys:dashboard", slug=slug)
+
+    # GET request - show the form
+    return render(request, "surveys/publish_settings.html", {"survey": survey})
+
+
+@login_required
 @require_http_methods(["POST"])
 def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
@@ -1837,13 +2013,16 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
     survey.max_responses = max_responses
     survey.captcha_required = captcha_required
     survey.no_patient_data_ack = no_patient_data_ack
-    # On first publish, set published_at
+    # On first publish, set published_at and start_at if not provided
     if (
         prev_status != Survey.Status.PUBLISHED
         and status == Survey.Status.PUBLISHED
         and not survey.published_at
     ):
         survey.published_at = timezone.now()
+        # If start_at not provided, set it to now
+        if not survey.start_at:
+            survey.start_at = timezone.now()
     # Generate unlisted key if needed
     if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
         survey.unlisted_key = secrets.token_urlsafe(24)
@@ -1906,7 +2085,8 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
         # Apply pending publish settings
         from django.utils.dateparse import parse_datetime
 
-        survey.status = pending.get("status", survey.status)
+        # Set status to PUBLISHED (this is a publish action)
+        survey.status = Survey.Status.PUBLISHED
         survey.visibility = pending.get("visibility", survey.visibility)
         start_at_str = pending.get("start_at")
         end_at_str = pending.get("end_at")
@@ -1916,9 +2096,12 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
         survey.captcha_required = pending.get("captcha_required", False)
         survey.no_patient_data_ack = pending.get("no_patient_data_ack", False)
 
-        # Set published_at if first publish
+        # Set published_at and start_at if first publish
         if survey.status == Survey.Status.PUBLISHED and not survey.published_at:
             survey.published_at = timezone.now()
+            # If start_at not provided, set it to now
+            if not survey.start_at:
+                survey.start_at = timezone.now()
 
         # Generate unlisted key if needed
         if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
@@ -1996,7 +2179,20 @@ def survey_take(request: HttpRequest, slug: str) -> HttpResponse:
     """
     survey = get_object_or_404(Survey, slug=slug)
     if not survey.is_live():
-        raise Http404()
+        # Determine specific reason for being closed
+        from django.utils import timezone
+
+        now = timezone.now()
+        if survey.status != Survey.Status.PUBLISHED:
+            return redirect("surveys:closed", slug=slug)
+        elif survey.start_at and survey.start_at > now:
+            return redirect(f"/surveys/{slug}/closed/?reason=not_started")
+        elif survey.end_at and now > survey.end_at:
+            return redirect(f"/surveys/{slug}/closed/?reason=ended")
+        elif survey.max_responses and hasattr(survey, "responses"):
+            if survey.responses.count() >= survey.max_responses:
+                return redirect(f"/surveys/{slug}/closed/?reason=max_responses")
+        return redirect("surveys:closed", slug=slug)
     if survey.visibility == Survey.Visibility.UNLISTED:
         raise Http404()
     if survey.visibility == Survey.Visibility.TOKEN:
@@ -2032,6 +2228,24 @@ def survey_take_unlisted(request: HttpRequest, slug: str, key: str) -> HttpRespo
         or survey.visibility != Survey.Visibility.UNLISTED
         or survey.unlisted_key != key
     ):
+        # Determine specific reason if survey exists but is closed
+        if (
+            survey.visibility == Survey.Visibility.UNLISTED
+            and survey.unlisted_key == key
+        ):
+            if not survey.is_live():
+                from django.utils import timezone
+
+                now = timezone.now()
+                if survey.status != Survey.Status.PUBLISHED:
+                    return redirect("surveys:closed", slug=slug)
+                elif survey.start_at and survey.start_at > now:
+                    return redirect(f"/surveys/{slug}/closed/?reason=not_started")
+                elif survey.end_at and now > survey.end_at:
+                    return redirect(f"/surveys/{slug}/closed/?reason=ended")
+                elif survey.max_responses and hasattr(survey, "responses"):
+                    if survey.responses.count() >= survey.max_responses:
+                        return redirect(f"/surveys/{slug}/closed/?reason=max_responses")
         raise Http404()
     if (
         request.method == "POST"
@@ -2049,11 +2263,28 @@ def survey_take_unlisted(request: HttpRequest, slug: str, key: str) -> HttpRespo
 def survey_take_token(request: HttpRequest, slug: str, token: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     if not survey.is_live() or survey.visibility != Survey.Visibility.TOKEN:
+        if survey.visibility == Survey.Visibility.TOKEN and not survey.is_live():
+            # Survey exists and has correct visibility but is closed
+            from django.utils import timezone
+
+            now = timezone.now()
+            if survey.status != Survey.Status.PUBLISHED:
+                return redirect("surveys:closed", slug=slug)
+            elif survey.start_at and survey.start_at > now:
+                return redirect(f"/surveys/{slug}/closed/?reason=not_started")
+            elif survey.end_at and now > survey.end_at:
+                return redirect(f"/surveys/{slug}/closed/?reason=ended")
+            elif survey.max_responses and hasattr(survey, "responses"):
+                if survey.responses.count() >= survey.max_responses:
+                    return redirect(f"/surveys/{slug}/closed/?reason=max_responses")
         raise Http404()
     tok = get_object_or_404(SurveyAccessToken, survey=survey, token=token)
     if not tok.is_valid():
-        messages.error(request, "This invite link has expired or already been used.")
-        raise Http404()
+        # Token expired or already used - redirect to closed page
+        if tok.used_at:
+            return redirect(f"/surveys/{slug}/closed/?reason=token_used")
+        else:
+            return redirect(f"/surveys/{slug}/closed/?reason=token_expired")
     if (
         request.method == "POST"
         and not request.user.is_authenticated
@@ -2068,6 +2299,14 @@ def survey_take_token(request: HttpRequest, slug: str, token: str) -> HttpRespon
 def _handle_participant_submission(
     request: HttpRequest, survey: Survey, token_obj: SurveyAccessToken | None
 ) -> HttpResponse:
+    # Block survey owner from taking their own survey
+    if request.user.is_authenticated and survey.owner_id == request.user.id:
+        messages.info(
+            request,
+            "You cannot submit responses to your own survey. Use Preview to test the survey.",
+        )
+        return redirect("surveys:dashboard", slug=survey.slug)
+
     # Disallow collecting patient data on non-authenticated visibilities unless explicitly acknowledged at publish.
     collects_patient = _survey_collects_patient_data(survey)
     if (
@@ -2084,8 +2323,7 @@ def _handle_participant_submission(
     if request.method == "POST":
         # Prevent duplicate submission for tokenized link
         if token_obj and SurveyResponse.objects.filter(access_token=token_obj).exists():
-            messages.error(request, "This invite link was already used.")
-            raise Http404()
+            return redirect(f"/surveys/{survey.slug}/closed/?reason=token_used")
 
         answers = {}
         for q in survey.questions.all():
@@ -2150,9 +2388,9 @@ def _handle_participant_submission(
                 token_obj.used_by = request.user
             token_obj.save(update_fields=["used_at", "used_by"])
 
-    messages.success(request, "Thank you for your response.")
-    # Redirect to thank-you page
-    return redirect("surveys:thank_you", slug=survey.slug)
+        messages.success(request, "Thank you for your response.")
+        # Redirect to thank-you page
+        return redirect("surveys:thank_you", slug=survey.slug)
 
     # GET: render using existing detail template
     _prepare_question_rendering(survey)
@@ -2184,8 +2422,23 @@ def _handle_participant_submission(
         "professional_defs": PROFESSIONAL_FIELD_DEFS,
         "professional_ods": professional_ods,
         "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
+        "is_preview": False,  # Flag to indicate this is public submission
     }
     return render(request, "surveys/detail.html", ctx)
+
+
+@require_http_methods(["GET"])
+def survey_closed(request: HttpRequest, slug: str) -> HttpResponse:
+    """Landing page for surveys that are closed, ended, or at capacity.
+
+    Provides user-friendly messaging instead of 404 errors.
+    Accepts optional 'reason' query parameter to customize the message.
+    """
+    survey = Survey.objects.filter(slug=slug).first()
+    reason = request.GET.get("reason", "closed")
+    return render(
+        request, "surveys/survey_closed.html", {"survey": survey, "reason": reason}
+    )
 
 
 @require_http_methods(["GET"])
@@ -2196,7 +2449,9 @@ def survey_thank_you(request: HttpRequest, slug: str) -> HttpResponse:
     """
     survey = Survey.objects.filter(slug=slug).first()
     # Render generic thank you even if survey missing to avoid information leakage
-    return render(request, "surveys/thank_you.html", {"survey": survey})
+    return render(
+        request, "surveys/thank_you.html", {"survey": survey, "is_preview": False}
+    )
 
 
 @login_required
