@@ -861,11 +861,16 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 @login_required
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "POST"])
 def survey_preview(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     require_can_view(request.user, survey)
-    # Render the same detail template but never accept POST here
+
+    # Handle POST in preview mode - redirect to preview thank you without saving
+    if request.method == "POST":
+        return redirect("surveys:preview_thank_you", slug=slug)
+
+    # Render the same detail template in preview mode
     _prepare_question_rendering(survey)
     qs = list(survey.questions.select_related("group").all())
     for i, q in enumerate(qs, start=1):
@@ -905,6 +910,7 @@ def survey_preview(request: HttpRequest, slug: str) -> HttpResponse:
         "professional_defs": PROFESSIONAL_FIELD_DEFS,
         "professional_ods": professional_ods,
         "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
+        "is_preview": True,  # Flag to indicate this is preview mode
     }
     if any(
         v for k, v in brand_overrides.items() if k != "primary_hex"
@@ -2191,6 +2197,17 @@ def survey_thank_you(request: HttpRequest, slug: str) -> HttpResponse:
     survey = Survey.objects.filter(slug=slug).first()
     # Render generic thank you even if survey missing to avoid information leakage
     return render(request, "surveys/thank_you.html", {"survey": survey})
+
+
+@require_http_methods(["GET"])
+def survey_preview_thank_you(request: HttpRequest, slug: str) -> HttpResponse:
+    """Thank you page for preview mode - no data is saved."""
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_view(request.user, survey)
+    return render(
+        request, "surveys/preview_thank_you.html", {"survey": survey, "is_preview": True}
+    )
+
 
 
 @login_required

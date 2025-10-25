@@ -39,8 +39,8 @@
     <span class="badge badge-primary badge-outline">{% trans "Total responses" %}: {{ total }}{% if survey.max_responses %} / {{ survey.max_responses }}{% endif %}</span>
   </div>
   <div class="flex flex-wrap gap-2">
-    <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/preview/">{% trans "Preview (read-only)" %}</a>
-    <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/groups/">{% trans "Manage groups" %}</a>
+    <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/preview/">{% trans "Survey Preview (read-only)" %}</a>
+    <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/groups/">{% trans "Manage question groups" %}</a>
     {% if can_manage_users %}
     <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/users/">{% trans "Manage collaborators" %}</a>
     {% endif %}
