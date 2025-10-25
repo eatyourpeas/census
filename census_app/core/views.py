@@ -158,6 +158,14 @@ def profile(request):
     org = primary_owned_org or (
         first_membership.organization if first_membership else None
     )
+
+    # Check if user has any surveys with encryption enabled
+    has_encryption_setup = Survey.objects.filter(
+        owner=user
+    ).exclude(
+        encrypted_kek_password="", encrypted_kek_recovery=""
+    ).exists()
+
     stats = {
         "is_superuser": getattr(user, "is_superuser", False),
         "is_staff": getattr(user, "is_staff", False),
@@ -179,6 +187,7 @@ def profile(request):
         ).count(),  # Alias for template clarity
         "responses_submitted": SurveyResponse.objects.filter(submitted_by=user).count(),
         "tokens_created": SurveyAccessToken.objects.filter(created_by=user).count(),
+        "has_encryption_setup": has_encryption_setup,
     }
     # Prepare language preference form
     lang_pref, created = UserLanguagePreference.objects.get_or_create(user=user)

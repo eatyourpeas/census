@@ -371,6 +371,10 @@ OIDC_RP_SIGN_ALGO = env("OIDC_RP_SIGN_ALGO")
 OIDC_OP_JWKS_ENDPOINT_GOOGLE = env("OIDC_OP_JWKS_ENDPOINT_GOOGLE")
 OIDC_OP_JWKS_ENDPOINT_AZURE = env("OIDC_OP_JWKS_ENDPOINT_AZURE")
 
+# hCaptcha Configuration
+HCAPTCHA_SITEKEY = env("HCAPTCHA_SITEKEY")
+HCAPTCHA_SECRET = env("HCAPTCHA_SECRET")
+
 # Dynamic base URL for development vs production
 if DEBUG:
     # Local development with Docker

@@ -1589,29 +1589,62 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
     # Sparkline data: last 14 full days (oldest -> newest)
     from collections import OrderedDict
 
-    start_14 = start_today - timezone.timedelta(days=13)
-    day_counts = OrderedDict()
-    for i in range(14):
-        day = start_14 + timezone.timedelta(days=i)
-        next_day = day + timezone.timedelta(days=1)
-        day_counts[day.date().isoformat()] = survey.responses.filter(
-            submitted_at__gte=day, submitted_at__lt=next_day
-        ).count()
-    # Build sparkline polyline points (0..100 width, 0..24 height)
-    values = list(day_counts.values())
     spark_points = ""
-    if values:
-        max_v = max(values) or 1
-        n = len(values)
-        width = 100.0
-        height = 24.0
-        dx = width / (n - 1) if n > 1 else width
-        pts = []
-        for i, v in enumerate(values):
-            x = dx * i
-            y = height - (float(v) / float(max_v)) * height
-            pts.append(f"{x:.1f},{y:.1f}")
-        spark_points = " ".join(pts)
+    spark_labels = []
+    survey_not_started = survey.start_at and survey.start_at > now
+
+    if not survey_not_started:
+        # Show from publication date (or last 14 days, whichever is more recent)
+        # This gives a complete picture of the survey's lifetime submissions
+        if survey.start_at:
+            # Use the survey's publication start date
+            survey_start_day = survey.start_at.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            start_date = survey_start_day
+        else:
+            # No start date specified - show last 14 days as fallback
+            start_date = start_today - timezone.timedelta(days=13)
+
+        # Ensure we always show at least 2 days for a proper line graph
+        if start_date == start_today:
+            start_date = start_today - timezone.timedelta(days=1)
+
+        day_counts = OrderedDict()
+        current_day = start_date
+        # Always include at least up to and including today
+        end_day = start_today + timezone.timedelta(days=1)
+        while current_day < end_day:
+            next_day = current_day + timezone.timedelta(days=1)
+            day_counts[current_day.date().isoformat()] = survey.responses.filter(
+                submitted_at__gte=current_day, submitted_at__lt=next_day
+            ).count()
+            current_day = next_day
+
+        # Build sparkline polyline points (0..100 width, 0..24 height)
+        values = list(day_counts.values())
+        dates = list(day_counts.keys())
+
+        if values:  # Create sparkline even if all zeros
+            max_v = max(values) if max(values) > 0 else 1
+            n = len(values)
+            width = 100.0
+            height = 24.0
+            dx = width / (n - 1) if n > 1 else width
+            pts = []
+            for i, v in enumerate(values):
+                x = dx * i
+                y = height - (float(v) / float(max_v)) * height
+                pts.append(f"{x:.1f},{y:.1f}")
+            spark_points = " ".join(pts)
+
+            # Create labels for axis
+            if n > 0:
+                spark_labels = [
+                    {"date": dates[0], "label": "Start"},
+                    {"date": dates[-1], "label": "Today"},
+                    {"max_count": max_v}
+                ]
     # Derived status
     is_live = survey.is_live()
     visible = (
@@ -1647,8 +1680,9 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
         "visible": visible,
         "today_count": today_count,
         "last7_count": last7_count,
-        "day_counts": list(day_counts.values()),
         "spark_points": spark_points,
+        "spark_labels": spark_labels,
+        "survey_not_started": survey_not_started,
         "can_manage_users": can_manage_survey_users(request.user, survey),
     }
     if any(
