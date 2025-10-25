@@ -219,9 +219,14 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
 
         # Determine provider from claims
         provider = self._get_provider_from_claims(claims)
-        subject_id = claims.get("sub")
+
+        # Get subject identifier - Azure uses 'id', others typically use 'sub'
+        subject_id = claims.get("sub") or claims.get("id")
 
         if not subject_id:
+            logger.error(
+                f"OIDC user missing subject identifier. Available claims: {list(claims.keys())}"
+            )
             raise SuspiciousOperation("OIDC user missing subject identifier")
 
         # Generate username from email
@@ -269,7 +274,8 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
 
         # Link this OIDC account if not already linked
         provider = self._get_provider_from_claims(claims)
-        subject_id = claims.get("sub")
+        # Get subject identifier - Azure uses 'id', others typically use 'sub'
+        subject_id = claims.get("sub") or claims.get("id")
 
         # Create or update UserOIDC record
         if subject_id:
@@ -345,7 +351,8 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         - Traditional password
         """
         # Store provider-specific subject ID for future linking
-        subject_id = claims.get("sub")
+        # Get subject identifier - Azure uses 'id', others typically use 'sub'
+        subject_id = claims.get("sub") or claims.get("id")
         if not subject_id:
             return
 
