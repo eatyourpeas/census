@@ -54,7 +54,7 @@ def test_survey_creator_cannot_access_user_management_hub_without_org_admin(clie
     )
 
     # Survey creator creates a survey
-    survey = Survey.objects.create(
+    Survey.objects.create(
         owner=survey_creator, organization=org, name="Test Survey", slug="test-survey"
     )
 
@@ -79,7 +79,6 @@ def test_survey_creator_cannot_escalate_org_membership_roles(client):
     # Create org admin and survey creator
     org_admin = User.objects.create_user(username="admin@test.com", email="admin@test.com", password=TEST_PASSWORD)
     survey_creator = User.objects.create_user(username="creator@test.com", email="creator@test.com", password=TEST_PASSWORD)
-    other_user = User.objects.create_user(username="other@test.com", email="other@test.com", password=TEST_PASSWORD)
 
     # Create organization
     org = Organization.objects.create(name="Test Org", owner=org_admin)
@@ -228,7 +227,7 @@ def test_survey_member_cannot_access_other_surveys_in_org(client):
     assert resp.status_code == 200
 
     # Editor should NOT be able to access survey2
-    resp = client.get(reverse("surveys:dashboard", kwargs={"slug": "survey-2"}))
+    resp = client.get(reverse("surveys:dashboard", kwargs={"slug": survey2.slug}))
     assert resp.status_code == 403
 
 

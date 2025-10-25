@@ -236,12 +236,12 @@ class SafeAccountDeletionTests(TestCase):
     def test_survey_deletion_cascade_behavior(self):
         """Test that survey deletion properly cascades when user is deleted."""
         # Create multiple surveys for individual user
-        survey1 = Survey.objects.create(
+        Survey.objects.create(
             name='Survey 1',
             slug='survey-1',
             owner=self.individual_user
         )
-        survey2 = Survey.objects.create(
+        Survey.objects.create(
             name='Survey 2',
             slug='survey-2',
             owner=self.individual_user
@@ -252,7 +252,7 @@ class SafeAccountDeletionTests(TestCase):
 
         # Delete user account
         self.client.force_login(self.individual_user)
-        response = self.client.post(reverse('core:delete_account'))
+        self.client.post(reverse('core:delete_account'))
 
         # User should be deleted
         self.assertFalse(User.objects.filter(email='individual@example.com').exists())
