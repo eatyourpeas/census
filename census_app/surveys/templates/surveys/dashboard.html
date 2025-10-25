@@ -39,6 +39,21 @@
     <span class="badge badge-primary badge-outline">{% trans "Total responses" %}: {{ total }}{% if survey.max_responses %} / {{ survey.max_responses }}{% endif %}</span>
   </div>
   <div class="flex flex-wrap gap-2">
+    {% if survey.status == 'draft' %}
+      <a class="btn btn-success btn-sm" href="{% url 'surveys:publish_settings' slug=survey.slug %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        {% trans "Publish Survey" %}
+      </a>
+    {% elif survey.status == 'published' %}
+      <a class="btn btn-primary btn-sm" href="{% url 'surveys:publish_settings' slug=survey.slug %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+        {% trans "Edit Publication" %}
+      </a>
+    {% endif %}
     <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/preview/">{% trans "Survey Preview (read-only)" %}</a>
     <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/groups/">{% trans "Manage question groups" %}</a>
     {% if can_manage_users %}
@@ -112,90 +127,6 @@
         <button class="btn btn-primary" type="submit">Save style</button>
       </div>
     </form>
-  </details>
-
-  <details class="mb-6">
-  <summary class="cursor-pointer select-none text-lg font-semibold">{% trans "Publish settings" %}
-    <a class="link link-primary text-sm ml-2 align-middle" href="{% url 'core:docs_page' slug='publish-and-collection' %}">{% trans "Learn more" %}</a>
-  </summary>
-    <form class="mt-3 grid md:grid-cols-3 gap-3" method="post" action="/surveys/{{ survey.slug }}/dashboard/publish">
-      {% csrf_token %}
-      <div>
-        <label class="label flex items-center gap-2">{% trans "Status" %}
-          <a class="tooltip tooltip-right" data-tip="{% trans 'Draft: build only · Published: accept submissions · Closed: stop submissions' %}" href="{% url 'core:docs_page' slug='publish-and-collection' %}">
-            <span class="link link-hover text-sm">{% trans "What’s this?" %}</span>
-          </a>
-        </label>
-        <select class="select select-bordered w-full" name="status">
-          <option value="draft" {% if survey.status == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
-          <option value="published" {% if survey.status == 'published' %}selected{% endif %}>{% trans "Published" %}</option>
-          <option value="closed" {% if survey.status == 'closed' %}selected{% endif %}>{% trans "Closed" %}</option>
-        </select>
-      </div>
-      <div>
-        <label class="label flex items-center gap-2">{% trans "Visibility" %}
-          <a class="tooltip tooltip-right" data-tip="{% trans 'Authenticated: login required · Public: open link · Unlisted: secret link · Invite token: one-time codes' %}" href="{% url 'core:docs_page' slug='publish-and-collection' %}">
-            <span class="link link-hover text-sm">{% trans "What’s this?" %}</span>
-          </a>
-        </label>
-        <select class="select select-bordered w-full" name="visibility">
-          <option value="authenticated" {% if survey.visibility == 'authenticated' %}selected{% endif %}>{% trans "Authenticated" %}</option>
-          <option value="public" {% if survey.visibility == 'public' %}selected{% endif %}>{% trans "Public" %}</option>
-          <option value="unlisted" {% if survey.visibility == 'unlisted' %}selected{% endif %}>{% trans "Unlisted" %}</option>
-          <option value="token" {% if survey.visibility == 'token' %}selected{% endif %}>{% trans "Invite token" %}</option>
-        </select>
-      </div>
-      <div>
-        <label class="label">{% trans "Max responses" %}</label>
-        <input class="input input-bordered w-full" name="max_responses" type="number" min="1" value="{{ survey.max_responses }}" />
-      </div>
-      <div>
-        <label class="label">{% trans "Start at" %}</label>
-        <input class="input input-bordered w-full" name="start_at" type="datetime-local" value="{% if survey.start_at %}{{ survey.start_at|date:'Y-m-d\\TH:i' }}{% endif %}" />
-      </div>
-      <div>
-        <label class="label">{% trans "End at" %}</label>
-        <input class="input input-bordered w-full" name="end_at" type="datetime-local" value="{% if survey.end_at %}{{ survey.end_at|date:'Y-m-d\\TH:i' }}{% endif %}" />
-      </div>
-      <div class="md:col-span-3">
-        <label class="cursor-pointer flex items-center gap-2">
-          <input type="checkbox" class="checkbox" name="captcha_required" {% if survey.captcha_required %}checked{% endif %} />
-          <span>{% trans "Require CAPTCHA for anonymous submissions" %}</span>
-        </label>
-      </div>
-      <div class="md:col-span-3 p-3 rounded bg-warning/10 border border-warning/30">
-        <label class="cursor-pointer flex items-start gap-2">
-          <input type="checkbox" class="checkbox mt-1" name="no_patient_data_ack" {% if survey.no_patient_data_ack %}checked{% endif %} />
-          <span class="text-sm">{% blocktrans %}I confirm no <strong>patient-identifiable data</strong> is collected in this survey. This is required when using Public, Unlisted, or Token visibility to prevent unauthorised access.{% endblocktrans %}</span>
-        </label>
-      </div>
-      <div class="md:col-span-3">
-        <button class="btn btn-primary" type="submit">{% trans "Save publish settings" %}</button>
-        {% if survey.visibility == 'unlisted' and survey.unlisted_key %}
-        <span class="ml-3 text-sm opacity-80">{% trans "Unlisted link" %}: <code class="font-mono">/surveys/{{ survey.slug }}/take/unlisted/{{ survey.unlisted_key }}/</code></span>
-        <button class="btn btn-outline btn-sm ml-2 copy-survey-link" data-url="{{ request.scheme }}://{{ request.get_host }}/surveys/{{ survey.slug }}/take/unlisted/{{ survey.unlisted_key }}/">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-          {% trans "Copy Link" %}
-        </button>
-        {% endif %}
-        {% if survey.visibility == 'public' %}
-        <span class="ml-3 text-sm opacity-80">{% trans "Public link" %}: <code class="font-mono">/surveys/{{ survey.slug }}/take/</code></span>
-        <button class="btn btn-outline btn-sm ml-2 copy-survey-link" data-url="{{ request.scheme }}://{{ request.get_host }}/surveys/{{ survey.slug }}/take/">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-          {% trans "Copy Link" %}
-        </button>
-        {% endif %}
-      </div>
-    </form>
-    {% if survey.visibility == 'token' %}
-      <div class="mt-3">
-        <a class="btn btn-primary btn-sm" href="/surveys/{{ survey.slug }}/tokens/">{% trans "Manage invite tokens" %}</a>
-      </div>
-    {% endif %}
   </details>
 
   {# Group management is available on the Groups page #}

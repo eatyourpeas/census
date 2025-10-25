@@ -1759,6 +1759,140 @@ def survey_delete(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
+def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
+    """
+    Dedicated publish settings page with clearer UX.
+    Handles both initial publish and editing published surveys.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+
+    if request.method == "POST":
+        action = request.POST.get("action", "publish")
+
+        # Parse fields
+        visibility = request.POST.get("visibility") or survey.visibility
+        start_at_str = request.POST.get("start_at") or None
+        end_at_str = request.POST.get("end_at") or None
+        max_responses = request.POST.get("max_responses") or None
+        captcha_required = bool(request.POST.get("captcha_required"))
+        no_patient_data_ack = bool(request.POST.get("no_patient_data_ack"))
+
+        # Parse dates
+        from django.utils.dateparse import parse_datetime
+
+        start_at = parse_datetime(start_at_str) if start_at_str else None
+        end_at = parse_datetime(end_at_str) if end_at_str else None
+
+        if max_responses:
+            try:
+                max_responses = int(max_responses)
+            except ValueError:
+                max_responses = None
+
+        # Validate patient data acknowledgment for non-auth visibility
+        collects_patient = _survey_collects_patient_data(survey)
+        if (
+            visibility
+            in {
+                Survey.Visibility.PUBLIC,
+                Survey.Visibility.UNLISTED,
+                Survey.Visibility.TOKEN,
+            }
+            and collects_patient
+        ):
+            if not no_patient_data_ack:
+                messages.error(
+                    request,
+                    "To use public, unlisted, or tokenized visibility, confirm that no patient data is collected.",
+                )
+                return render(request, "surveys/publish_settings.html", {"survey": survey})
+
+        # Handle different actions
+        if action == "close":
+            # Close the survey
+            survey.status = Survey.Status.CLOSED
+            survey.save()
+            messages.success(request, "Survey has been closed.")
+            return redirect("surveys:dashboard", slug=slug)
+
+        elif action == "publish":
+            # Publishing for the first time
+            prev_status = survey.status
+
+            # Check if encryption setup is needed
+            needs_encryption_setup = (
+                prev_status != Survey.Status.PUBLISHED
+                and not survey.has_dual_encryption()
+                and request.user.groups.filter(name="Individual Users").exists()
+            )
+
+            if needs_encryption_setup:
+                # Store pending publish settings in session
+                request.session["pending_publish"] = {
+                    "slug": slug,
+                    "visibility": visibility,
+                    "start_at": start_at.isoformat() if start_at else None,
+                    "end_at": end_at.isoformat() if end_at else None,
+                    "max_responses": max_responses,
+                    "captcha_required": captcha_required,
+                    "no_patient_data_ack": no_patient_data_ack,
+                }
+                return redirect("surveys:encryption_setup", slug=slug)
+
+            # Apply settings
+            survey.visibility = visibility
+            survey.start_at = start_at
+            survey.end_at = end_at
+            survey.max_responses = max_responses
+            survey.captcha_required = captcha_required
+            survey.no_patient_data_ack = no_patient_data_ack
+
+            # Set status to PUBLISHED
+            survey.status = Survey.Status.PUBLISHED
+
+            # On first publish, set published_at and start_at if not provided
+            if prev_status != Survey.Status.PUBLISHED and not survey.published_at:
+                survey.published_at = timezone.now()
+                # If start_at not provided, set it to now (survey starts immediately)
+                if not survey.start_at:
+                    survey.start_at = timezone.now()
+
+            # Generate unlisted key if needed
+            if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
+                import secrets
+
+                survey.unlisted_key = secrets.token_urlsafe(24)
+
+            survey.save()
+            messages.success(request, "Survey has been published successfully!")
+            return redirect("surveys:dashboard", slug=slug)
+
+        elif action == "save":
+            # Saving changes to already-published survey
+            survey.visibility = visibility
+            survey.start_at = start_at
+            survey.end_at = end_at
+            survey.max_responses = max_responses
+            survey.captcha_required = captcha_required
+            survey.no_patient_data_ack = no_patient_data_ack
+
+            # Generate unlisted key if needed
+            if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
+                import secrets
+
+                survey.unlisted_key = secrets.token_urlsafe(24)
+
+            survey.save()
+            messages.success(request, "Publication settings updated.")
+            return redirect("surveys:dashboard", slug=slug)
+
+    # GET request - show the form
+    return render(request, "surveys/publish_settings.html", {"survey": survey})
+
+
+@login_required
 @require_http_methods(["POST"])
 def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
@@ -1909,7 +2043,8 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
         # Apply pending publish settings
         from django.utils.dateparse import parse_datetime
 
-        survey.status = pending.get("status", survey.status)
+        # Set status to PUBLISHED (this is a publish action)
+        survey.status = Survey.Status.PUBLISHED
         survey.visibility = pending.get("visibility", survey.visibility)
         start_at_str = pending.get("start_at")
         end_at_str = pending.get("end_at")

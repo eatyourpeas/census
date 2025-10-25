@@ -50,6 +50,11 @@ urlpatterns = [
     path("<slug:slug>/dashboard/", views.survey_dashboard, name="dashboard"),
     path("<slug:slug>/delete/", views.survey_delete, name="delete"),
     path(
+        "<slug:slug>/publish/",
+        views.survey_publish_settings,
+        name="publish_settings",
+    ),
+    path(
         "<slug:slug>/dashboard/publish",
         views.survey_publish_update,
         name="publish_update",
