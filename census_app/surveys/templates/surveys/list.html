@@ -54,6 +54,23 @@
                 <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/groups/">{% trans "Groups" %}</a>
                 <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/preview/">{% trans "Preview" %}</a>
                 <a class="btn btn-primary btn-sm" href="/surveys/{{ s.slug }}/bulk-upload/">{% trans "Import" %}</a>
+                {% if s.status == 'published' %}
+                  {% if s.visibility == 'public' %}
+                    <button class="btn btn-outline btn-sm copy-survey-link" data-slug="{{ s.slug }}" data-url="{{ request.scheme }}://{{ request.get_host }}/surveys/{{ s.slug }}/take/">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      {% trans "Copy Link" %}
+                    </button>
+                  {% elif s.visibility == 'unlisted' and s.unlisted_key %}
+                    <button class="btn btn-outline btn-sm copy-survey-link" data-slug="{{ s.slug }}" data-url="{{ request.scheme }}://{{ request.get_host }}/surveys/{{ s.slug }}/take/unlisted/{{ s.unlisted_key }}/">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      {% trans "Copy Link" %}
+                    </button>
+                  {% endif %}
+                {% endif %}
               </div>
             </div>
           </div>
@@ -64,4 +81,58 @@
     <p>{% trans "No surveys yet." %}</p>
   {% endif %}
 </div>
+
+<script nonce="{{ request.csp_nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+  const copyButtons = document.querySelectorAll('.copy-survey-link');
+
+  copyButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const url = this.dataset.url;
+      const originalText = this.innerHTML;
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+          // Show success feedback
+          this.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>{% trans "Copied!" %}';
+          this.classList.add('btn-success');
+
+          setTimeout(() => {
+            this.innerHTML = originalText;
+            this.classList.remove('btn-success');
+          }, 2000);
+        }).catch(() => {
+          fallbackCopy(url, this, originalText);
+        });
+      } else {
+        fallbackCopy(url, this, originalText);
+      }
+    });
+  });
+
+  function fallbackCopy(text, button, originalText) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+      document.execCommand('copy');
+      button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>{% trans "Copied!" %}';
+      button.classList.add('btn-success');
+
+      setTimeout(() => {
+        button.innerHTML = originalText;
+        button.classList.remove('btn-success');
+      }, 2000);
+    } catch (err) {
+      alert('{% trans "Failed to copy. Please copy manually:" %} ' + text);
+    }
+
+    document.body.removeChild(textarea);
+  }
+});
+</script>
 {% endblock %}
