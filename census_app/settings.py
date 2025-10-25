@@ -225,6 +225,8 @@ AXES_LOCKOUT_PARAMETERS = ["username"]
 # Disable axes for OIDC callbacks to avoid interference
 AXES_NEVER_LOCKOUT_WHITELIST = True
 AXES_IP_WHITELIST = ["127.0.0.1", "localhost"]
+# Use custom lockout template
+AXES_LOCKOUT_TEMPLATE = "403_lockout.html"
 
 # Ratelimit example (used in views)
 RATELIMIT_ENABLE = True
