@@ -1,6 +1,11 @@
 """Custom error handler views for Django error pages."""
 
-from django.http import HttpRequest, HttpResponse, HttpResponseNotFound, HttpResponseServerError
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    HttpResponseNotFound,
+    HttpResponseServerError,
+)
 from django.shortcuts import render
 
 

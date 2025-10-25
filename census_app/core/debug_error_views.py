@@ -9,6 +9,7 @@ def trigger_403(request: HttpRequest) -> HttpResponse:
     """Trigger a 403 Forbidden error."""
     # Use the custom handler directly
     from census_app.core.error_handlers import custom_permission_denied_view
+
     return custom_permission_denied_view(request)
 
 
@@ -16,6 +17,7 @@ def trigger_404(request: HttpRequest) -> HttpResponse:
     """Trigger a 404 Not Found error."""
     # Use the custom handler directly
     from census_app.core.error_handlers import custom_page_not_found_view
+
     return custom_page_not_found_view(request)
 
 
@@ -30,6 +32,7 @@ def trigger_500(request: HttpRequest) -> HttpResponse:
     """Trigger a 500 Internal Server Error."""
     # Use the custom handler directly
     from census_app.core.error_handlers import custom_server_error_view
+
     return custom_server_error_view(request)
 
 

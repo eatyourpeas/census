@@ -2206,9 +2206,10 @@ def survey_preview_thank_you(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     require_can_view(request.user, survey)
     return render(
-        request, "surveys/preview_thank_you.html", {"survey": survey, "is_preview": True}
+        request,
+        "surveys/preview_thank_you.html",
+        {"survey": survey, "is_preview": True},
     )
-
 
 
 @login_required

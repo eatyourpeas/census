@@ -7,8 +7,9 @@ import pytest
 def test_403_error_page(client):
     """Test that 403 error page renders with styling."""
     # Access a survey the user doesn't have permission to view
-    from census_app.surveys.models import Organization, Survey
     from django.contrib.auth import get_user_model
+
+    from census_app.surveys.models import Organization, Survey
 
     User = get_user_model()
     owner = User.objects.create_user(username="owner", password="pass")
