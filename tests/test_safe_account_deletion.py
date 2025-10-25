@@ -32,9 +32,12 @@ class SafeAccountDeletionTests(TestCase):
 
         # Create organization
         self.organization = Organization.objects.create(
-            name="Test Organization", owner=User.objects.create_user(
-                username="org_owner", email="org_owner@example.com", password="testpass123"
-            )
+            name="Test Organization",
+            owner=User.objects.create_user(
+                username="org_owner",
+                email="org_owner@example.com",
+                password="testpass123",
+            ),
         )
 
         # Create test users
