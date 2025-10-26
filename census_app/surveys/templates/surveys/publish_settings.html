@@ -104,7 +104,7 @@
               </svg>
               <div class="flex-1">
                 <label class="cursor-pointer flex items-start gap-3">
-                  <input type="checkbox" class="checkbox checkbox-warning mt-0.5" name="no_patient_data_ack" id="no_patient_data" {% if survey.no_patient_data_ack %}checked{% endif %} required />
+                  <input type="checkbox" class="checkbox checkbox-warning border-white mt-0.5" name="no_patient_data_ack" id="no_patient_data" {% if survey.no_patient_data_ack %}checked{% endif %} required />
                   <span class="text-sm">{% blocktrans %}I confirm no <strong>patient-identifiable data</strong> is collected in this survey. This is required when using Public, Unlisted, or Token visibility to prevent unauthorised access.{% endblocktrans %}</span>
                 </label>
               </div>
