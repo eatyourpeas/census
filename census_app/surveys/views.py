@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import csv
 import io
 import json
 import logging
 import secrets
+from copy import deepcopy
 from typing import Any, Iterable, Union
 
 from django import forms
@@ -1591,6 +1591,7 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
 
     spark_points = ""
     spark_labels = []
+    invites_points = ""
     survey_not_started = survey.start_at and survey.start_at > now
 
     if not survey_not_started:
@@ -1614,29 +1615,55 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
         current_day = start_date
         # Always include at least up to and including today
         end_day = start_today + timezone.timedelta(days=1)
+        # Also build invites-per-day alongside response counts so we can
+        # render both series in the sparkline.
+        invite_day_counts = OrderedDict()
         while current_day < end_day:
             next_day = current_day + timezone.timedelta(days=1)
             day_counts[current_day.date().isoformat()] = survey.responses.filter(
                 submitted_at__gte=current_day, submitted_at__lt=next_day
             ).count()
+            invite_day_counts[current_day.date().isoformat()] = (
+                survey.access_tokens.filter(
+                    created_at__gte=current_day,
+                    created_at__lt=next_day,
+                    note__icontains="Invited",
+                ).count()
+            )
             current_day = next_day
 
         # Build sparkline polyline points (0..100 width, 0..24 height)
-        values = list(day_counts.values())
+        response_values = list(day_counts.values())
+        invite_values = list(invite_day_counts.values())
         dates = list(day_counts.keys())
 
-        if values:  # Create sparkline even if all zeros
-            max_v = max(values) if max(values) > 0 else 1
-            n = len(values)
+        if response_values or invite_values:  # Create sparkline even if all zeros
+            # Use combined max so both series share the same vertical scale
+            max_v = max(
+                max(response_values) if response_values else 0,
+                max(invite_values) if invite_values else 0,
+            )
+            max_v = max_v if max_v > 0 else 1
+            n = len(dates)
             width = 100.0
             height = 24.0
             dx = width / (n - 1) if n > 1 else width
-            pts = []
-            for i, v in enumerate(values):
+
+            # Response series (primary)
+            resp_pts = []
+            for i, v in enumerate(response_values):
                 x = dx * i
                 y = height - (float(v) / float(max_v)) * height
-                pts.append(f"{x:.1f},{y:.1f}")
-            spark_points = " ".join(pts)
+                resp_pts.append(f"{x:.1f},{y:.1f}")
+            spark_points = " ".join(resp_pts)
+
+            # Invite series (secondary)
+            invite_pts = []
+            for i, v in enumerate(invite_values):
+                x = dx * i
+                y = height - (float(v) / float(max_v)) * height
+                invite_pts.append(f"{x:.1f},{y:.1f}")
+            invites_points = " ".join(invite_pts)
 
             # Create labels for axis
             if n > 0:
@@ -1682,6 +1709,12 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
         "last7_count": last7_count,
         "spark_points": spark_points,
         "spark_labels": spark_labels,
+        # Invites stats
+        "invites_sent": survey.access_tokens.filter(note__icontains="Invited").count(),
+        "invites_pending": survey.access_tokens.filter(
+            note__icontains="Invited", response__isnull=True
+        ).count(),
+        "invites_points": invites_points,
         "survey_not_started": survey_not_started,
         "can_manage_users": can_manage_survey_users(request.user, survey),
     }
@@ -1716,6 +1749,80 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
             "primary": hex_to_oklch(brand_overrides.get("primary_hex") or ""),
         }
     return render(request, "surveys/dashboard.html", ctx)
+
+
+@login_required
+def survey_invites_pending(request: HttpRequest, slug: str) -> HttpResponse:
+    """List invited email addresses that have not yet submitted a response.
+
+    This shows tokens created via the invite workflow where there is no
+    associated response yet.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_view(request.user, survey)
+
+    tokens = survey.access_tokens.filter(
+        note__icontains="Invited", response__isnull=True
+    ).order_by("-created_at")
+
+    invites = []
+    for t in tokens:
+        # Note format used when creating invites: 'Invited: email@domain'
+        email = None
+        if t.note and ":" in t.note:
+            email = t.note.split(":", 1)[1].strip()
+        invites.append({"token": t, "email": email or t.note or ""})
+
+    return render(
+        request, "surveys/invites_pending.html", {"survey": survey, "invites": invites}
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def survey_invite_resend(
+    request: HttpRequest, slug: str, token_id: int
+) -> HttpResponse:
+    """Resend an invitation email for a pending access token.
+
+    Only allows resending for tokens that haven't been used yet (no response).
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+
+    token = get_object_or_404(
+        SurveyAccessToken,
+        id=token_id,
+        survey=survey,
+        note__icontains="Invited",
+        response__isnull=True,
+    )
+
+    # Extract email from note (format: "Invited: email@domain.com")
+    email = None
+    if token.note and ":" in token.note:
+        email = token.note.split(":", 1)[1].strip()
+
+    if not email or "@" not in email:
+        messages.error(request, "Cannot resend: invalid email address in token note.")
+        return redirect("surveys:invites_pending", slug=slug)
+
+    # Send the invitation email
+    from census_app.core.email_utils import send_survey_invite_email
+
+    contact_email = request.user.email if request.user.email else None
+
+    if send_survey_invite_email(
+        to_email=email,
+        survey=survey,
+        token=token.token,
+        contact_email=contact_email,
+    ):
+        messages.success(request, f"Invitation resent to {email}")
+    else:
+        messages.error(request, f"Failed to resend invitation to {email}")
+
+    return redirect("surveys:invites_pending", slug=slug)
 
 
 @login_required
@@ -1792,6 +1899,42 @@ def survey_delete(request: HttpRequest, slug: str) -> HttpResponse:
     return redirect("core:home")
 
 
+def _parse_email_addresses(text: str) -> list[str]:
+    """Parse email addresses from various formats.
+
+    Supports:
+    - One per line: email@domain.com
+    - Outlook format: Name <email@domain.com>
+    - Semicolon separated: email1@domain.com; email2@domain.com
+    - Combined: Name1 <email1@domain.com>; Name2 <email2@domain.com>
+
+    Returns list of email addresses.
+    """
+    import re
+
+    # First split by semicolons and newlines
+    raw_entries = re.split(r"[;\n]", text)
+
+    email_list = []
+    # Extract email from each entry (handle both plain and "Name <email>" formats)
+    email_pattern = r"<([^>]+)>|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})"
+
+    for entry in raw_entries:
+        entry = entry.strip()
+        if not entry:
+            continue
+
+        # Try to find email in angle brackets first (Outlook format)
+        match = re.search(email_pattern, entry)
+        if match:
+            # Group 1 is email in angle brackets, group 2 is plain email
+            email = match.group(1) or match.group(2)
+            if email:
+                email_list.append(email.strip())
+
+    return email_list
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
@@ -1812,6 +1955,7 @@ def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
         max_responses = request.POST.get("max_responses") or None
         captcha_required = bool(request.POST.get("captcha_required"))
         no_patient_data_ack = bool(request.POST.get("no_patient_data_ack"))
+        invite_emails = request.POST.get("invite_emails", "").strip()
 
         # Parse dates
         from django.utils.dateparse import parse_datetime
@@ -1905,7 +2049,66 @@ def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
                 survey.unlisted_key = secrets.token_urlsafe(24)
 
             survey.save()
-            messages.success(request, "Survey has been published successfully!")
+
+            # Process invite emails if provided and visibility is TOKEN
+            if invite_emails and visibility == Survey.Visibility.TOKEN:
+                import secrets
+
+                from census_app.core.email_utils import send_survey_invite_email
+
+                # Parse email addresses (supports Outlook format and various separators)
+                email_list = _parse_email_addresses(invite_emails)
+
+                # Get contact email (use survey owner's email)
+                contact_email = request.user.email if request.user.email else None
+
+                sent_count = 0
+                failed_emails = []
+
+                for email_address in email_list:
+                    # Validate email format (basic check)
+                    if (
+                        "@" not in email_address
+                        or "." not in email_address.split("@")[1]
+                    ):
+                        failed_emails.append(f"{email_address} (invalid format)")
+                        continue
+
+                    # Create token for this email
+                    token = SurveyAccessToken(
+                        survey=survey,
+                        token=secrets.token_urlsafe(24),
+                        created_by=request.user,
+                        expires_at=end_at if end_at else None,
+                        note=f"Invited: {email_address}",
+                    )
+                    token.save()
+
+                    # Send invitation email
+                    if send_survey_invite_email(
+                        to_email=email_address,
+                        survey=survey,
+                        token=token.token,
+                        contact_email=contact_email,
+                    ):
+                        sent_count += 1
+                    else:
+                        failed_emails.append(email_address)
+
+                # Show summary message
+                if sent_count > 0:
+                    messages.success(
+                        request,
+                        f"Survey published! {sent_count} invitation(s) sent successfully.",
+                    )
+                if failed_emails:
+                    messages.warning(
+                        request,
+                        f"Failed to send invites to: {', '.join(failed_emails)}",
+                    )
+            else:
+                messages.success(request, "Survey has been published successfully!")
+
             return redirect("surveys:dashboard", slug=slug)
 
         elif action == "save":
@@ -1927,7 +2130,66 @@ def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
                 survey.unlisted_key = secrets.token_urlsafe(24)
 
             survey.save()
-            messages.success(request, "Publication settings updated.")
+
+            # Process invite emails if provided and visibility is TOKEN
+            if invite_emails and visibility == Survey.Visibility.TOKEN:
+                import secrets
+
+                from census_app.core.email_utils import send_survey_invite_email
+
+                # Parse email addresses (supports Outlook format and various separators)
+                email_list = _parse_email_addresses(invite_emails)
+
+                # Get contact email (use survey owner's email)
+                contact_email = request.user.email if request.user.email else None
+
+                sent_count = 0
+                failed_emails = []
+
+                for email_address in email_list:
+                    # Validate email format (basic check)
+                    if (
+                        "@" not in email_address
+                        or "." not in email_address.split("@")[1]
+                    ):
+                        failed_emails.append(f"{email_address} (invalid format)")
+                        continue
+
+                    # Create token for this email
+                    token = SurveyAccessToken(
+                        survey=survey,
+                        token=secrets.token_urlsafe(24),
+                        created_by=request.user,
+                        expires_at=end_at if end_at else None,
+                        note=f"Invited: {email_address}",
+                    )
+                    token.save()
+
+                    # Send invitation email
+                    if send_survey_invite_email(
+                        to_email=email_address,
+                        survey=survey,
+                        token=token.token,
+                        contact_email=contact_email,
+                    ):
+                        sent_count += 1
+                    else:
+                        failed_emails.append(email_address)
+
+                # Show summary message
+                if sent_count > 0:
+                    messages.success(
+                        request,
+                        f"Settings updated! {sent_count} invitation(s) sent successfully.",
+                    )
+                if failed_emails:
+                    messages.warning(
+                        request,
+                        f"Failed to send invites to: {', '.join(failed_emails)}",
+                    )
+            else:
+                messages.success(request, "Publication settings updated.")
+
             return redirect("surveys:dashboard", slug=slug)
 
     # GET request - show the form

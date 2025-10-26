@@ -84,6 +84,20 @@
           </div>
         </div>
 
+        <div class="form-control mb-6" id="invite-emails-section" style="display: none;">
+          <label class="label">
+            <span class="label-text font-semibold">{% trans "Send invite emails" %}</span>
+          </label>
+          <textarea 
+            class="textarea textarea-bordered w-full h-32" 
+            name="invite_emails" 
+            placeholder="{% trans 'Enter email addresses, one per line' %}&#10;example1@email.com&#10;example2@email.com"
+          ></textarea>
+          <label class="label">
+            <span class="label-text-alt opacity-70">{% trans "Enter one email address per line. A unique one-time invitation link will be sent to each address." %}</span>
+          </label>
+        </div>
+
         <div class="divider"></div>
 
         <div class="space-y-4 mb-6">
@@ -162,6 +176,7 @@
   const visibilitySelect = document.querySelector('select[name="visibility"]');
   const patientDataWarning = document.getElementById('patient-data-warning');
   const noPatientDataCheckbox = document.getElementById('no_patient_data');
+  const inviteEmailsSection = document.getElementById('invite-emails-section');
 
   function updatePatientDataWarning() {
     const requiresAck = ['public', 'unlisted', 'token'].includes(visibilitySelect.value);
@@ -174,8 +189,21 @@
     }
   }
 
-  visibilitySelect.addEventListener('change', updatePatientDataWarning);
-  updatePatientDataWarning();
+  function updateInviteEmailsSection() {
+    if (visibilitySelect.value === 'token') {
+      inviteEmailsSection.style.display = 'block';
+    } else {
+      inviteEmailsSection.style.display = 'none';
+    }
+  }
+
+  function updateVisibility() {
+    updatePatientDataWarning();
+    updateInviteEmailsSection();
+  }
+
+  visibilitySelect.addEventListener('change', updateVisibility);
+  updateVisibility();
 })();
 </script>
 {% endblock %}
