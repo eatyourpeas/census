@@ -47,16 +47,12 @@
 <div class="flex flex-wrap gap-2 mb-4">
   {% if survey.status == 'draft' %}
     <a class="btn btn-success btn-sm flex-shrink-0" href="{% url 'surveys:publish_settings' slug=survey.slug %}">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 1 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-      </svg>
+      {% include "components/icons/cloud-upload.html" with classes="w-5 h-5 mr-1" %}
       {% trans "Publish Survey" %}
     </a>
   {% elif survey.status == 'published' %}
     <a class="btn btn-primary btn-sm flex-shrink-0" href="{% url 'surveys:publish_settings' slug=survey.slug %}">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-      </svg>
+      {% include "components/icons/pencil.html" with classes="w-4 h-4 mr-1" %}
       {% trans "Edit Publication" %}
     </a>
   {% endif %}
