@@ -2,10 +2,10 @@
 Tests for survey invite workflow: dashboard stats, pending invites list, and resend functionality.
 """
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
+import pytest
 
 from census_app.surveys.models import (
     Organization,
