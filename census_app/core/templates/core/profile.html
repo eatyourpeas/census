@@ -521,7 +521,7 @@
                 </div>
               </div>
             {% endif %}
-            <button class="btn btn-warning btn-sm" onclick="confirmAccountDeletion()">
+            <button id="delete-account-btn" class="btn btn-warning btn-sm">
               {% trans "Delete My Account" %}
             </button>
           </div>
@@ -532,7 +532,14 @@
   {% endif %}
 </div>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+  const deleteBtn = document.getElementById('delete-account-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', confirmAccountDeletion);
+  }
+});
+
 function confirmAccountDeletion() {
   const surveysCount = {{ stats.surveys_owned|default:0 }};
 

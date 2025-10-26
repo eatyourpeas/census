@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% trans "Complete Your Account Setup" %} - {{ brand.title }}{% endblock %}
+
+{% block head_theme_overrides %}
+<style>
+  /* Force all text within forms to wrap properly */
+  .card-body * {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h1 class="card-title">{% trans "Welcome!" %}</h1>
+      <p class="opacity-80 mb-4">
+        {% blocktrans with email=user.email %}
+        You've successfully signed in with {{ email }}. Let's complete your account setup.
+        {% endblocktrans %}
+      </p>
+
+      <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        {# Account type selection #}
+        <div class="form-control">
+          <div class="flex items-center justify-between">
+            <span class="label-text font-semibold">{% trans "Choose Account Type" %}</span>
+            <a href="{% url 'core:docs_page' slug='getting-started-account-types' %}"
+               target="_blank"
+               class="link link-primary text-sm flex items-center gap-1">
+              {% trans "Learn more" %}
+            </a>
+          </div>
+
+          <div class="space-y-3 mt-3">
+            <label class="label cursor-pointer justify-start gap-3 p-4 border border-base-300 rounded-lg hover:border-primary break-words">
+              <input type="radio" name="account_type" value="simple" class="radio radio-primary shrink-0" checked />
+              <div class="min-w-0">
+                <span class="label-text font-semibold">{% trans "Individual Account" %}</span>
+                <p class="text-sm opacity-70">{% trans "Perfect for personal research and individual use" %}</p>
+                <div class="text-xs text-warning mt-1">
+                  {% trans "Encrypted - but you must keep the keys safe" %}
+                </div>
+              </div>
+            </label>
+            <label class="label cursor-pointer justify-start gap-3 p-4 border border-base-300 rounded-lg hover:border-primary break-words">
+              <input type="radio" name="account_type" value="org" class="radio radio-primary shrink-0" />
+              <div class="min-w-0">
+                <span class="label-text font-semibold">{% trans "Organization Account" %}</span>
+                <p class="text-sm opacity-70">{% trans "Collaborate with team members and colleagues" %}</p>
+                <div class="text-xs text-info mt-1">
+                  {% trans "Organisation can recover encryption keys" %}
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {# Help text about account types #}
+        <div class="alert alert-info text-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <div>
+            <strong>{% trans "Not sure which to choose?" %}</strong>
+            <p class="mt-1">
+              {% trans "Individual accounts are great for personal use, while organization accounts are perfect for teams and healthcare institutions." %}
+              <a href="{% url 'core:docs_page' slug='getting-started-account-types' %}"
+                 target="_blank"
+                 class="link link-primary font-medium">
+                {% trans "Read our detailed comparison guide" %}
+              </a>
+              {% trans "to help you decide." %}
+            </p>
+          </div>
+        </div>
+
+        {# Organisation name field (shown only when org account selected) #}
+        <div id="org-name-container" class="form-control" style="display: none;">
+          <label class="label">
+            <span class="label-text">{% trans "Organisation Name" %} <span class="text-error">*</span></span>
+          </label>
+          <input
+            type="text"
+            id="org-name-input"
+            name="org_name"
+            class="input input-bordered w-full min-w-0"
+            placeholder="{% trans "e.g. Acme Health Research" %}"
+          />
+          <div class="alert alert-info mt-2 text-sm" role="note">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span class="min-w-0">
+              <strong>{% trans "Note:" %}</strong> {% trans "Organisation names don't need to be unique. Multiple organisations can have the same name—you'll only have access to your own organisation and any you're invited to join." %}
+            </span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full">
+          {% trans "Complete Setup" %}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function updateOrgNameState() {
+    const simpleRadio = document.querySelector('input[name="account_type"][value="simple"]');
+    const orgRadio = document.querySelector('input[name="account_type"][value="org"]');
+    const orgNameInput = document.getElementById('org-name-input');
+    const orgNameContainer = document.getElementById('org-name-container');
+
+    if (simpleRadio.checked) {
+      orgNameContainer.style.display = 'none';
+      orgNameInput.removeAttribute('required');
+      orgNameInput.value = '';
+    } else if (orgRadio.checked) {
+      orgNameContainer.style.display = 'block';
+      orgNameInput.setAttribute('required', 'required');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    updateOrgNameState();
+
+    const accountTypeRadios = document.querySelectorAll('input[name="account_type"]');
+    accountTypeRadios.forEach(radio => {
+      radio.addEventListener('change', updateOrgNameState);
+    });
+  });
+</script>
+{% endblock %}

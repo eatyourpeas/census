@@ -1,16 +1,17 @@
 import logging
 from pathlib import Path
 
+import markdown as mdlib
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login, views as auth_views
+from django.contrib.auth import login
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import translation
 from django.utils.translation import gettext as _
-import markdown as mdlib
 
 from census_app.surveys.models import (
     Organization,
@@ -254,6 +255,66 @@ def signup(request):
     else:
         form = SignupForm()
     return render(request, "registration/signup.html", {"form": form})
+
+
+@login_required
+def complete_signup(request):
+    """
+    Complete signup for users who authenticated via OIDC from login page.
+    They're already authenticated but need to choose account type and complete setup.
+    """
+    # Check if user needs signup completion
+    if not request.session.get("needs_signup_completion"):
+        # User already completed signup or came here by mistake
+        return redirect("core:home")
+
+    if request.method == "POST":
+        account_type = request.POST.get("account_type")
+
+        # Send welcome email
+        try:
+            from .email_utils import send_welcome_email
+
+            send_welcome_email(request.user)
+        except Exception as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.error(
+                f"Failed to send welcome email to {request.user.username}: {e}"
+            )
+
+        if account_type == "org":
+            with transaction.atomic():
+                org_name = (
+                    request.POST.get("org_name")
+                    or f"{request.user.username}'s Organisation"
+                )
+                org = Organization.objects.create(name=org_name, owner=request.user)
+                OrganizationMembership.objects.create(
+                    organization=org,
+                    user=request.user,
+                    role=OrganizationMembership.Role.ADMIN,
+                )
+            messages.success(
+                request, _("Organisation created. You are an organisation admin.")
+            )
+            # Clear the signup completion flag
+            request.session.pop("needs_signup_completion", None)
+            return redirect("surveys:org_users", org_id=org.id)
+
+        # Individual account - just clear the flag and redirect home
+        messages.success(request, _("Account setup complete! Welcome to Census."))
+        request.session.pop("needs_signup_completion", None)
+        return redirect("core:home")
+
+    return render(
+        request,
+        "registration/complete_signup.html",
+        {
+            "user": request.user,
+        },
+    )
 
 
 # --- Documentation views ---

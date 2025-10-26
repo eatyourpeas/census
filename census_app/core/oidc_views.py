@@ -104,15 +104,36 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
                 logger.error(f"OIDC parent callback failed with exception: {e}")
                 return redirect("/accounts/login/?error=oidc_callback_failed")
 
-            # Check if this was a signup attempt and provide appropriate messaging
-            if signup_mode and request.user.is_authenticated:
+            # Handle new user vs existing user flow
+            if request.user.is_authenticated:
                 from django.contrib import messages
                 from django.utils.translation import gettext as _
 
                 # Check if this user already existed (set by authentication backend)
                 user_existed = getattr(request.user, "_oidc_user_existed", None)
 
-                if user_existed is True:
+                if user_existed is False:
+                    # New user was created
+                    if signup_mode:
+                        # User came from signup page - they already made account type choice
+                        # Check sessionStorage via JavaScript (handled in template)
+                        messages.success(
+                            request,
+                            _(
+                                "Account created successfully! Your {} account has been linked."
+                            ).format(provider.title()),
+                        )
+                        logger.info(
+                            f"New user from signup page: {request.user.email} - provider: {provider}"
+                        )
+                    else:
+                        # User came from login page - needs to complete signup
+                        logger.info(
+                            f"New user from login page, redirecting to complete signup: {request.user.email}"
+                        )
+                        request.session["needs_signup_completion"] = True
+                        return redirect("core:complete_signup")
+                elif user_existed is True:
                     # Existing user was found and linked
                     messages.info(
                         request,
@@ -122,17 +143,6 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
                     )
                     logger.info(
                         f"Added existing user message for {request.user.email} - provider: {provider}"
-                    )
-                elif user_existed is False:
-                    # New user was created
-                    messages.success(
-                        request,
-                        _(
-                            "Account created successfully! Your {} account has been linked."
-                        ).format(provider.title()),
-                    )
-                    logger.info(
-                        f"Added new user message for {request.user.email} - provider: {provider}"
                     )
                 else:
                     # Fallback message if flag is not set
