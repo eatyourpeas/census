@@ -4,6 +4,34 @@ repos:
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
+
+  # Check for hardcoded passwords in Python test files (only in new commits)
+  - repo: local
+    hooks:
+      - id: check-test-passwords
+        name: Check for hardcoded passwords in tests
+        entry: python3
+        language: system
+        files: 'test.*\.py$'
+        args:
+          - -c
+          - |
+            import sys, re
+            pattern = re.compile(r'password\s*=\s*["\'][a-zA-Z0-9]{4,}["\']')
+            for filepath in sys.argv[1:]:
+                with open(filepath) as f:
+                    content = f.read()
+                    # Skip if file uses TEST_PASSWORD constant
+                    if 'TEST_PASSWORD' in content:
+                        continue
+                    # Check for hardcoded passwords
+                    matches = pattern.findall(content)
+                    if matches:
+                        print(f'❌ {filepath}: Found hardcoded password: {matches[0]}')
+                        print('   Use TEST_PASSWORD = "x" constant instead.')
+                        sys.exit(1)
+            sys.exit(0)
+
   - repo: https://github.com/GitGuardian/ggshield
     rev: v1.43.0
     hooks:

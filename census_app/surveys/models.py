@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import uuid
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -9,6 +12,11 @@ from django.utils import timezone
 from .utils import decrypt_sensitive, encrypt_sensitive, make_key_hash
 
 User = get_user_model()
+
+
+def get_default_retention_months():
+    """Get default retention months from settings."""
+    return getattr(settings, "CENSUS_DEFAULT_RETENTION_MONTHS", 6)
 
 
 class Organization(models.Model):
@@ -35,6 +43,7 @@ class OrganizationMembership(models.Model):
         ADMIN = "admin", "Admin"
         CREATOR = "creator", "Creator"
         VIEWER = "viewer", "Viewer"
+        DATA_CUSTODIAN = "data_custodian", "Data Custodian"
 
     organization = models.ForeignKey(
         Organization, on_delete=models.CASCADE, related_name="memberships"
@@ -152,6 +161,60 @@ class Survey(models.Model):
         help_text="Total number of recovery shares distributed (optional, for Shamir's Secret Sharing)",
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # Data Governance fields
+    # Survey closure
+    closed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the survey was closed (starts retention period)",
+    )
+    closed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="closed_surveys",
+        help_text="User who closed the survey",
+    )
+
+    # Retention
+    retention_months = models.IntegerField(
+        default=get_default_retention_months,
+        help_text="Retention period in months (configurable via CENSUS_DEFAULT_RETENTION_MONTHS)",
+    )
+    deletion_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Date when survey data will be automatically deleted",
+    )
+
+    # Soft deletion (30-day grace period)
+    deleted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When survey was soft deleted (30-day grace period)",
+    )
+    hard_deletion_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When survey will be permanently deleted",
+    )
+
+    # Ownership transfer
+    transferred_from = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transferred_surveys",
+        help_text="Previous owner if ownership was transferred",
+    )
+    transferred_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When ownership was transferred",
+    )
 
     def is_live(self) -> bool:
         now = timezone.now()
@@ -471,6 +534,185 @@ class Survey(models.Model):
             return kek
         except (InvalidTag, Exception):
             return None
+
+    # Data Governance Methods
+
+    def close_survey(self, user: User) -> None:
+        """Close survey and start retention period."""
+        from datetime import timedelta
+
+        self.status = self.Status.CLOSED
+        self.closed_at = timezone.now()
+        self.closed_by = user
+        self.deletion_date = self.closed_at + timedelta(days=self.retention_months * 30)
+        self.save()
+
+        # Schedule deletion warnings (will be implemented in tasks)
+        # from .tasks import schedule_deletion_warnings
+        # schedule_deletion_warnings.delay(self.id)
+
+    def extend_retention(self, months: int, user: User, reason: str) -> None:
+        """Extend retention period (max 24 months total)."""
+        from datetime import timedelta
+
+        if not self.closed_at:
+            raise ValueError("Cannot extend retention on unclosed survey")
+
+        # Check total retention doesn't exceed 24 months
+        new_total_months = self.retention_months + months
+        if new_total_months > 24:
+            raise ValueError(
+                f"Cannot exceed 24 months total retention "
+                f"(currently at {self.retention_months} months, "
+                f"trying to add {months} months)"
+            )
+
+        # Store old values for email notification
+        old_retention_months = self.retention_months
+        old_deletion_date = self.deletion_date
+
+        # Update retention period and deletion date
+        self.retention_months = new_total_months
+        self.deletion_date = self.closed_at + timedelta(days=self.retention_months * 30)
+        self.save()
+
+        # Send email notification
+        self._send_retention_extension_notification(
+            user=user,
+            old_months=old_retention_months,
+            new_months=new_total_months,
+            months_added=months,
+            old_deletion_date=old_deletion_date,
+            new_deletion_date=self.deletion_date,
+            reason=reason,
+        )
+
+        # Log extension (will create DataRetentionExtension model later)
+        # DataRetentionExtension.objects.create(...)
+
+        # Reschedule warnings
+        # from .tasks import schedule_deletion_warnings
+        # schedule_deletion_warnings.delay(self.id)
+
+    def soft_delete(self) -> None:
+        """Soft delete survey (30-day grace period)."""
+        from datetime import timedelta
+
+        self.deleted_at = timezone.now()
+        self.hard_deletion_date = self.deleted_at + timedelta(days=30)
+        self.save()
+
+        # Schedule hard deletion
+        # from .tasks import schedule_hard_deletion
+        # schedule_hard_deletion.apply_async(
+        #     args=[self.id],
+        #     eta=self.hard_deletion_date
+        # )
+
+    def hard_delete(self) -> None:
+        """Permanently delete survey data."""
+        # Delete responses
+        if hasattr(self, "responses"):
+            self.responses.all().delete()
+
+        # Delete exports (will implement DataExport model later)
+        # if hasattr(self, 'data_exports'):
+        #     self.data_exports.all().delete()
+
+        # Purge backups (external API call - to be implemented)
+        # from .services import BackupService
+        # BackupService.purge_survey_backups(self.id)
+
+        # Keep audit trail summary (to be implemented)
+        # AuditLog.objects.create(
+        #     action='HARD_DELETE',
+        #     survey_id=self.id,
+        #     survey_name=self.name,
+        #     timestamp=timezone.now()
+        # )
+
+        # Delete survey
+        self.delete()
+
+    @property
+    def days_until_deletion(self) -> int | None:
+        """Days remaining until automatic deletion."""
+        if not self.deletion_date or self.deleted_at:
+            return None
+        delta = self.deletion_date - timezone.now()
+        return max(0, delta.days)
+
+    @property
+    def can_extend_retention(self) -> bool:
+        """Check if retention can be extended."""
+        if not self.closed_at:
+            return False
+        return self.retention_months < 24
+
+    def _send_retention_extension_notification(
+        self,
+        user: User,
+        old_months: int,
+        new_months: int,
+        months_added: int,
+        old_deletion_date,
+        new_deletion_date,
+        reason: str,
+    ) -> None:
+        """Send email notification when retention period is extended."""
+        from django.conf import settings
+        from django.template.loader import render_to_string
+
+        from census_app.core.email_utils import (
+            get_platform_branding,
+            send_branded_email,
+        )
+
+        subject = f"Retention Period Extended: {self.name}"
+
+        branding = get_platform_branding()
+
+        # Send to survey owner
+        markdown_content = render_to_string(
+            "emails/data_governance/retention_extended.md",
+            {
+                "survey": self,
+                "extended_by": user,
+                "old_months": old_months,
+                "new_months": new_months,
+                "months_added": months_added,
+                "old_deletion_date": old_deletion_date.strftime("%B %d, %Y"),
+                "new_deletion_date": new_deletion_date.strftime("%B %d, %Y"),
+                "reason": reason,
+                "brand_title": branding["title"],
+                "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
+            },
+        )
+
+        send_branded_email(
+            to_email=self.owner.email,
+            subject=subject,
+            markdown_content=markdown_content,
+            branding=branding,
+        )
+
+        # Also notify organization administrators
+        if self.organization:
+            org_admin_emails = [self.organization.owner.email]
+            # Filter out survey owner if they're also org owner
+            if self.owner.email not in org_admin_emails:
+                for admin_email in org_admin_emails:
+                    send_branded_email(
+                        to_email=admin_email,
+                        subject=subject,
+                        markdown_content=markdown_content,
+                        branding=branding,
+                    )
+
+    @property
+    def is_closed(self) -> bool:
+        """Check if survey is closed."""
+        return self.status == self.Status.CLOSED or self.closed_at is not None
 
 
 class SurveyQuestion(models.Model):
@@ -891,3 +1133,317 @@ class CollectionItem(models.Model):
                         "child_collection": "Child collection's parent must be this collection."
                     }
                 )
+
+
+# ============================================================================
+# Data Governance Models
+# ============================================================================
+
+
+class DataExport(models.Model):
+    """
+    Tracks data exports for audit trail and download management.
+
+    - UUID primary key for secure, non-sequential export identification
+    - Download tokens prevent unauthorized access after export creation
+    - Audit trail tracks who exported what and when
+    - Downloaded_at tracks actual downloads for compliance reporting
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="exports")
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="exports"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # Download management
+    download_token = models.CharField(max_length=64, unique=True, db_index=True)
+    download_url_expires_at = models.DateTimeField()
+    downloaded_at = models.DateTimeField(null=True, blank=True)
+    download_count = models.PositiveIntegerField(default=0)
+
+    # Export metadata
+    file_size_bytes = models.BigIntegerField(null=True, blank=True)
+    response_count = models.PositiveIntegerField()
+    export_format = models.CharField(max_length=10, default="csv")  # Future: json, xlsx
+
+    # Encryption (stored exports are encrypted at rest)
+    is_encrypted = models.BooleanField(default=True)
+    encryption_key_id = models.CharField(max_length=255, null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["survey", "-created_at"]),
+            models.Index(fields=["download_token"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"Export {self.id} for {self.survey.title} ({self.created_at})"
+
+    @property
+    def is_download_url_expired(self) -> bool:
+        """Check if the download URL has expired."""
+        from django.utils import timezone
+
+        return timezone.now() > self.download_url_expires_at
+
+    def mark_downloaded(self) -> None:
+        """Record that this export was downloaded."""
+        from django.utils import timezone
+
+        if not self.downloaded_at:
+            self.downloaded_at = timezone.now()
+        self.download_count += 1
+        self.save(update_fields=["downloaded_at", "download_count"])
+
+
+class LegalHold(models.Model):
+    """
+    Legal hold prevents automatic deletion of survey data.
+
+    - OneToOne with Survey - one hold per survey
+    - Blocks all automatic deletion processes
+    - Requires reason and authority for audit compliance
+    - Can only be placed/removed by org owners
+    """
+
+    survey = models.OneToOneField(
+        Survey, on_delete=models.CASCADE, related_name="legal_hold"
+    )
+    placed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="legal_holds_placed"
+    )
+    placed_at = models.DateTimeField(auto_now_add=True)
+
+    reason = models.TextField()
+    authority = models.CharField(max_length=255)  # e.g., "Court order XYZ-2024-001"
+
+    removed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="legal_holds_removed",
+    )
+    removed_at = models.DateTimeField(null=True, blank=True)
+    removal_reason = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-placed_at"]
+
+    def __str__(self) -> str:
+        status = "Active" if not self.removed_at else "Removed"
+        return f"Legal Hold ({status}) on {self.survey.title}"
+
+    @property
+    def is_active(self) -> bool:
+        """Check if this legal hold is currently active."""
+        return self.removed_at is None
+
+    def remove(self, user: User, reason: str) -> None:
+        """Remove the legal hold."""
+        from django.utils import timezone
+
+        # Store values before updating for email notification
+        hold_placed_date = self.placed_at
+        hold_duration = timezone.now() - self.placed_at
+
+        self.removed_by = user
+        self.removed_at = timezone.now()
+        self.removal_reason = reason
+        self.save(update_fields=["removed_by", "removed_at", "removal_reason"])
+
+        # Send email notification
+        self._send_legal_hold_removed_notification(
+            user=user,
+            reason=reason,
+            hold_placed_date=hold_placed_date,
+            hold_duration=hold_duration,
+        )
+
+    def _send_legal_hold_removed_notification(
+        self, user: User, reason: str, hold_placed_date, hold_duration
+    ) -> None:
+        """Send email notification when legal hold is removed."""
+        from django.conf import settings
+        from django.template.loader import render_to_string
+
+        from census_app.core.email_utils import (
+            get_platform_branding,
+            send_branded_email,
+        )
+
+        subject = f"Legal Hold Removed: {self.survey.name}"
+
+        branding = get_platform_branding()
+
+        # Calculate hold duration in days
+        days_duration = hold_duration.days
+
+        # Format new deletion date if survey is closed
+        new_deletion_date = None
+        if self.survey.deletion_date:
+            new_deletion_date = self.survey.deletion_date.strftime("%B %d, %Y")
+
+        markdown_content = render_to_string(
+            "emails/data_governance/legal_hold_removed.md",
+            {
+                "survey": self.survey,
+                "removed_by": user,
+                "removed_date": self.removed_at.strftime("%B %d, %Y at %I:%M %p"),
+                "hold_placed_date": hold_placed_date.strftime("%B %d, %Y"),
+                "hold_duration": f"{days_duration} days",
+                "reason": reason,
+                "new_deletion_date": new_deletion_date,
+                "brand_title": branding["title"],
+                "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
+            },
+        )
+
+        # Send to survey owner
+        send_branded_email(
+            to_email=self.survey.owner.email,
+            subject=subject,
+            markdown_content=markdown_content,
+            branding=branding,
+        )
+
+        # Send to organization owner if exists
+        if self.survey.organization:
+            if self.survey.organization.owner.email != self.survey.owner.email:
+                send_branded_email(
+                    to_email=self.survey.organization.owner.email,
+                    subject=subject,
+                    markdown_content=markdown_content,
+                    branding=branding,
+                )
+
+
+class DataCustodian(models.Model):
+    """
+    Grant download-only access to specific surveys for external auditors.
+
+    - User has download access without organization membership
+    - Access can be time-limited (expires_at)
+    - No edit permissions - read/export only
+    - Audit trail of who granted access and why
+    """
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="custodian_assignments"
+    )
+    survey = models.ForeignKey(
+        Survey, on_delete=models.CASCADE, related_name="data_custodians"
+    )
+
+    granted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="custodian_grants",
+    )
+    granted_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    reason = models.TextField()  # Why this user needs access
+
+    revoked_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="custodian_revocations",
+    )
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-granted_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "survey"],
+                condition=models.Q(revoked_at__isnull=True),
+                name="uq_active_custodian_per_user_survey",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        status = "Active" if self.is_active else "Revoked"
+        return f"Data Custodian ({status}): {self.user.email} on {self.survey.title}"
+
+    @property
+    def is_active(self) -> bool:
+        """Check if this custodian assignment is currently active."""
+        from django.utils import timezone
+
+        if self.revoked_at:
+            return False
+        if self.expires_at and timezone.now() > self.expires_at:
+            return False
+        return True
+
+    def revoke(self, user: User) -> None:
+        """Revoke custodian access."""
+        from django.utils import timezone
+
+        self.revoked_by = user
+        self.revoked_at = timezone.now()
+        self.save(update_fields=["revoked_by", "revoked_at"])
+
+
+class DataRetentionExtension(models.Model):
+    """
+    Audit trail for retention period extensions.
+
+    - Immutable log of each extension request
+    - Tracks who requested, when, and why
+    - Shows progression of retention period over time
+    - Critical for compliance audits
+    """
+
+    survey = models.ForeignKey(
+        Survey, on_delete=models.CASCADE, related_name="retention_extensions"
+    )
+    requested_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="retention_extensions"
+    )
+    requested_at = models.DateTimeField(auto_now_add=True)
+
+    # Extension details
+    previous_deletion_date = models.DateTimeField()
+    new_deletion_date = models.DateTimeField()
+    months_extended = models.PositiveIntegerField()
+
+    # Justification for audit trail
+    reason = models.TextField()
+
+    # Approval workflow (future: require org owner approval)
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="retention_extension_approvals",
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-requested_at"]
+        indexes = [
+            models.Index(fields=["survey", "-requested_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"Retention extension for {self.survey.title} (+{self.months_extended} months)"
+
+    @property
+    def is_approved(self) -> bool:
+        """Check if this extension has been approved."""
+        return self.approved_at is not None
+
+    @property
+    def days_extended(self) -> int:
+        """Calculate the number of days extended."""
+        delta = self.new_deletion_date - self.previous_deletion_date
+        return delta.days

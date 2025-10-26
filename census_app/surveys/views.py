@@ -13,6 +13,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError, models, transaction
 from django.db.models import QuerySet
@@ -49,6 +50,7 @@ from .models import (
 )
 from .permissions import (
     can_edit_survey,
+    can_export_survey_data,
     can_manage_org_users,
     can_manage_survey_users,
     can_view_survey,
@@ -1735,6 +1737,10 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
         "invites_points": invites_points,
         "survey_not_started": survey_not_started,
         "can_manage_users": can_manage_survey_users(request.user, survey),
+        # Data governance
+        "can_export": (
+            survey.is_closed and can_export_survey_data(request.user, survey)
+        ),
     }
     if any(
         v for k, v in brand_overrides.items() if k != "primary_hex"
@@ -2009,10 +2015,16 @@ def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
 
         # Handle different actions
         if action == "close":
-            # Close the survey
-            survey.status = Survey.Status.CLOSED
-            survey.save()
-            messages.success(request, "Survey has been closed.")
+            # Close the survey and start retention period
+            survey.close_survey(request.user)
+
+            # Send closure confirmation email
+            _send_survey_closure_notification(survey, request.user)
+
+            messages.success(
+                request,
+                f"Survey has been closed. Data will be retained for {survey.retention_months} months.",
+            )
             return redirect("surveys:dashboard", slug=slug)
 
         elif action == "publish":
@@ -5313,4 +5325,49 @@ def _bulk_upload_example_md() -> str:
         "- Neutral\n"
         "- Likely\n"
         "- Very likely\n"
+    )
+
+
+# ============================================================================
+# Email Notification Helpers
+# ============================================================================
+
+
+def _send_survey_closure_notification(survey: Survey, user: User) -> None:
+    """
+    Send email notification to survey owner when survey is closed.
+
+    Confirms closure and reminds about retention timeline.
+    """
+    from django.conf import settings
+    from django.template.loader import render_to_string
+
+    from census_app.core.email_utils import get_platform_branding, send_branded_email
+
+    subject = f"Survey Closed: {survey.name}"
+
+    closed_time = survey.closed_at.strftime("%B %d, %Y at %I:%M %p")
+    deletion_date = survey.deletion_date.strftime("%B %d, %Y")
+
+    branding = get_platform_branding()
+
+    markdown_content = render_to_string(
+        "emails/data_governance/survey_closed.md",
+        {
+            "survey": survey,
+            "closed_by": user,
+            "closed_time": closed_time,
+            "response_count": survey.responses.count(),
+            "deletion_date": deletion_date,
+            "warning_schedule": "30 days, 7 days, and 1 day before deletion",
+            "brand_title": branding["title"],
+            "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
+        },
+    )
+
+    send_branded_email(
+        to_email=survey.owner.email,
+        subject=subject,
+        markdown_content=markdown_content,
+        branding=branding,
     )

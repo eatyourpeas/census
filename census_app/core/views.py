@@ -380,24 +380,29 @@ DOC_CATEGORIES = {
         "order": 4,
         "icon": "🔒",
     },
+    "data-governance": {
+        "title": "Data Governance",
+        "order": 5,
+        "icon": "🗂️",
+    },
     "api": {
         "title": "API & Development",
-        "order": 5,
+        "order": 6,
         "icon": "🔧",
     },
     "testing": {
         "title": "Testing",
-        "order": 6,
+        "order": 7,
         "icon": "🧪",
     },
     "internationalization": {
         "title": "Internationalization",
-        "order": 7,
+        "order": 8,
         "icon": "🌍",
     },
     "advanced": {
         "title": "Advanced Topics",
-        "order": 8,
+        "order": 9,
         "icon": "🚀",
     },
     "other": {
@@ -539,6 +544,20 @@ def _infer_category(slug: str) -> str:
         ]
     ):
         return "security"
+
+    # Data Governance
+    if any(
+        x in slug_lower
+        for x in [
+            "data-governance",
+            "data-export",
+            "data-retention",
+            "data-policy",
+            "data-deletion",
+            "data-management",
+        ]
+    ):
+        return "data-governance"
 
     # API & Development
     if any(x in slug_lower for x in ["api", "adding-", "development"]):
