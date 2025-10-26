@@ -71,7 +71,9 @@ def other_user(db):
 class TestDashboardDataGovernanceWidget:
     """Test that the data governance widget appears correctly on dashboard."""
 
-    def test_dashboard_shows_export_button_for_closed_survey(self, client, user, closed_survey):
+    def test_dashboard_shows_export_button_for_closed_survey(
+        self, client, user, closed_survey
+    ):
         """Export button should appear on dashboard when survey is closed."""
         client.force_login(user)
         url = reverse("surveys:dashboard", kwargs={"slug": closed_survey.slug})
@@ -82,7 +84,9 @@ class TestDashboardDataGovernanceWidget:
         assert "Download Survey Data" in response.content.decode()
         assert "Closed" in response.content.decode()
 
-    def test_dashboard_hides_export_button_for_open_survey(self, client, user, open_survey):
+    def test_dashboard_hides_export_button_for_open_survey(
+        self, client, user, open_survey
+    ):
         """Export button should NOT appear when survey is still open."""
         client.force_login(user)
         url = reverse("surveys:dashboard", kwargs={"slug": open_survey.slug})
@@ -98,7 +102,7 @@ class TestDashboardDataGovernanceWidget:
         """Export button should not appear for users without export permission."""
         client.force_login(other_user)
         url = reverse("surveys:dashboard", kwargs={"slug": closed_survey.slug})
-        
+
         # Other user doesn't have access to view this survey at all
         response = client.get(url)
         assert response.status_code == 403
@@ -126,24 +130,30 @@ class TestSurveyExportCreateView:
 
     def test_export_create_requires_login(self, client, closed_survey):
         """Export creation should require authentication."""
-        url = reverse("surveys:survey_export_create", kwargs={"slug": closed_survey.slug})
+        url = reverse(
+            "surveys:survey_export_create", kwargs={"slug": closed_survey.slug}
+        )
         response = client.get(url)
-        
+
         assert response.status_code == 302  # Redirect to login
         assert "/accounts/login/" in response.url
 
     def test_export_create_requires_permission(self, client, other_user, closed_survey):
         """Export creation should require export permission."""
         client.force_login(other_user)
-        url = reverse("surveys:survey_export_create", kwargs={"slug": closed_survey.slug})
+        url = reverse(
+            "surveys:survey_export_create", kwargs={"slug": closed_survey.slug}
+        )
         response = client.get(url)
-        
+
         assert response.status_code == 403  # Permission denied
 
     def test_export_create_accessible_by_owner(self, client, user, closed_survey):
         """Survey owner should be able to access export creation."""
         client.force_login(user)
-        url = reverse("surveys:survey_export_create", kwargs={"slug": closed_survey.slug})
+        url = reverse(
+            "surveys:survey_export_create", kwargs={"slug": closed_survey.slug}
+        )
         response = client.get(url)
 
         assert response.status_code == 200
@@ -153,24 +163,30 @@ class TestSurveyExportCreateView:
         """POSTing to export create should create a DataExport record."""
         # Add a response to the survey so export has data
         from census_app.surveys.models import SurveyResponse
+
         SurveyResponse.objects.create(
             survey=closed_survey,
             submitted_by=user,
             submitted_at=timezone.now(),
             answers={},
         )
-        
+
         client.force_login(user)
-        url = reverse("surveys:survey_export_create", kwargs={"slug": closed_survey.slug})
-        response = client.post(url, {
-            "full_name": "Test User",
-            "purpose": "Research analysis",
-            "attestation_accepted": True,
-        })
-        
+        url = reverse(
+            "surveys:survey_export_create", kwargs={"slug": closed_survey.slug}
+        )
+        response = client.post(
+            url,
+            {
+                "full_name": "Test User",
+                "purpose": "Research analysis",
+                "attestation_accepted": True,
+            },
+        )
+
         # Should redirect to download page
         assert response.status_code == 302
-        
+
         # Should have created an export
         export = DataExport.objects.filter(survey=closed_survey).first()
         assert export is not None
@@ -179,13 +195,18 @@ class TestSurveyExportCreateView:
     def test_export_create_requires_attestation(self, client, user, closed_survey):
         """Export creation should require attestation acceptance."""
         client.force_login(user)
-        url = reverse("surveys:survey_export_create", kwargs={"slug": closed_survey.slug})
-        response = client.post(url, {
-            "full_name": "Test User",
-            "purpose": "Research",
-            "attestation_accepted": False,  # Not accepted
-        })
-        
+        url = reverse(
+            "surveys:survey_export_create", kwargs={"slug": closed_survey.slug}
+        )
+        response = client.post(
+            url,
+            {
+                "full_name": "Test User",
+                "purpose": "Research",
+                "attestation_accepted": False,  # Not accepted
+            },
+        )
+
         # Should show form error
         assert response.status_code == 200
         assert DataExport.objects.filter(survey=closed_survey).count() == 0
@@ -202,13 +223,14 @@ class TestSurveyExportDownloadView:
     def export_with_token(self, closed_survey, user):
         """Create an export with a download token."""
         from census_app.surveys.models import SurveyResponse
+
         SurveyResponse.objects.create(
             survey=closed_survey,
             submitted_by=user,
             submitted_at=timezone.now(),
             answers={},
         )
-        
+
         export = ExportService.create_export(
             survey=closed_survey,
             user=user,
@@ -226,10 +248,12 @@ class TestSurveyExportDownloadView:
             },
         )
         response = client.get(url)
-        
+
         assert response.status_code == 302  # Redirect to login
 
-    def test_download_page_requires_permission(self, client, other_user, export_with_token):
+    def test_download_page_requires_permission(
+        self, client, other_user, export_with_token
+    ):
         """Download page should require export permission."""
         client.force_login(other_user)
         url = reverse(
@@ -240,7 +264,7 @@ class TestSurveyExportDownloadView:
             },
         )
         response = client.get(url)
-        
+
         assert response.status_code == 403
 
     def test_download_page_shows_link(self, client, user, export_with_token):
@@ -254,7 +278,7 @@ class TestSurveyExportDownloadView:
             },
         )
         response = client.get(url)
-        
+
         assert response.status_code == 200
         assert "download" in response.content.decode().lower()
         assert export_with_token.download_token in response.content.decode()
@@ -270,7 +294,7 @@ class TestSurveyExportDownloadView:
             },
         )
         response = client.get(url)
-        
+
         assert response.status_code == 200
         content = response.content.decode().lower()
         assert "expires" in content or "valid" in content
@@ -287,13 +311,14 @@ class TestSurveyExportFileView:
     def export_with_token(self, closed_survey, user):
         """Create an export with a download token."""
         from census_app.surveys.models import SurveyResponse
+
         SurveyResponse.objects.create(
             survey=closed_survey,
             submitted_by=user,
             submitted_at=timezone.now(),
             answers={"question_1": "answer_1"},
         )
-        
+
         export = ExportService.create_export(
             survey=closed_survey,
             user=user,
@@ -313,7 +338,7 @@ class TestSurveyExportFileView:
             },
         )
         response = client.get(url)
-        
+
         # Should redirect to dashboard with error (user-friendly approach)
         assert response.status_code == 302
         assert response.url == f"/surveys/{export_with_token.survey.slug}/dashboard/"
@@ -330,7 +355,7 @@ class TestSurveyExportFileView:
             },
         )
         response = client.get(url)
-        
+
         # Should return CSV file
         assert response.status_code == 200
         assert response["Content-Type"] == "text/csv"
@@ -339,7 +364,7 @@ class TestSurveyExportFileView:
     def test_file_download_marks_as_downloaded(self, client, user, export_with_token):
         """Downloading should mark export as downloaded."""
         assert export_with_token.downloaded_at is None
-        
+
         client.force_login(user)
         url = reverse(
             "surveys:survey_export_file",
@@ -350,9 +375,9 @@ class TestSurveyExportFileView:
             },
         )
         response = client.get(url)
-        
+
         assert response.status_code == 200
-        
+
         # Refresh from DB
         export_with_token.refresh_from_db()
         assert export_with_token.downloaded_at is not None
@@ -364,7 +389,7 @@ class TestSurveyExportFileView:
             minutes=1
         )
         export_with_token.save()
-        
+
         client.force_login(user)
         url = reverse(
             "surveys:survey_export_file",
@@ -375,7 +400,7 @@ class TestSurveyExportFileView:
             },
         )
         response = client.get(url)
-        
+
         # Should redirect to dashboard with error (user-friendly approach)
         assert response.status_code == 302
         assert response.url == f"/surveys/{export_with_token.survey.slug}/dashboard/"
@@ -392,12 +417,12 @@ class TestSurveyExportFileView:
             },
         )
         response = client.get(url)
-        
+
         assert response.status_code == 200
-        
+
         # Check content contains CSV data
         content = response.content.decode()
-        
+
         # Should be CSV with headers
         assert "Submitted At" in content or "submitted_at" in content
         # Should contain the username
@@ -417,21 +442,24 @@ class TestSurveyCloseIntegration:
         """Closing survey should set closed_at and deletion_date."""
         assert open_survey.closed_at is None
         assert open_survey.deletion_date is None
-        
+
         client.force_login(user)
         url = reverse("surveys:publish_settings", kwargs={"slug": open_survey.slug})
-        
+
         # Submit close action
-        response = client.post(url, {
-            "action": "close",
-        })
-        
+        response = client.post(
+            url,
+            {
+                "action": "close",
+            },
+        )
+
         # Should redirect to dashboard
         assert response.status_code == 302
-        
+
         # Refresh survey
         open_survey.refresh_from_db()
-        
+
         # Should have set retention fields
         assert open_survey.status == Survey.Status.CLOSED
         assert open_survey.closed_at is not None
@@ -442,9 +470,9 @@ class TestSurveyCloseIntegration:
         """Closing survey should show retention information in success message."""
         client.force_login(user)
         url = reverse("surveys:publish_settings", kwargs={"slug": open_survey.slug})
-        
+
         response = client.post(url, {"action": "close"}, follow=True)
-        
+
         assert response.status_code == 200
         messages = list(response.context["messages"])
         assert len(messages) > 0
@@ -458,18 +486,21 @@ class TestSurveyCloseIntegration:
 class TestExportPermissionEnforcement:
     """Test that export routes properly enforce permissions."""
 
-    def test_export_routes_blocked_for_non_owners(self, client, other_user, closed_survey):
+    def test_export_routes_blocked_for_non_owners(
+        self, client, other_user, closed_survey
+    ):
         """All export routes should be blocked for unauthorized users."""
         client.force_login(other_user)
-        
+
         # Create export
         create_url = reverse(
             "surveys:survey_export_create", kwargs={"slug": closed_survey.slug}
         )
         assert client.get(create_url).status_code == 403
-        
+
         # Create export (need to create one first as owner)
         from census_app.surveys.models import SurveyResponse
+
         SurveyResponse.objects.create(
             survey=closed_survey,
             submitted_by=closed_survey.owner,
@@ -481,13 +512,13 @@ class TestExportPermissionEnforcement:
             user=closed_survey.owner,
             password=None,
         )
-        
+
         download_url = reverse(
             "surveys:survey_export_download",
             kwargs={"slug": closed_survey.slug, "export_id": export.id},
         )
         assert client.get(download_url).status_code == 403
-        
+
         # Download file - token-based access allows any authenticated user
         # (The token IS the permission - like a share link)
         file_url = reverse(
@@ -504,35 +535,36 @@ class TestExportPermissionEnforcement:
     def test_export_routes_allowed_for_owner(self, client, user, closed_survey):
         """Survey owner should have access to all export routes."""
         from census_app.surveys.models import SurveyResponse
+
         SurveyResponse.objects.create(
             survey=closed_survey,
             submitted_by=user,
             submitted_at=timezone.now(),
             answers={},
         )
-        
+
         client.force_login(user)
-        
+
         # Create export
         create_url = reverse(
             "surveys:survey_export_create", kwargs={"slug": closed_survey.slug}
         )
         assert client.get(create_url).status_code == 200
-        
+
         # Create an export
         export = ExportService.create_export(
             survey=closed_survey,
             user=user,
             password=None,
         )
-        
+
         # View export download page
         download_url = reverse(
             "surveys:survey_export_download",
             kwargs={"slug": closed_survey.slug, "export_id": export.id},
         )
         assert client.get(download_url).status_code == 200
-        
+
         # Download file
         file_url = reverse(
             "surveys:survey_export_file",

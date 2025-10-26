@@ -55,13 +55,13 @@ def users(db):
 def org(db, users):
     """Create organization with memberships."""
     org = Organization.objects.create(name="Test Org", owner=users["org_owner"])
-    
+
     OrganizationMembership.objects.create(
         organization=org,
         user=users["org_admin"],
         role=OrganizationMembership.Role.ADMIN,
     )
-    
+
     return org
 
 
@@ -146,8 +146,10 @@ class TestExportSurveyDataPermissions:
         """Revoked data custodian cannot export."""
         custodian = DataCustodian.objects.get(user=users["custodian"])
         custodian.revoke(users["org_owner"])
-        
-        assert can_export_survey_data(users["custodian"], survey_with_custodian) is False
+
+        assert (
+            can_export_survey_data(users["custodian"], survey_with_custodian) is False
+        )
 
     def test_outsider_cannot_export(self, survey, users):
         """Non-member cannot export survey data."""
@@ -331,7 +333,7 @@ class TestPermissionHierarchy:
     def test_org_owner_has_most_permissions(self, survey, users):
         """Organization owner should have all permissions."""
         org_owner = users["org_owner"]
-        
+
         assert can_close_survey(org_owner, survey) is True
         assert can_export_survey_data(org_owner, survey) is True
         assert can_extend_retention(org_owner, survey) is True
@@ -343,12 +345,12 @@ class TestPermissionHierarchy:
     def test_survey_owner_limited_permissions_with_org(self, survey, users):
         """Survey owner has limited permissions when survey has org."""
         owner = users["owner"]
-        
+
         # Can do basic operations
         assert can_close_survey(owner, survey) is True
         assert can_export_survey_data(owner, survey) is True
         assert can_soft_delete_survey(owner, survey) is True
-        
+
         # Cannot do privileged operations (org owner only)
         assert can_extend_retention(owner, survey) is False
         assert can_manage_legal_hold(owner, survey) is False
@@ -358,10 +360,10 @@ class TestPermissionHierarchy:
     def test_org_admin_export_only(self, survey, users):
         """Organization admin can only export data."""
         admin = users["org_admin"]
-        
+
         # Can export
         assert can_export_survey_data(admin, survey) is True
-        
+
         # Cannot do other operations
         assert can_close_survey(admin, survey) is False
         assert can_extend_retention(admin, survey) is False
@@ -374,10 +376,10 @@ class TestPermissionHierarchy:
         """Data custodian can only export data."""
         custodian = users["custodian"]
         survey = survey_with_custodian
-        
+
         # Can export
         assert can_export_survey_data(custodian, survey) is True
-        
+
         # Cannot do anything else
         assert can_close_survey(custodian, survey) is False
         assert can_extend_retention(custodian, survey) is False
@@ -389,7 +391,7 @@ class TestPermissionHierarchy:
     def test_outsider_no_permissions(self, survey, users):
         """Outsider should have no permissions."""
         outsider = users["outsider"]
-        
+
         assert can_close_survey(outsider, survey) is False
         assert can_export_survey_data(outsider, survey) is False
         assert can_extend_retention(outsider, survey) is False

@@ -111,23 +111,24 @@ def can_export_survey_data(user, survey: Survey) -> bool:
     """
     if not user.is_authenticated:
         return False
-    
+
     # Survey owner can always export
     if survey.owner_id == getattr(user, "id", None):
         return True
-    
+
     # Organization owner can export all surveys in their org
     if survey.organization_id and survey.organization.owner_id == getattr(
         user, "id", None
     ):
         return True
-    
+
     # Organization admins can export
     if survey.organization_id and is_org_admin(user, survey.organization):
         return True
-    
+
     # Check if user is an active data custodian for this survey
     from .models import DataCustodian
+
     if DataCustodian.objects.filter(
         user=user, survey=survey, revoked_at__isnull=True
     ).exists():
@@ -137,7 +138,7 @@ def can_export_survey_data(user, survey: Survey) -> bool:
         ).first()
         if custodian and custodian.is_active:
             return True
-    
+
     return False
 
 
@@ -148,17 +149,17 @@ def can_extend_retention(user, survey: Survey) -> bool:
     """
     if not user.is_authenticated:
         return False
-    
+
     # Organization owner only (not even survey owner)
     if survey.organization_id and survey.organization.owner_id == getattr(
         user, "id", None
     ):
         return True
-    
+
     # If no organization, survey owner can extend
     if not survey.organization_id and survey.owner_id == getattr(user, "id", None):
         return True
-    
+
     return False
 
 
@@ -169,17 +170,17 @@ def can_manage_legal_hold(user, survey: Survey) -> bool:
     """
     if not user.is_authenticated:
         return False
-    
+
     # Organization owner only
     if survey.organization_id and survey.organization.owner_id == getattr(
         user, "id", None
     ):
         return True
-    
+
     # If no organization, survey owner can manage holds
     if not survey.organization_id and survey.owner_id == getattr(user, "id", None):
         return True
-    
+
     return False
 
 
@@ -190,17 +191,17 @@ def can_manage_data_custodians(user, survey: Survey) -> bool:
     """
     if not user.is_authenticated:
         return False
-    
+
     # Organization owner only (not survey owner for security)
     if survey.organization_id and survey.organization.owner_id == getattr(
         user, "id", None
     ):
         return True
-    
+
     # If no organization, survey owner can manage custodians
     if not survey.organization_id and survey.owner_id == getattr(user, "id", None):
         return True
-    
+
     return False
 
 
@@ -227,17 +228,17 @@ def can_hard_delete_survey(user, survey: Survey) -> bool:
     """
     if not user.is_authenticated:
         return False
-    
+
     # Organization owner only
     if survey.organization_id and survey.organization.owner_id == getattr(
         user, "id", None
     ):
         return True
-    
+
     # If no organization, survey owner can hard delete (with caution)
     if not survey.organization_id and survey.owner_id == getattr(user, "id", None):
         return True
-    
+
     return False
 
 

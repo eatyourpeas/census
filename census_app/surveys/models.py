@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -11,6 +12,11 @@ from django.utils import timezone
 from .utils import decrypt_sensitive, encrypt_sensitive, make_key_hash
 
 User = get_user_model()
+
+
+def get_default_retention_months():
+    """Get default retention months from settings."""
+    return getattr(settings, "CENSUS_DEFAULT_RETENTION_MONTHS", 6)
 
 
 class Organization(models.Model):
@@ -174,7 +180,8 @@ class Survey(models.Model):
 
     # Retention
     retention_months = models.IntegerField(
-        default=6, help_text="Retention period in months (6-24)"
+        default=get_default_retention_months,
+        help_text="Retention period in months (configurable via CENSUS_DEFAULT_RETENTION_MONTHS)",
     )
     deletion_date = models.DateTimeField(
         null=True,

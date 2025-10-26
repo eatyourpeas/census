@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import csv
 import io
 import json
 import logging
 import secrets
+from copy import deepcopy
 from typing import Any, Iterable, Union
 
 from django import forms
@@ -1738,8 +1738,7 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
         "can_manage_users": can_manage_survey_users(request.user, survey),
         # Data governance
         "can_export": (
-            survey.is_closed
-            and can_export_survey_data(request.user, survey)
+            survey.is_closed and can_export_survey_data(request.user, survey)
         ),
     }
     if any(
