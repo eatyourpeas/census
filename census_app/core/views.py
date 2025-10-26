@@ -1,16 +1,17 @@
 import logging
 from pathlib import Path
 
+import markdown as mdlib
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login, views as auth_views
+from django.contrib.auth import login
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import translation
 from django.utils.translation import gettext as _
-import markdown as mdlib
 
 from census_app.surveys.models import (
     Organization,
@@ -380,24 +381,29 @@ DOC_CATEGORIES = {
         "order": 4,
         "icon": "🔒",
     },
+    "data-governance": {
+        "title": "Data Governance",
+        "order": 5,
+        "icon": "🗂️",
+    },
     "api": {
         "title": "API & Development",
-        "order": 5,
+        "order": 6,
         "icon": "🔧",
     },
     "testing": {
         "title": "Testing",
-        "order": 6,
+        "order": 7,
         "icon": "🧪",
     },
     "internationalization": {
         "title": "Internationalization",
-        "order": 7,
+        "order": 8,
         "icon": "🌍",
     },
     "advanced": {
         "title": "Advanced Topics",
-        "order": 8,
+        "order": 9,
         "icon": "🚀",
     },
     "other": {
@@ -539,6 +545,20 @@ def _infer_category(slug: str) -> str:
         ]
     ):
         return "security"
+
+    # Data Governance
+    if any(
+        x in slug_lower
+        for x in [
+            "data-governance",
+            "data-export",
+            "data-retention",
+            "data-policy",
+            "data-deletion",
+            "data-management",
+        ]
+    ):
+        return "data-governance"
 
     # API & Development
     if any(x in slug_lower for x in ["api", "adding-", "development"]):
