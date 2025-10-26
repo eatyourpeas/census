@@ -112,9 +112,50 @@ print(r.json())
 - Retrieve/Update/Delete/Seed require ownership or org ADMIN.
 - Authenticated users without rights get 403; non-existent resources return 404.
 
+## Publishing surveys via API
+
+**Important note on encryption:**
+
+Surveys that collect patient data (using question groups with `patient_details_encrypted` template) require encryption to be configured before publishing. The API will reject publish attempts with a `400 Bad Request` if encryption is not set up.
+
+**Recommended workflow for patient data surveys:**
+
+1. Create the survey structure via API:
+
+   ```sh
+   curl -k -s -H "Authorization: Bearer $ACCESS" \
+     -H "Content-Type: application/json" \
+     -X POST \
+     -d '{"name": "Patient Survey", "slug": "patient-survey"}' \
+     https://localhost:8000/api/surveys/
+   ```
+
+2. Add questions and patient data groups via API
+
+3. **Use the web interface** to publish the survey for the first time:
+   - Navigate to the survey dashboard
+   - Click "Publish"
+   - Complete the encryption setup workflow (create recovery phrases, etc.)
+   - This creates the necessary encryption keys
+
+4. After encryption is set up, you can update publish settings via API:
+
+   ```sh
+   curl -k -s -H "Authorization: Bearer $ACCESS" \
+     -H "Content-Type: application/json" \
+     -X PUT \
+     -d '{"status": "published", "visibility": "authenticated"}' \
+     https://localhost:8000/api/surveys/$SURVEY_ID/publish/
+   ```
+
+**For surveys without patient data:** You can publish directly via API without encryption setup.
+
+**Rationale:** The API uses JWT authentication (username/password based), not SSO. Interactive encryption setup—displaying recovery phrases, confirming encryption keys, etc.—is only available through the web interface. This design ensures patient data is always properly protected while keeping the API focused on administrative operations.
+
 ## Troubleshooting
 
 - 401 on unsafe methods: missing session or CSRF token.
 - 403 on unsafe methods: authenticated but not authorized for the resource.
+- 400 on publish with "encryption" error: survey collects patient data but has no encryption; use web interface to set up encryption first.
 - CORS errors in browser: CORS is disabled by default; allow origins explicitly in settings.
 - SSL cert complaints with curl/requests: example uses `-k`/`verify=False` for local; remove in production.
