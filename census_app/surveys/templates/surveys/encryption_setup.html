@@ -14,6 +14,136 @@
         {% trans "Set Up Survey Encryption" %}
       </h1>
 
+      {% if is_sso_user and not is_org_member %}
+      {# SSO individual user - show choice between SSO-only and SSO+recovery #}
+      <div class="alert alert-info mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div>
+          <h3 class="font-bold">{% trans "Choose your encryption method" %}</h3>
+          <p class="text-sm mt-1">{% trans "Since you use SSO authentication, you can choose between simplicity (SSO-only) or additional security (SSO + recovery phrase)." %}</p>
+        </div>
+      </div>
+
+      <form method="post" class="space-y-6" id="encryption-form">
+        {% csrf_token %}
+
+        <div class="form-control">
+          <label class="label cursor-pointer justify-start gap-4 p-4 border rounded-lg hover:bg-base-200 transition">
+            <input type="radio" name="encryption_choice" value="sso_only" class="radio radio-primary" required />
+            <div class="flex-1">
+              <span class="label-text font-semibold text-lg">{% trans "SSO-Only (Simple)" %}</span>
+              <p class="text-sm mt-1 opacity-70">
+                {% trans "Your survey auto-unlocks when you sign in with SSO. No passwords or recovery phrases to remember." %}
+              </p>
+              <div class="badge badge-success badge-sm mt-2">{% trans "Recommended for most users" %}</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="form-control">
+          <label class="label cursor-pointer justify-start gap-4 p-4 border rounded-lg hover:bg-base-200 transition">
+            <input type="radio" name="encryption_choice" value="sso_recovery" class="radio radio-primary" required />
+            <div class="flex-1">
+              <span class="label-text font-semibold text-lg">{% trans "SSO + Recovery Phrase (Belt & Suspenders)" %}</span>
+              <p class="text-sm mt-1 opacity-70">
+                {% trans "Your survey auto-unlocks with SSO, PLUS you get a recovery phrase as a backup in case you lose SSO access." %}
+              </p>
+              <div class="badge badge-warning badge-sm mt-2">{% trans "Extra security for critical surveys" %}</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="alert alert-warning" id="sso-recovery-warning" style="display: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <div class="text-sm">
+            <strong>{% trans "Important:" %}</strong>
+            {% blocktrans %}
+            On the next page, you'll receive a <strong>recovery phrase</strong> (12 words).
+            Write it down and keep it safe - it's your backup if you lose SSO access.
+            This is the <strong>only time</strong> you'll see the recovery phrase.
+            {% endblocktrans %}
+          </div>
+        </div>
+
+        <div class="card-actions justify-between items-center mt-8">
+          <a href="{% url 'surveys:dashboard' slug=survey.slug %}" class="btn btn-ghost">{% trans "Cancel" %}</a>
+          <button type="submit" class="btn btn-primary">
+            {% trans "Set Up Encryption & Publish" %}
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+        </div>
+      </form>
+
+      <div class="divider mt-8"></div>
+
+      <div class="collapse collapse-arrow bg-base-200">
+        <input type="checkbox" />
+        <div class="collapse-title font-medium">
+          {% trans "Need help choosing? View comparison table" %}
+        </div>
+        <div class="collapse-content">
+          <div class="overflow-x-auto">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>{% trans "Feature" %}</th>
+                  <th>{% trans "SSO-Only" %}</th>
+                  <th>{% trans "SSO + Recovery" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{% trans "Auto-unlock when signed in" %}</td>
+                  <td><span class="text-success">✓</span></td>
+                  <td><span class="text-success">✓</span></td>
+                </tr>
+                <tr>
+                  <td>{% trans "Backup if SSO unavailable" %}</td>
+                  <td><span class="text-error">✗</span></td>
+                  <td><span class="text-success">✓ (recovery phrase)</span></td>
+                </tr>
+                <tr>
+                  <td>{% trans "Things to remember" %}</td>
+                  <td>{% trans "Nothing!" %}</td>
+                  <td>{% trans "12-word recovery phrase" %}</td>
+                </tr>
+                <tr>
+                  <td>{% trans "Setup complexity" %}</td>
+                  <td>{% trans "1 click" %}</td>
+                  <td>{% trans "Save recovery phrase" %}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <script>
+      // Show/hide recovery warning based on selected encryption choice
+      document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('encryption-form');
+        if (!form) return;
+
+        const radios = form.querySelectorAll('input[name="encryption_choice"]');
+        const warning = document.getElementById('sso-recovery-warning');
+        
+        radios.forEach(radio => {
+          radio.addEventListener('change', function() {
+            if (this.value === 'sso_recovery') {
+              warning.style.display = 'flex';
+            } else {
+              warning.style.display = 'none';
+            }
+          });
+        });
+      });
+      </script>
+      {# End SSO choice section #}
+
+      {% else %}
+      {# Password-based user - traditional dual encryption #}
       <div class="alert alert-info mb-6">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         <div>
@@ -80,6 +210,7 @@
           </button>
         </div>
       </form>
+      {% endif %}
 
       <div class="divider mt-8"></div>
 
@@ -87,7 +218,11 @@
         <p><strong>{% trans "Technical details:" %}</strong></p>
         <ul class="list-disc list-inside mt-2 space-y-1">
           <li>{% trans "Your data is encrypted with AES-256-GCM" %}</li>
+          {% if is_sso_user %}
+          <li>{% trans "SSO encryption uses PBKDF2-HMAC-SHA256 key derivation" %}</li>
+          {% else %}
           <li>{% trans "Your password uses Scrypt key derivation (n=2^14)" %}</li>
+          {% endif %}
           <li>{% trans "Recovery phrase uses BIP39 standard (12 words)" %}</li>
           <li>{% trans "Encryption keys never leave your control" %}</li>
         </ul>

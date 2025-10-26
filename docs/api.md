@@ -48,6 +48,21 @@ Notes:
 
 - Disabled by default. To call the API from another origin, explicitly set `CORS_ALLOWED_ORIGINS` in settings.
 
+## Encryption requirements for publishing
+
+**Important:** The API enforces encryption requirements for surveys collecting patient data.
+
+- Surveys that collect patient data (using `patient_details_encrypted` question groups) **must have encryption configured** before they can be published via the API.
+- Attempting to publish a patient data survey without encryption will return a `400 Bad Request` error with details.
+- **Recommended workflow:**
+  1. Create and configure your survey structure via the API
+  2. Use the **web interface** to set up encryption for the first publish (this creates the necessary encryption keys and recovery mechanisms)
+  3. Once encryption is set up, you can use the API to update publish settings, change visibility, etc.
+
+- Surveys that do NOT collect patient data can be published directly via the API without encryption setup.
+
+**Rationale:** The API uses JWT authentication (username/password), not SSO. Interactive encryption setup (displaying recovery phrases, etc.) is only available through the web interface. This ensures patient data is always protected while keeping the API simple and focused on administrative operations.
+
 ## Example curl snippets (session + CSRF)
 
 See `docs/authentication-and-permissions.md` for a step-by-step session login and CSRF flow using curl.

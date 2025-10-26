@@ -335,6 +335,18 @@ class SurveyViewSet(viewsets.ModelViewSet):
             )
 
         prev_status = survey.status
+        is_first_publish = (
+            prev_status != Survey.Status.PUBLISHED and status == Survey.Status.PUBLISHED
+        )
+
+        # Enforce encryption requirement for surveys collecting patient data
+        # API users must set up encryption through the web interface before publishing
+        if collects_patient and is_first_publish and not survey.has_any_encryption():
+            raise serializers.ValidationError(
+                {
+                    "encryption": "This survey collects patient data and requires encryption to be set up before publishing. Please use the web interface to configure encryption, then publish via API.",
+                }
+            )
         survey.status = status
         survey.visibility = visibility
         survey.start_at = start_at

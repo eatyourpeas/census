@@ -145,10 +145,21 @@
           </div>
         {% endif %}
         {% if stats.has_encryption_setup %}
-          {% trans "You have encryption enabled on your surveys for secure data collection" as tooltip_encryption %}
+          {% trans "You have encryption enabled on your surveys with a user key for secure data collection" as tooltip_encryption %}
           <div class="tooltip" data-tip="{{ tooltip_encryption }}">
             <div class="indicator">
-              <span class="indicator-item badge badge-success text-xs">{% trans "Encrypted" %}</span>
+              <span class="indicator-item badge badge-success text-xs">{% trans "Encrypted with User key" %}</span>
+              <div class="bg-success text-success-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/lock.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.has_oidc_encryption %}
+          {% trans "Your surveys are automatically encrypted using your SSO identity" as tooltip_oidc_encryption %}
+          <div class="tooltip" data-tip="{{ tooltip_oidc_encryption }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-success text-xs">{% trans "Automatically encrypted" %}</span>
               <div class="bg-success text-success-content rounded-full w-12 h-12 flex items-center justify-center">
                 {% include "components/icons/lock.html" with classes="w-6 h-6" %}
               </div>

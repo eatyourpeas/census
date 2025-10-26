@@ -108,6 +108,11 @@ urlpatterns = [
         name="survey_group_delete",
     ),
     path("<slug:slug>/unlock/", views.survey_unlock, name="unlock"),
+    path(
+        "<slug:slug>/organization-recovery/",
+        views.organization_key_recovery,
+        name="organization_key_recovery",
+    ),
     path("<slug:slug>/export.csv", views.survey_export_csv, name="export_csv"),
     # Group question management (per-group)
     path(

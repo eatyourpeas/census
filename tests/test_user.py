@@ -2,7 +2,8 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 import pytest
 
-from census_app.surveys.models import Organization, OrganizationMembership
+from census_app.core.models import UserOIDC
+from census_app.surveys.models import Organization, OrganizationMembership, Survey
 
 TEST_PASSWORD = "ComplexTestPassword123!"
 
@@ -262,3 +263,114 @@ def test_org_name_defaults_to_username_when_empty(client):
 
     # Should use default: "{username}'s Organisation"
     assert org.name == "testuser@example.com's Organisation"
+
+
+@pytest.mark.django_db
+def test_profile_shows_different_encryption_badges_for_password_and_oidc_users(client):
+    """Test that profile shows appropriate encryption badges for different user types."""
+    import os
+
+    User = get_user_model()
+
+    # Create a user with password-based encryption
+    password_user = User.objects.create_user(
+        username="password_user@example.com",
+        email="password_user@example.com",
+        password=TEST_PASSWORD,
+    )
+
+    # Create a survey with password/recovery encryption
+    password_survey = Survey.objects.create(
+        name="Password Encrypted Survey",
+        slug="password-survey",
+        owner=password_user,
+    )
+    # Set up dual encryption (password + recovery)
+    password_survey.encrypted_kek_password = os.urandom(64)
+    password_survey.encrypted_kek_recovery = os.urandom(64)
+    password_survey.save()
+
+    # Login as password user and check profile
+    client.force_login(password_user)
+    resp = client.get(reverse("core:profile"))
+    assert resp.status_code == 200
+    html = resp.content.decode("utf-8")
+    assert "Encrypted with User key" in html
+    assert "Automatically encrypted" not in html
+    client.logout()
+
+    # Create a user with OIDC authentication
+    oidc_user = User.objects.create_user(
+        username="oidc_user@example.com",
+        email="oidc_user@example.com",
+        password=TEST_PASSWORD,
+    )
+
+    # Create UserOIDC record
+    UserOIDC.objects.create(
+        user=oidc_user,
+        provider="google",
+        subject="google-12345",
+        email_verified=True,
+        key_derivation_salt=os.urandom(32),
+    )
+
+    # Create a survey with OIDC encryption
+    oidc_survey = Survey.objects.create(
+        name="OIDC Encrypted Survey",
+        slug="oidc-survey",
+        owner=oidc_user,
+    )
+    oidc_survey.encrypted_kek_oidc = os.urandom(64)
+    oidc_survey.save()
+
+    # Login as OIDC user and check profile
+    client.force_login(oidc_user)
+    resp = client.get(reverse("core:profile"))
+    assert resp.status_code == 200
+    html = resp.content.decode("utf-8")
+    assert "Automatically encrypted" in html
+    assert "Encrypted with User key" not in html
+    client.logout()
+
+    # Test user with both types of encryption
+    dual_user = User.objects.create_user(
+        username="dual_user@example.com",
+        email="dual_user@example.com",
+        password=TEST_PASSWORD,
+    )
+
+    UserOIDC.objects.create(
+        user=dual_user,
+        provider="google",
+        subject="google-67890",
+        email_verified=True,
+        key_derivation_salt=os.urandom(32),
+    )
+
+    # Survey with password encryption
+    password_survey2 = Survey.objects.create(
+        name="Password Survey 2",
+        slug="password-survey-2",
+        owner=dual_user,
+    )
+    password_survey2.encrypted_kek_password = os.urandom(64)
+    password_survey2.encrypted_kek_recovery = os.urandom(64)
+    password_survey2.save()
+
+    # Survey with OIDC encryption
+    oidc_survey2 = Survey.objects.create(
+        name="OIDC Survey 2",
+        slug="oidc-survey-2",
+        owner=dual_user,
+    )
+    oidc_survey2.encrypted_kek_oidc = os.urandom(64)
+    oidc_survey2.save()
+
+    # Login as dual user and check profile shows both badges
+    client.force_login(dual_user)
+    resp = client.get(reverse("core:profile"))
+    assert resp.status_code == 200
+    html = resp.content.decode("utf-8")
+    assert "Encrypted with User key" in html
+    assert "Automatically encrypted" in html

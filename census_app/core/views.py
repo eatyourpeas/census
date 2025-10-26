@@ -166,6 +166,12 @@ def profile(request):
         encrypted_kek_recovery__isnull=False,
     ).exists()
 
+    # Check if user has any surveys with OIDC encryption
+    has_oidc_encryption = Survey.objects.filter(
+        owner=user,
+        encrypted_kek_oidc__isnull=False,
+    ).exists()
+
     stats = {
         "is_superuser": getattr(user, "is_superuser", False),
         "is_staff": getattr(user, "is_staff", False),
@@ -188,6 +194,7 @@ def profile(request):
         "responses_submitted": SurveyResponse.objects.filter(submitted_by=user).count(),
         "tokens_created": SurveyAccessToken.objects.filter(created_by=user).count(),
         "has_encryption_setup": has_encryption_setup,
+        "has_oidc_encryption": has_oidc_encryption,
     }
     # Prepare language preference form
     lang_pref, created = UserLanguagePreference.objects.get_or_create(user=user)

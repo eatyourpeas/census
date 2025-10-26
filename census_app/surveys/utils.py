@@ -560,3 +560,67 @@ def decrypt_kek_with_oidc(
     kek = aesgcm.decrypt(nonce, ciphertext, None)
 
     return kek
+
+
+def encrypt_kek_with_org_key(kek: bytes, org_master_key: bytes) -> bytes:
+    """
+    Encrypt a Key Encryption Key (KEK) with organization master key.
+
+    Args:
+        kek: The 32-byte survey encryption key to protect
+        org_master_key: Organization's master key (32 bytes)
+                       In production, this should come from KMS (AWS/Azure)
+
+    Returns:
+        Binary blob containing encrypted KEK (nonce + ciphertext)
+    """
+    # Convert memoryview to bytes if needed
+    if isinstance(org_master_key, memoryview):
+        org_master_key = bytes(org_master_key)
+
+    # Validate key size
+    if len(org_master_key) != 32:
+        raise ValueError("Organization master key must be 32 bytes")
+
+    # Encrypt the KEK with organization master key
+    aesgcm = AESGCM(org_master_key)
+    nonce = os.urandom(12)
+    ciphertext = aesgcm.encrypt(nonce, kek, None)
+
+    # Return: nonce | ciphertext
+    return nonce + ciphertext
+
+
+def decrypt_kek_with_org_key(encrypted_blob: bytes, org_master_key: bytes) -> bytes:
+    """
+    Decrypt a Key Encryption Key (KEK) using organization master key.
+
+    Args:
+        encrypted_blob: Binary blob from encrypt_kek_with_org_key
+        org_master_key: Organization's master key (32 bytes)
+                       In production, this should come from KMS (AWS/Azure)
+
+    Returns:
+        32-byte decrypted survey encryption key (KEK)
+
+    Raises:
+        cryptography.exceptions.InvalidTag: If organization key doesn't match
+    """
+    # Convert memoryview to bytes if needed
+    if isinstance(encrypted_blob, memoryview):
+        encrypted_blob = bytes(encrypted_blob)
+    if isinstance(org_master_key, memoryview):
+        org_master_key = bytes(org_master_key)
+
+    # Validate key size
+    if len(org_master_key) != 32:
+        raise ValueError("Organization master key must be 32 bytes")
+
+    # Parse blob: nonce (12) | ciphertext
+    nonce, ciphertext = encrypted_blob[:12], encrypted_blob[12:]
+
+    # Decrypt the KEK with organization master key
+    aesgcm = AESGCM(org_master_key)
+    kek = aesgcm.decrypt(nonce, ciphertext, None)
+
+    return kek

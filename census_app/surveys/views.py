@@ -598,6 +598,24 @@ def survey_create(request: HttpRequest) -> HttpResponse:
                                 )
                                 # Don't fail the entire survey creation if OIDC encryption fails
 
+                        # Also set up organization encryption if user belongs to an organization
+                        if (
+                            survey.organization
+                            and survey.organization.encrypted_master_key
+                        ):
+                            try:
+                                survey.set_org_encryption(
+                                    survey_kek, survey.organization
+                                )
+                                logger.info(
+                                    f"Added organization encryption for survey {survey.slug} (org: {survey.organization.name})"
+                                )
+                            except Exception as e:
+                                logger.warning(
+                                    f"Failed to add organization encryption to survey {survey.slug}: {e}"
+                                )
+                                # Don't fail the entire survey creation if org encryption fails
+
                         # Determine success message based on encryption methods
                         if hasattr(request.user, "oidc"):
                             provider_name = request.user.oidc.provider.title()
@@ -2002,10 +2020,11 @@ def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
             prev_status = survey.status
 
             # Check if encryption setup is needed
+            # Only surveys that collect patient data require encryption
             needs_encryption_setup = (
-                prev_status != Survey.Status.PUBLISHED
-                and not survey.has_dual_encryption()
-                and request.user.groups.filter(name="Individual Users").exists()
+                collects_patient
+                and prev_status != Survey.Status.PUBLISHED
+                and not survey.has_any_encryption()
             )
 
             if needs_encryption_setup:
@@ -2243,16 +2262,71 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
             )
             return redirect("surveys:dashboard", slug=slug)
 
-    # Check if encryption setup is needed (first-time publish for individual users)
+    # Check if encryption setup is needed
     prev_status = survey.status
-    needs_encryption_setup = (
-        prev_status != Survey.Status.PUBLISHED
-        and status == Survey.Status.PUBLISHED
-        and not survey.has_dual_encryption()
-        and survey.organization is None  # Individual user, not organization
-    )
 
-    if needs_encryption_setup:
+    # Determine if we need to redirect to encryption setup
+    # Only surveys that collect patient data require encryption
+    # Organization + SSO users: auto-encrypt without setup page
+    # Organization + Password users: need setup if no encryption yet
+    # Individual + SSO users: need to choose SSO-only vs SSO+recovery
+    # Individual + Password users: need setup if no encryption yet
+
+    collects_patient = _survey_collects_patient_data(survey)
+    is_org_member = survey.organization is not None
+    is_sso_user = hasattr(request.user, "oidc")
+    is_first_publish = (
+        prev_status != Survey.Status.PUBLISHED and status == Survey.Status.PUBLISHED
+    )
+    has_encryption = survey.has_any_encryption()
+
+    # Auto-encrypt for organization SSO users (no setup page needed)
+    # Only if survey collects patient data
+    if (
+        collects_patient
+        and is_org_member
+        and is_sso_user
+        and is_first_publish
+        and not has_encryption
+    ):
+        import os
+
+        # Generate survey encryption key
+        kek = os.urandom(32)
+
+        # Set up OIDC encryption for automatic unlock
+        try:
+            survey.set_oidc_encryption(kek, request.user)
+            logger.info(
+                f"Added OIDC encryption for org survey {survey.slug} during publish (provider: {request.user.oidc.provider})"
+            )
+        except Exception as e:
+            logger.error(f"Failed to add OIDC encryption: {e}")
+            messages.error(
+                request, "Failed to set up SSO encryption. Please try again."
+            )
+            return redirect("surveys:dashboard", slug=slug)
+
+        # Set up organization encryption for admin recovery
+        if survey.organization and survey.organization.encrypted_master_key:
+            try:
+                survey.set_org_encryption(kek, survey.organization)
+                logger.info(
+                    f"Added organization encryption for survey {survey.slug} during publish (org: {survey.organization.name})"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to add organization encryption: {e}")
+
+        # Continue with publish (encryption is set up)
+        provider_name = request.user.oidc.provider.title()
+        messages.success(
+            request,
+            f"Survey encrypted automatically with your {provider_name} account + organization recovery.",
+        )
+
+    # All other cases: check if encryption setup is needed
+    # Only redirect to setup if survey collects patient data and has no encryption
+    elif collects_patient and is_first_publish and not has_encryption:
         # Store pending publish settings in session
         request.session["pending_publish"] = {
             "slug": slug,
@@ -2297,8 +2371,11 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
     """
-    Encryption setup page for individual users publishing surveys.
-    Prompts for password and generates recovery phrase for Option 2 encryption.
+    Encryption setup page for users publishing surveys.
+
+    - SSO individual users: choose between SSO-only or SSO+recovery
+    - Password individual users: password + recovery phrase (traditional)
+    - Organization users: should not reach this page (auto-encrypted)
     """
     survey = get_object_or_404(Survey, slug=slug)
     require_can_edit(request.user, survey)
@@ -2310,83 +2387,260 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
         return redirect("surveys:dashboard", slug=slug)
 
     # Check if survey already has encryption
-    if survey.has_dual_encryption():
+    if survey.has_any_encryption():
         messages.info(request, "Survey already has encryption enabled.")
         return redirect("surveys:dashboard", slug=slug)
 
+    is_sso_user = hasattr(request.user, "oidc")
+    is_org_member = survey.organization is not None
+
     if request.method == "POST":
-        password = request.POST.get("password", "").strip()
-        password_confirm = request.POST.get("password_confirm", "").strip()
-
-        # Validate password
-        if not password:
-            messages.error(request, "Password is required.")
-            return render(request, "surveys/encryption_setup.html", {"survey": survey})
-
-        if len(password) < 12:
-            messages.error(request, "Password must be at least 12 characters.")
-            return render(request, "surveys/encryption_setup.html", {"survey": survey})
-
-        if password != password_confirm:
-            messages.error(request, "Passwords do not match.")
-            return render(request, "surveys/encryption_setup.html", {"survey": survey})
-
-        # Generate survey encryption key (KEK)
         import os
 
         from .utils import generate_bip39_phrase
 
         kek = os.urandom(32)  # 256-bit survey encryption key
 
-        # Generate 12-word recovery phrase
-        recovery_words = generate_bip39_phrase(12)
+        # Handle SSO user choice (individual users only)
+        if is_sso_user and not is_org_member:
+            encryption_choice = request.POST.get("encryption_choice", "")
 
-        # Set up dual encryption
-        survey.set_dual_encryption(kek, password, recovery_words)
+            if encryption_choice == "sso_only":
+                # SSO-only encryption (no password/recovery phrase)
+                try:
+                    survey.set_oidc_encryption(kek, request.user)
+                    logger.info(
+                        f"Set up SSO-only encryption for survey {survey.slug} (provider: {request.user.oidc.provider})"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to set up SSO-only encryption: {e}")
+                    messages.error(
+                        request, "Failed to set up SSO encryption. Please try again."
+                    )
+                    return render(
+                        request,
+                        "surveys/encryption_setup.html",
+                        {
+                            "survey": survey,
+                            "is_sso_user": is_sso_user,
+                            "is_org_member": is_org_member,
+                        },
+                    )
 
-        # Apply pending publish settings
-        from django.utils.dateparse import parse_datetime
+                # Apply pending publish settings and complete
+                _apply_pending_publish_settings(survey, pending)
 
-        # Set status to PUBLISHED (this is a publish action)
-        survey.status = Survey.Status.PUBLISHED
-        survey.visibility = pending.get("visibility", survey.visibility)
-        start_at_str = pending.get("start_at")
-        end_at_str = pending.get("end_at")
-        survey.start_at = parse_datetime(start_at_str) if start_at_str else None
-        survey.end_at = parse_datetime(end_at_str) if end_at_str else None
-        survey.max_responses = pending.get("max_responses")
-        survey.captcha_required = pending.get("captcha_required", False)
-        survey.no_patient_data_ack = pending.get("no_patient_data_ack", False)
+                # Clear session data
+                if "pending_publish" in request.session:
+                    del request.session["pending_publish"]
 
-        # Set published_at and start_at if first publish
-        if survey.status == Survey.Status.PUBLISHED and not survey.published_at:
-            survey.published_at = timezone.now()
-            # If start_at not provided, set it to now
-            if not survey.start_at:
-                survey.start_at = timezone.now()
+                provider_name = request.user.oidc.provider.title()
+                messages.success(
+                    request,
+                    f"Survey published with SSO-only encryption ({provider_name}). "
+                    f"Your survey will auto-unlock when you sign in.",
+                )
+                return redirect("surveys:dashboard", slug=slug)
 
-        # Generate unlisted key if needed
-        if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
-            survey.unlisted_key = secrets.token_urlsafe(24)
+            elif encryption_choice == "sso_recovery":
+                # SSO + recovery phrase (belt and suspenders)
+                recovery_words = generate_bip39_phrase(12)
 
-        survey.save()
+                try:
+                    # Set up OIDC encryption
+                    survey.set_oidc_encryption(kek, request.user)
+                    # Set up recovery phrase encryption (no password)
+                    from .utils import create_recovery_hint, encrypt_kek_with_passphrase
 
-        # Store KEK and recovery phrase in session for key display page (one-time access)
-        request.session["encryption_display"] = {
-            "slug": slug,
-            "kek_hex": kek.hex(),
-            "recovery_phrase": " ".join(recovery_words),
-            "recovery_hint": survey.recovery_code_hint,
-        }
+                    recovery_phrase = " ".join(recovery_words)
+                    survey.encrypted_kek_recovery = encrypt_kek_with_passphrase(
+                        kek, recovery_phrase
+                    )
+                    survey.recovery_code_hint = create_recovery_hint(recovery_words)
+                    survey.save(
+                        update_fields=["encrypted_kek_recovery", "recovery_code_hint"]
+                    )
 
-        # Clear pending publish settings
-        if "pending_publish" in request.session:
-            del request.session["pending_publish"]
+                    logger.info(
+                        f"Set up SSO+recovery encryption for survey {survey.slug} (provider: {request.user.oidc.provider})"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to set up SSO+recovery encryption: {e}")
+                    messages.error(
+                        request, "Failed to set up encryption. Please try again."
+                    )
+                    return render(
+                        request,
+                        "surveys/encryption_setup.html",
+                        {
+                            "survey": survey,
+                            "is_sso_user": is_sso_user,
+                            "is_org_member": is_org_member,
+                        },
+                    )
 
-        # Redirect to key display page
-        return redirect("surveys:encryption_display", slug=slug)
+                # Apply pending publish settings
+                _apply_pending_publish_settings(survey, pending)
 
-    return render(request, "surveys/encryption_setup.html", {"survey": survey})
+                # Store recovery phrase for display
+                request.session["encryption_display"] = {
+                    "slug": slug,
+                    "recovery_phrase": recovery_phrase,
+                    "recovery_hint": survey.recovery_code_hint,
+                    "is_sso_recovery": True,
+                }
+
+                # Clear pending publish settings
+                if "pending_publish" in request.session:
+                    del request.session["pending_publish"]
+
+                # Redirect to recovery phrase display
+                return redirect("surveys:encryption_display", slug=slug)
+
+            else:
+                messages.error(request, "Please select an encryption option.")
+                return render(
+                    request,
+                    "surveys/encryption_setup.html",
+                    {
+                        "survey": survey,
+                        "is_sso_user": is_sso_user,
+                        "is_org_member": is_org_member,
+                    },
+                )
+
+        # Handle password-based user (traditional dual encryption)
+        else:
+            password = request.POST.get("password", "").strip()
+            password_confirm = request.POST.get("password_confirm", "").strip()
+
+            # Validate password
+            if not password:
+                messages.error(request, "Password is required.")
+                return render(
+                    request,
+                    "surveys/encryption_setup.html",
+                    {
+                        "survey": survey,
+                        "is_sso_user": is_sso_user,
+                        "is_org_member": is_org_member,
+                    },
+                )
+
+            if len(password) < 12:
+                messages.error(request, "Password must be at least 12 characters.")
+                return render(
+                    request,
+                    "surveys/encryption_setup.html",
+                    {
+                        "survey": survey,
+                        "is_sso_user": is_sso_user,
+                        "is_org_member": is_org_member,
+                    },
+                )
+
+            if password != password_confirm:
+                messages.error(request, "Passwords do not match.")
+                return render(
+                    request,
+                    "surveys/encryption_setup.html",
+                    {
+                        "survey": survey,
+                        "is_sso_user": is_sso_user,
+                        "is_org_member": is_org_member,
+                    },
+                )
+
+            # Generate 12-word recovery phrase
+            recovery_words = generate_bip39_phrase(12)
+
+            # Set up dual encryption
+            survey.set_dual_encryption(kek, password, recovery_words)
+
+            # Also set up OIDC encryption if user has OIDC authentication (org password users)
+            if is_sso_user:
+                try:
+                    survey.set_oidc_encryption(kek, request.user)
+                    logger.info(
+                        f"Added OIDC encryption for survey {survey.slug} during encryption setup (provider: {request.user.oidc.provider})"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to add OIDC encryption to survey {survey.slug}: {e}"
+                    )
+
+            # Also set up organization encryption if survey belongs to an organization
+            if survey.organization and survey.organization.encrypted_master_key:
+                try:
+                    survey.set_org_encryption(kek, survey.organization)
+                    logger.info(
+                        f"Added organization encryption for survey {survey.slug} during encryption setup (org: {survey.organization.name})"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to add organization encryption to survey {survey.slug}: {e}"
+                    )
+
+            # Apply pending publish settings
+            _apply_pending_publish_settings(survey, pending)
+
+            # Store KEK and recovery phrase in session for key display page (one-time access)
+            request.session["encryption_display"] = {
+                "slug": slug,
+                "kek_hex": kek.hex(),
+                "recovery_phrase": " ".join(recovery_words),
+                "recovery_hint": survey.recovery_code_hint,
+            }
+
+            # Clear pending publish settings
+            if "pending_publish" in request.session:
+                del request.session["pending_publish"]
+
+            # Redirect to key display page
+            return redirect("surveys:encryption_display", slug=slug)
+
+    # GET request: show encryption setup form
+    return render(
+        request,
+        "surveys/encryption_setup.html",
+        {
+            "survey": survey,
+            "is_sso_user": is_sso_user,
+            "is_org_member": is_org_member,
+        },
+    )
+
+
+def _apply_pending_publish_settings(survey: Survey, pending: dict) -> None:
+    """
+    Helper function to apply pending publish settings to a survey.
+    Used by survey_encryption_setup after encryption is configured.
+    """
+    from django.utils.dateparse import parse_datetime
+
+    # Set status to PUBLISHED (this is a publish action)
+    survey.status = Survey.Status.PUBLISHED
+    survey.visibility = pending.get("visibility", survey.visibility)
+    start_at_str = pending.get("start_at")
+    end_at_str = pending.get("end_at")
+    survey.start_at = parse_datetime(start_at_str) if start_at_str else None
+    survey.end_at = parse_datetime(end_at_str) if end_at_str else None
+    survey.max_responses = pending.get("max_responses")
+    survey.captcha_required = pending.get("captcha_required", False)
+    survey.no_patient_data_ack = pending.get("no_patient_data_ack", False)
+
+    # Set published_at and start_at if first publish
+    if survey.status == Survey.Status.PUBLISHED and not survey.published_at:
+        survey.published_at = timezone.now()
+        # If start_at not provided, set it to now
+        if not survey.start_at:
+            survey.start_at = timezone.now()
+
+    # Generate unlisted key if needed
+    if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
+        survey.unlisted_key = secrets.token_urlsafe(24)
+
+    survey.save()
 
 
 @login_required
@@ -3493,6 +3747,16 @@ def get_survey_key_from_session(request: HttpRequest, survey_slug: str) -> bytes
             recovery_phrase = creds.get("recovery_phrase")
             if recovery_phrase:
                 return survey.unlock_with_recovery(recovery_phrase)
+        elif unlock_method == "oidc":
+            oidc_provider = creds.get("oidc_provider")
+            oidc_subject = creds.get("oidc_subject")
+            if oidc_provider and oidc_subject:
+                return survey.unlock_with_oidc(request.user)
+        elif unlock_method == "organization_recovery":
+            organization_id = creds.get("organization_id")
+            if organization_id:
+                org = Organization.objects.get(id=organization_id)
+                return survey.unlock_with_org_key(org)
         elif unlock_method == "legacy":
             legacy_key_b64 = creds.get("legacy_key")
             if legacy_key_b64:
@@ -3732,6 +3996,144 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
         ),
     }
     return render(request, "surveys/unlock.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def organization_key_recovery(request: HttpRequest, slug: str) -> HttpResponse:
+    """
+    Organization key recovery view.
+
+    Allows organization owners and admins to unlock surveys created by their members
+    using the organization master key (Option 1: Key Escrow).
+
+    This is for administrative recovery scenarios only and all access is audited.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+
+    # Check if survey belongs to an organization
+    if not survey.organization:
+        messages.error(request, "This survey does not belong to an organization.")
+        return redirect("surveys:dashboard", slug=slug)
+
+    # Check if survey has organization encryption
+    if not survey.has_org_encryption():
+        messages.error(
+            request, "This survey does not have organization-level encryption enabled."
+        )
+        return redirect("surveys:dashboard", slug=slug)
+
+    # Check if user is owner or admin of the organization
+    org = survey.organization
+    is_org_owner = org.owner == request.user
+    is_org_admin = OrganizationMembership.objects.filter(
+        organization=org, user=request.user, role=OrganizationMembership.Role.ADMIN
+    ).exists()
+
+    if not (is_org_owner or is_org_admin):
+        messages.error(
+            request,
+            "Only organization owners and admins can perform key recovery.",
+        )
+        return redirect("surveys:dashboard", slug=slug)
+
+    # Don't allow recovery if user is the survey owner (they should use their own unlock methods)
+    if survey.owner == request.user:
+        messages.info(
+            request,
+            "You are the owner of this survey. Please use the regular unlock page instead.",
+        )
+        return redirect("surveys:unlock", slug=slug)
+
+    if request.method == "POST":
+        # Confirm the recovery action - requires EXACT "recover" (case-sensitive for security)
+        confirm = request.POST.get("confirm", "").strip()
+        if confirm != "recover":
+            messages.error(
+                request,
+                'Please type "recover" to confirm this administrative key recovery action.',
+            )
+            # Re-render the page with the error message
+            context = {
+                "survey": survey,
+                "organization": org,
+                "is_org_owner": is_org_owner,
+                "is_org_admin": is_org_admin,
+                "survey_owner": survey.owner,
+            }
+            return render(request, "surveys/organization_key_recovery.html", context)
+
+        # Attempt to unlock with organization key
+        kek = survey.unlock_with_org_key(org)
+
+        if kek:
+            # Create audit log entry for key recovery
+            AuditLog.objects.create(
+                actor=request.user,
+                scope=AuditLog.Scope.SURVEY,
+                action=AuditLog.Action.KEY_RECOVERY,
+                survey=survey,
+                organization=org,
+                target_user=survey.owner,
+                metadata={
+                    "recovery_method": "organization_master_key",
+                    "survey_owner": survey.owner.username,
+                    "org_role": "owner" if is_org_owner else "admin",
+                },
+            )
+
+            # Store organization key recovery credentials in session
+            import base64
+
+            from .utils import encrypt_sensitive
+
+            session_key = request.session.session_key or request.session.create()
+
+            # Store organization ID for re-derivation (don't store the master key itself)
+            encrypted_creds = encrypt_sensitive(
+                session_key.encode("utf-8"),
+                {
+                    "organization_id": org.id,
+                    "survey_slug": slug,
+                    "recovery_type": "organization",
+                },
+            )
+            request.session["unlock_credentials"] = base64.b64encode(
+                encrypted_creds
+            ).decode("ascii")
+            request.session["unlock_method"] = "organization_recovery"
+            request.session["unlock_verified_at"] = timezone.now().isoformat()
+            request.session["unlock_survey_slug"] = slug
+
+            logger.warning(
+                f"Organization key recovery performed by {request.user.username} "
+                f"for survey {slug} owned by {survey.owner.username} "
+                f"(organization: {org.name})"
+            )
+
+            messages.success(
+                request,
+                f"Survey unlocked using organization key recovery. This action has been logged. "
+                f"Survey owner: {survey.owner.username}",
+            )
+            return redirect("surveys:dashboard", slug=slug)
+        else:
+            logger.error(
+                f"Organization key recovery failed for survey {slug} by {request.user.username}"
+            )
+            messages.error(
+                request,
+                "Failed to unlock survey with organization key. Please contact technical support.",
+            )
+
+    context = {
+        "survey": survey,
+        "organization": org,
+        "is_org_owner": is_org_owner,
+        "is_org_admin": is_org_admin,
+        "survey_owner": survey.owner,
+    }
+    return render(request, "surveys/organization_key_recovery.html", context)
 
 
 @login_required
