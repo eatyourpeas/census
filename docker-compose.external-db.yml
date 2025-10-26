@@ -1,13 +1,15 @@
-# Docker Compose for self-hosting Census
-# This uses pre-built images from GitHub Container Registry
+# Docker Compose for Census with External Managed Database
+# Use this when you have a managed PostgreSQL service (AWS RDS, Azure Database, etc.)
 #
-# Quick Start:
-#   1. Copy .env.selfhost to .env and configure
-#   2. Run: docker compose -f docker-compose.registry.yml up -d
-#   3. Visit: http://localhost:8000
+# Setup:
+#   1. Copy .env.selfhost to .env
+#   2. Set DATABASE_URL to your managed database connection string
+#   3. Run: docker compose -f docker-compose.external-db.yml up -d
 #
-# For production with nginx: docker compose -f docker-compose.registry.yml -f docker-compose.nginx.yml up -d
-# For external database: Set DATABASE_URL in .env and comment out 'db' service below
+# Example DATABASE_URL formats:
+#   AWS RDS:     postgresql://username:password@your-rds-instance.region.rds.amazonaws.com:5432/census
+#   Azure:       postgresql://username:password@your-server.postgres.database.azure.com:5432/census?sslmode=require
+#   Google Cloud: postgresql://username:password@/census?host=/cloudsql/project:region:instance
 #
 version: "3.8"
 
@@ -17,25 +19,21 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Persist uploaded files and user-generated content
       - media_data:/app/media
-      # Optional: Mount custom static files for branding
-      # - ./custom-static:/app/custom-static:ro
     environment:
       # ========================
-      # REQUIRED: Database
+      # REQUIRED: External Database
       # ========================
-      # Default: Use included PostgreSQL container
-      # For external DB: Override DATABASE_URL in .env with your connection string
-      DATABASE_URL: ${DATABASE_URL:-postgresql://census:census@db:5432/census}
+      # Set this in your .env file with your managed database connection string
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set in .env file}
 
       # ========================
       # REQUIRED: Security
       # ========================
-      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
       DEBUG: ${DEBUG:-False}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:?ALLOWED_HOSTS must be set}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:?CSRF_TRUSTED_ORIGINS must be set}
       SECURE_SSL_REDIRECT: ${SECURE_SSL_REDIRECT:-True}
 
       # ========================
@@ -51,13 +49,13 @@ services:
       # ========================
       # REQUIRED: Email
       # ========================
-      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-no-reply@yourdomain.com}
-      SERVER_EMAIL: ${SERVER_EMAIL:-server@yourdomain.com}
-      EMAIL_HOST: ${EMAIL_HOST:-smtp.gmail.com}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:?DEFAULT_FROM_EMAIL must be set}
+      SERVER_EMAIL: ${SERVER_EMAIL:-${DEFAULT_FROM_EMAIL}}
+      EMAIL_HOST: ${EMAIL_HOST:?EMAIL_HOST must be set}
       EMAIL_PORT: ${EMAIL_PORT:-587}
       EMAIL_USE_TLS: ${EMAIL_USE_TLS:-True}
-      EMAIL_HOST_USER: ${EMAIL_HOST_USER}
-      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:?EMAIL_HOST_USER must be set}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:?EMAIL_HOST_PASSWORD must be set}
       EMAIL_TIMEOUT: ${EMAIL_TIMEOUT:-10}
 
       # ========================
@@ -84,9 +82,6 @@ services:
       OIDC_OP_JWKS_ENDPOINT_GOOGLE: ${OIDC_OP_JWKS_ENDPOINT_GOOGLE:-https://www.googleapis.com/oauth2/v3/certs}
       OIDC_OP_JWKS_ENDPOINT_AZURE: ${OIDC_OP_JWKS_ENDPOINT_AZURE:-https://login.microsoftonline.com/common/discovery/v2.0/keys}
 
-    depends_on:
-      db:
-        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
@@ -94,41 +89,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    networks:
-      - census-network
-
-  # ========================
-  # PostgreSQL Database
-  # ========================
-  # Comment out this entire service if using an external managed database
-  # (e.g., AWS RDS, Azure Database, Google Cloud SQL)
-  # and set DATABASE_URL in your .env file
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-census}
-      POSTGRES_USER: ${POSTGRES_USER:-census}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-census}
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U census"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - census-network
-    # Uncomment to expose PostgreSQL port (for backups/management)
-    # ports:
-    #   - "5432:5432"
-
-networks:
-  census-network:
-    driver: bridge
 
 volumes:
-  db_data:
-    driver: local
   media_data:
     driver: local

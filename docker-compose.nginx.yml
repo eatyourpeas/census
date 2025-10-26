@@ -1,0 +1,44 @@
+# Optional nginx reverse proxy for production deployments
+# This provides SSL termination, static file serving, and load balancing
+#
+# Usage:
+#   docker compose -f docker-compose.registry.yml -f docker-compose.nginx.yml up -d
+#
+# Before running:
+#   1. Update nginx/nginx.conf with your domain
+#   2. Configure SSL certificates (see nginx/README.md)
+#
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - static_data:/var/www/static:ro
+      - media_data:/var/www/media:ro
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks:
+      - census-network
+
+  # Override web service to not expose port directly
+  web:
+    ports: [] # nginx will handle external traffic
+    expose:
+      - "8000"
+
+volumes:
+  static_data:
+    driver: local
+  media_data:
+    driver: local
+
+networks:
+  census-network:
+    external: true
