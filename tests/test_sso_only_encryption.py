@@ -17,11 +17,26 @@ from census_app.core.models import UserOIDC
 from census_app.surveys.models import (
     Organization,
     OrganizationMembership,
+    QuestionGroup,
     Survey,
     SurveyQuestion,
 )
 
 User = get_user_model()
+
+
+def add_patient_data_group(survey):
+    """Helper to add a patient data group to a survey (triggers encryption requirement)."""
+    group = QuestionGroup.objects.create(
+        name="Patient Details",
+        owner=survey.owner,
+        schema={
+            "template": "patient_details_encrypted",
+            "fields": ["first_name", "surname", "date_of_birth", "hospital_number"],
+        },
+    )
+    survey.question_groups.add(group)
+    return group
 
 
 class TestOrganizationSSORAutoEncryption(TestCase):
@@ -77,6 +92,9 @@ class TestOrganizationSSORAutoEncryption(TestCase):
             status=Survey.Status.DRAFT,
         )
 
+        # Add patient data group to trigger encryption requirement
+        add_patient_data_group(survey)
+
         # Add a question (required for publish)
         SurveyQuestion.objects.create(
             survey=survey,
@@ -126,6 +144,9 @@ class TestOrganizationSSORAutoEncryption(TestCase):
             organization=self.org,
             status=Survey.Status.DRAFT,
         )
+
+        # Add patient data group to trigger encryption requirement
+        add_patient_data_group(survey)
 
         SurveyQuestion.objects.create(
             survey=survey,
@@ -183,6 +204,9 @@ class TestIndividualSSOEncryptionChoice(TestCase):
             status=Survey.Status.DRAFT,
         )
 
+        # Add patient data group to trigger encryption requirement
+        add_patient_data_group(survey)
+
         SurveyQuestion.objects.create(
             survey=survey,
             text="Test question",
@@ -213,6 +237,9 @@ class TestIndividualSSOEncryptionChoice(TestCase):
             owner=self.user,
             status=Survey.Status.DRAFT,
         )
+
+        # Add patient data group to trigger encryption requirement
+        add_patient_data_group(survey)
 
         SurveyQuestion.objects.create(
             survey=survey,
@@ -267,6 +294,9 @@ class TestIndividualSSOEncryptionChoice(TestCase):
             status=Survey.Status.DRAFT,
         )
 
+        # Add patient data group to trigger encryption requirement
+        add_patient_data_group(survey)
+
         SurveyQuestion.objects.create(
             survey=survey,
             text="Test question",
@@ -319,6 +349,9 @@ class TestIndividualSSOEncryptionChoice(TestCase):
             owner=self.user,
             status=Survey.Status.DRAFT,
         )
+
+        # Add patient data group to trigger encryption requirement
+        add_patient_data_group(survey)
 
         SurveyQuestion.objects.create(
             survey=survey,
@@ -377,6 +410,9 @@ class TestPasswordUserEncryptionUnchanged(TestCase):
             status=Survey.Status.DRAFT,
         )
 
+        # Add patient data group to trigger encryption requirement
+        add_patient_data_group(survey)
+
         SurveyQuestion.objects.create(
             survey=survey,
             text="Test question",
@@ -414,6 +450,9 @@ class TestPasswordUserEncryptionUnchanged(TestCase):
             owner=self.user,
             status=Survey.Status.DRAFT,
         )
+
+        # Add patient data group to trigger encryption requirement
+        add_patient_data_group(survey)
 
         SurveyQuestion.objects.create(
             survey=survey,
@@ -495,6 +534,9 @@ class TestOrganizationPasswordUserEncryption(TestCase):
             organization=self.org,
             status=Survey.Status.DRAFT,
         )
+
+        # Add patient data group to trigger encryption requirement
+        add_patient_data_group(survey)
 
         SurveyQuestion.objects.create(
             survey=survey,
