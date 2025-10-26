@@ -663,7 +663,10 @@ class Survey(models.Model):
         from django.conf import settings
         from django.template.loader import render_to_string
 
-        from census_app.core.email_utils import get_platform_branding, send_branded_email
+        from census_app.core.email_utils import (
+            get_platform_branding,
+            send_branded_email,
+        )
 
         subject = f"Retention Period Extended: {self.name}"
 
@@ -705,7 +708,6 @@ class Survey(models.Model):
                         markdown_content=markdown_content,
                         branding=branding,
                     )
-
 
     @property
     def is_closed(self) -> bool:
@@ -1268,7 +1270,10 @@ class LegalHold(models.Model):
         from django.conf import settings
         from django.template.loader import render_to_string
 
-        from census_app.core.email_utils import get_platform_branding, send_branded_email
+        from census_app.core.email_utils import (
+            get_platform_branding,
+            send_branded_email,
+        )
 
         subject = f"Legal Hold Removed: {self.survey.name}"
 

@@ -13,6 +13,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError, models, transaction
 from django.db.models import QuerySet
@@ -5370,4 +5371,3 @@ def _send_survey_closure_notification(survey: Survey, user: User) -> None:
         markdown_content=markdown_content,
         branding=branding,
     )
-

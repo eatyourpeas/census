@@ -38,7 +38,7 @@ Your survey data will be retained according to the following schedule:
 You'll receive email reminders before automatic deletion:
 
 - **1 month** before deletion
-- **1 week** before deletion  
+- **1 week** before deletion
 - **1 day** before deletion
 
 Each reminder will include options to export data or extend retention.

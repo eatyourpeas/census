@@ -230,7 +230,9 @@ def survey_legal_hold_place(request: HttpRequest, slug: str) -> HttpResponse:
         )
 
         # Send email notification
-        _send_legal_hold_placed_notification(hold, survey, request.user, reason, authority)
+        _send_legal_hold_placed_notification(
+            hold, survey, request.user, reason, authority
+        )
 
         messages.success(
             request, "Legal hold placed successfully. Survey cannot be deleted."
@@ -338,7 +340,9 @@ def survey_custodian_grant(request: HttpRequest, slug: str) -> HttpResponse:
         )
 
         # Send email notification to the custodian
-        _send_custodian_assignment_notification(survey, user, request.user, reason, expires_at)
+        _send_custodian_assignment_notification(
+            survey, user, request.user, reason, expires_at
+        )
 
         messages.success(request, f"Data custodian access granted to {user.username}.")
 
@@ -544,4 +548,3 @@ def _send_legal_hold_placed_notification(
                 markdown_content=markdown_content,
                 branding=branding,
             )
-

@@ -37,7 +37,7 @@ If you have concerns, contact your organization's data protection officer or the
 Users who download data are responsible for:
 
 - Storing exports securely (encrypted, password-protected)
-- Not sharing data inappropriately  
+- Not sharing data inappropriately
 - Deleting local copies when no longer needed
 - Reporting any data breaches
 

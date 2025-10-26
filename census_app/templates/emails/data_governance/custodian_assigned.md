@@ -9,7 +9,7 @@ You have been designated as a **Data Custodian** for survey **"{{ survey.name }}
 - **Survey:** {{ survey.name }}
 - **Granted by:** {{ granted_by.username }} ({{ granted_by.email }})
 - **Reason:** {{ reason }}
-{% if expires_at %}- **Access expires:** {{ expiry_date }}{% endif %}
+  {% if expires_at %}- **Access expires:** {{ expiry_date }}{% endif %}
 
 ### What is a Data Custodian?
 

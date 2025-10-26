@@ -119,7 +119,10 @@ class RetentionService:
         """
         from django.template.loader import render_to_string
 
-        from census_app.core.email_utils import get_platform_branding, send_branded_email
+        from census_app.core.email_utils import (
+            get_platform_branding,
+            send_branded_email,
+        )
 
         owner_email = survey.owner.email
 
@@ -134,7 +137,9 @@ class RetentionService:
             urgency = "Notice"
             timeframe = f"in {days_remaining} days"
 
-        subject = f"{urgency}: Survey Data Deletion Warning - {days_remaining} days remaining"
+        subject = (
+            f"{urgency}: Survey Data Deletion Warning - {days_remaining} days remaining"
+        )
 
         branding = get_platform_branding()
 

@@ -31,8 +31,9 @@ The survey is no longer subject to legal preservation requirements:
 **New scheduled deletion date:** {{ new_deletion_date }}
 
 You will receive deletion warning emails:
+
 - 30 days before deletion
-- 7 days before deletion  
+- 7 days before deletion
 - 1 day before deletion
 
 {% else %}
@@ -46,6 +47,7 @@ The survey is still open. Once closed, data will be retained for {{ survey.reten
 Now that the legal hold is lifted, assess whether you still need this data:
 
 1. **Do you still need the data?**
+
    - If yes: Take no action, wait for deletion warnings
    - If no: Consider exporting and then deleting the survey
 
@@ -97,6 +99,7 @@ To download survey data or manage settings:
 [Go to Survey Dashboard]({{ site_url }}/surveys/{{ survey.slug }}/)
 
 Features available:
+
 - Download survey data
 - Extend retention period
 - Grant/revoke custodian access
@@ -121,4 +124,4 @@ Even though the legal hold is removed:
 
 ---
 
-*This is an automated notification from {{ brand_title }}.*
+_This is an automated notification from {{ brand_title }}._

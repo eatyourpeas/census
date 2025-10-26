@@ -23,11 +23,13 @@ Your survey data will now be retained until **{{ new_deletion_date }}** instead 
 ### Updated Timeline
 
 1. **Now - {{ new_deletion_date }}**: Survey data is retained and accessible
+
    - You can download survey data at any time
    - Data custodians can access responses
    - Further extensions possible (up to 24 months total)
 
 2. **Deletion Warnings**: You'll receive new email notifications
+
    - 30 days before the new deletion date
    - 7 days before the new deletion date
    - 1 day before the new deletion date
@@ -56,8 +58,8 @@ You cannot extend retention further. If you need to keep data beyond this period
 2. Store it securely with appropriate safeguards
 3. Take personal responsibility for the data
 4. Delete it when no longer needed
-{% else %}
-You can extend retention up to **{{ max_retention_months }}** total months from survey closure.
+   {% else %}
+   You can extend retention up to **{{ max_retention_months }}** total months from survey closure.
 
 If you need to extend retention again:
 
@@ -65,7 +67,7 @@ If you need to extend retention again:
 2. Click "Extend Retention Period"
 3. Provide clear justification
 4. Maximum total retention: 24 months
-{% endif %}
+   {% endif %}
 
 ## Your Responsibilities
 
@@ -98,4 +100,4 @@ For questions about retention extensions:
 
 ---
 
-*This is an automated notification from {{ brand_title }}.*
+_This is an automated notification from {{ brand_title }}._

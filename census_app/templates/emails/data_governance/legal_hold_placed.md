@@ -62,15 +62,18 @@ Failure to comply with a legal hold can result in:
 ## What You Should Do Now
 
 1. **Acknowledge Receipt**
+
    - Confirm you understand this legal hold
    - Contact {{ placed_by.username }} or your legal department
 
 2. **Stop Any Deletion Plans**
+
    - Cancel any pending data exports you planned to delete
    - Do not delete local copies of survey data
    - Notify anyone who might delete this data
 
 3. **Document Everything**
+
    - Keep records of who accesses this survey
    - Log all data exports
    - Save all communications about this survey
@@ -109,6 +112,7 @@ For questions:
 - **Access issues:** Contact your organization administrator
 
 **Do not:**
+
 - Discuss the hold with survey respondents
 - Share details on social media or public forums
 - Speculate about the legal matter

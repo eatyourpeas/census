@@ -17,6 +17,7 @@ Your survey **"{{ survey.name }}"** has been transferred to a new owner.
 ## What This Means
 
 {% if is_new_owner %}
+
 ### Your New Responsibilities
 
 As the new owner, you now have:
@@ -37,15 +38,15 @@ You are now responsible for:
 ### Important Information
 
 - **Retention period:** {{ survey.retention_months }} months
-{% if survey.deletion_date %}
+  {% if survey.deletion_date %}
 - **Scheduled deletion:** {{ deletion_date }}
 - You will receive deletion warnings at 30, 7, and 1 day before deletion
-{% endif %}
-{% if survey.is_closed %}
+  {% endif %}
+  {% if survey.is_closed %}
 - **Survey status:** Closed (no longer accepting responses)
-{% else %}
+  {% else %}
 - **Survey status:** Open (still accepting responses)
-{% endif %}
+  {% endif %}
 
 ### Your Next Steps
 
@@ -57,6 +58,7 @@ You are now responsible for:
 [Go to Survey Dashboard]({{ site_url }}/surveys/{{ survey.slug }}/)
 
 {% else %}
+
 ### Your Status
 
 You are no longer the owner of this survey. This means:
@@ -76,6 +78,7 @@ If you need continued access to this survey's data:
 4. The new owner can grant you custodian permissions
 
 Data Custodians can:
+
 - Download survey data for approved purposes
 - Receive deletion warning emails
 - View survey responses
@@ -87,13 +90,14 @@ Data Custodians can:
 For questions about this ownership transfer:
 
 {% if is_new_owner %}
+
 - Contact {{ old_owner.username }} for context and background
-{% else %}
+  {% else %}
 - Contact {{ new_owner.username }} if you need access to the data
-{% endif %}
+  {% endif %}
 - Review the [Data Governance Overview](/docs/data-governance-overview/)
 - Contact your organization administrator
 
 ---
 
-*This is an automated notification from {{ brand_title }}.*
+_This is an automated notification from {{ brand_title }}._
