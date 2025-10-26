@@ -1,0 +1,95 @@
+# Docker Compose for Census with External Managed Database
+# Use this when you have a managed PostgreSQL service (AWS RDS, Azure Database, etc.)
+#
+# Setup:
+#   1. Copy .env.selfhost to .env
+#   2. Set DATABASE_URL to your managed database connection string
+#   3. Run: docker compose -f docker-compose.external-db.yml up -d
+#
+# Example DATABASE_URL formats:
+#   AWS RDS:     postgresql://username:password@your-rds-instance.region.rds.amazonaws.com:5432/census
+#   Azure:       postgresql://username:password@your-server.postgres.database.azure.com:5432/census?sslmode=require
+#   Google Cloud: postgresql://username:password@/census?host=/cloudsql/project:region:instance
+#
+version: "3.8"
+
+services:
+  web:
+    image: ghcr.io/eatyourpeas/census:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - media_data:/app/media
+    environment:
+      # ========================
+      # REQUIRED: External Database
+      # ========================
+      # Set this in your .env file with your managed database connection string
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set in .env file}
+
+      # ========================
+      # REQUIRED: Security
+      # ========================
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
+      DEBUG: ${DEBUG:-False}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:?ALLOWED_HOSTS must be set}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:?CSRF_TRUSTED_ORIGINS must be set}
+      SECURE_SSL_REDIRECT: ${SECURE_SSL_REDIRECT:-True}
+
+      # ========================
+      # REQUIRED: Branding
+      # ========================
+      BRAND_TITLE: ${BRAND_TITLE:-Census}
+      BRAND_ICON_URL: ${BRAND_ICON_URL:-/static/favicon.ico}
+      BRAND_THEME: ${BRAND_THEME:-census}
+      BRAND_FONT_HEADING: ${BRAND_FONT_HEADING:-'IBM Plex Mono', ui-sans-serif, system-ui}
+      BRAND_FONT_BODY: ${BRAND_FONT_BODY:-Merriweather, ui-serif, Georgia}
+      BRAND_FONT_CSS_URL: ${BRAND_FONT_CSS_URL:-https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap}
+
+      # ========================
+      # REQUIRED: Email
+      # ========================
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:?DEFAULT_FROM_EMAIL must be set}
+      SERVER_EMAIL: ${SERVER_EMAIL:-${DEFAULT_FROM_EMAIL}}
+      EMAIL_HOST: ${EMAIL_HOST:?EMAIL_HOST must be set}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-True}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:?EMAIL_HOST_USER must be set}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:?EMAIL_HOST_PASSWORD must be set}
+      EMAIL_TIMEOUT: ${EMAIL_TIMEOUT:-10}
+
+      # ========================
+      # OPTIONAL: Captcha
+      # ========================
+      HCAPTCHA_SITEKEY: ${HCAPTCHA_SITEKEY:-}
+      HCAPTCHA_SECRET: ${HCAPTCHA_SECRET:-}
+
+      # ========================
+      # OPTIONAL: External APIs
+      # ========================
+      EXTERNAL_DATASET_API_URL: ${EXTERNAL_DATASET_API_URL:-https://api.rcpch.ac.uk}
+      EXTERNAL_DATASET_API_KEY: ${EXTERNAL_DATASET_API_KEY:-}
+
+      # ========================
+      # OPTIONAL: OIDC Authentication
+      # ========================
+      OIDC_RP_CLIENT_ID_AZURE: ${OIDC_RP_CLIENT_ID_AZURE:-}
+      OIDC_RP_CLIENT_SECRET_AZURE: ${OIDC_RP_CLIENT_SECRET_AZURE:-}
+      OIDC_OP_TENANT_ID_AZURE: ${OIDC_OP_TENANT_ID_AZURE:-}
+      OIDC_RP_CLIENT_ID_GOOGLE: ${OIDC_RP_CLIENT_ID_GOOGLE:-}
+      OIDC_RP_CLIENT_SECRET_GOOGLE: ${OIDC_RP_CLIENT_SECRET_GOOGLE:-}
+      OIDC_RP_SIGN_ALGO: ${OIDC_RP_SIGN_ALGO:-RS256}
+      OIDC_OP_JWKS_ENDPOINT_GOOGLE: ${OIDC_OP_JWKS_ENDPOINT_GOOGLE:-https://www.googleapis.com/oauth2/v3/certs}
+      OIDC_OP_JWKS_ENDPOINT_AZURE: ${OIDC_OP_JWKS_ENDPOINT_AZURE:-https://login.microsoftonline.com/common/discovery/v2.0/keys}
+
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  media_data:
+    driver: local

@@ -1,0 +1,134 @@
+# Docker Compose for self-hosting Census
+# This uses pre-built images from GitHub Container Registry
+#
+# Quick Start:
+#   1. Copy .env.selfhost to .env and configure
+#   2. Run: docker compose -f docker-compose.registry.yml up -d
+#   3. Visit: http://localhost:8000
+#
+# For production with nginx: docker compose -f docker-compose.registry.yml -f docker-compose.nginx.yml up -d
+# For external database: Set DATABASE_URL in .env and comment out 'db' service below
+#
+version: "3.8"
+
+services:
+  web:
+    image: ghcr.io/eatyourpeas/census:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist uploaded files and user-generated content
+      - media_data:/app/media
+      # Optional: Mount custom static files for branding
+      # - ./custom-static:/app/custom-static:ro
+    environment:
+      # ========================
+      # REQUIRED: Database
+      # ========================
+      # Default: Use included PostgreSQL container
+      # For external DB: Override DATABASE_URL in .env with your connection string
+      DATABASE_URL: ${DATABASE_URL:-postgresql://census:census@db:5432/census}
+
+      # ========================
+      # REQUIRED: Security
+      # ========================
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      DEBUG: ${DEBUG:-False}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+      SECURE_SSL_REDIRECT: ${SECURE_SSL_REDIRECT:-True}
+
+      # ========================
+      # REQUIRED: Branding
+      # ========================
+      BRAND_TITLE: ${BRAND_TITLE:-Census}
+      BRAND_ICON_URL: ${BRAND_ICON_URL:-/static/favicon.ico}
+      BRAND_THEME: ${BRAND_THEME:-census}
+      BRAND_FONT_HEADING: ${BRAND_FONT_HEADING:-'IBM Plex Mono', ui-sans-serif, system-ui}
+      BRAND_FONT_BODY: ${BRAND_FONT_BODY:-Merriweather, ui-serif, Georgia}
+      BRAND_FONT_CSS_URL: ${BRAND_FONT_CSS_URL:-https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap}
+
+      # ========================
+      # REQUIRED: Email
+      # ========================
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-no-reply@yourdomain.com}
+      SERVER_EMAIL: ${SERVER_EMAIL:-server@yourdomain.com}
+      EMAIL_HOST: ${EMAIL_HOST:-smtp.gmail.com}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-True}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
+      EMAIL_TIMEOUT: ${EMAIL_TIMEOUT:-10}
+
+      # ========================
+      # OPTIONAL: Captcha
+      # ========================
+      HCAPTCHA_SITEKEY: ${HCAPTCHA_SITEKEY:-}
+      HCAPTCHA_SECRET: ${HCAPTCHA_SECRET:-}
+
+      # ========================
+      # OPTIONAL: External APIs
+      # ========================
+      EXTERNAL_DATASET_API_URL: ${EXTERNAL_DATASET_API_URL:-https://api.rcpch.ac.uk}
+      EXTERNAL_DATASET_API_KEY: ${EXTERNAL_DATASET_API_KEY:-}
+
+      # ========================
+      # OPTIONAL: OIDC Authentication
+      # ========================
+      OIDC_RP_CLIENT_ID_AZURE: ${OIDC_RP_CLIENT_ID_AZURE:-}
+      OIDC_RP_CLIENT_SECRET_AZURE: ${OIDC_RP_CLIENT_SECRET_AZURE:-}
+      OIDC_OP_TENANT_ID_AZURE: ${OIDC_OP_TENANT_ID_AZURE:-}
+      OIDC_RP_CLIENT_ID_GOOGLE: ${OIDC_RP_CLIENT_ID_GOOGLE:-}
+      OIDC_RP_CLIENT_SECRET_GOOGLE: ${OIDC_RP_CLIENT_SECRET_GOOGLE:-}
+      OIDC_RP_SIGN_ALGO: ${OIDC_RP_SIGN_ALGO:-RS256}
+      OIDC_OP_JWKS_ENDPOINT_GOOGLE: ${OIDC_OP_JWKS_ENDPOINT_GOOGLE:-https://www.googleapis.com/oauth2/v3/certs}
+      OIDC_OP_JWKS_ENDPOINT_AZURE: ${OIDC_OP_JWKS_ENDPOINT_AZURE:-https://login.microsoftonline.com/common/discovery/v2.0/keys}
+
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - census-network
+
+  # ========================
+  # PostgreSQL Database
+  # ========================
+  # Comment out this entire service if using an external managed database
+  # (e.g., AWS RDS, Azure Database, Google Cloud SQL)
+  # and set DATABASE_URL in your .env file
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-census}
+      POSTGRES_USER: ${POSTGRES_USER:-census}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-census}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U census"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - census-network
+    # Uncomment to expose PostgreSQL port (for backups/management)
+    # ports:
+    #   - "5432:5432"
+
+networks:
+  census-network:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local
+  media_data:
+    driver: local

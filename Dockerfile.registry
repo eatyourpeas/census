@@ -1,0 +1,56 @@
+# syntax=docker/dockerfile:1
+# Production-ready Dockerfile for registry distribution
+FROM python:3.12-slim AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    POETRY_VERSION=2.2.1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    libpq-dev \
+    nodejs \
+    npm \
+    gettext \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
+
+WORKDIR /app
+
+# Install Python dependencies
+COPY pyproject.toml README.md ./
+RUN poetry config virtualenvs.create false \
+    && poetry install --only main --no-interaction --no-ansi --no-root
+
+# Build CSS assets
+COPY package.json tailwind.config.js postcss.config.js ./
+RUN npm install --no-audit --no-fund
+
+# Copy application code
+COPY census_app ./census_app
+COPY manage.py ./
+COPY docs ./docs
+COPY CONTRIBUTING.md ./
+
+# Install the current project and build static assets
+RUN poetry install --only main --no-interaction --no-ansi
+RUN npm run build:css
+
+# Create non-root user for security
+RUN groupadd -r census && useradd -r -g census census && \
+    mkdir -p /app/media /app/staticfiles && \
+    chown -R census:census /app
+USER census
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
+
+# Default command
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn census_app.wsgi:application --bind 0.0.0.0:8000 --workers 4"]
