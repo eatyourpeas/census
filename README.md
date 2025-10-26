@@ -3,8 +3,8 @@
 ![GitHub License](https://img.shields.io/github/license/eatyourpeas/census?style=for-the-badge&color=%23BF40BF)
 ![Swagger Validator](https://img.shields.io/swagger/valid/3.0?specUrl=https%3A%2F%2Fcensus.eatyourpeas.dev%2Fapi%2Fschema&style=for-the-badge)
 ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/eatyourpeas/census?style=for-the-badge&color=%23BF40BF)
-![Docker Image Version](https://img.shields.io/docker/v/eatyourpeas/census?sort=semver&style=for-the-badge&label=Docker&color=%23BF40BF)
-![Docker Pulls](https://img.shields.io/docker/pulls/eatyourpeas/census?style=for-the-badge&color=%23BF40BF)
+![GitHub Container Registry](https://ghcr-badge.egpl.dev/eatyourpeas/census/latest_tag?trim=major&label=latest&style=for-the-badge&color=%23BF40BF)
+![GitHub Container Registry](https://ghcr-badge.egpl.dev/eatyourpeas/census/size?tag=latest&style=for-the-badge&color=%23BF40BF)
 
 Census is an open source survey platform for medical audit and research. It supports OIDC (Google and Microsoft 365) and data is secure with encrypted identifiers only visible to users entering the data. Although built for the UK, it is fully i18n compliant and supports a range of languages. Survey creators build questions from a library of question types, or they can import them written in markdown. There is a growing library of lists to populate dropdowns for which contributions are welcome. There is also an API which supports user, survey and question management.
 
