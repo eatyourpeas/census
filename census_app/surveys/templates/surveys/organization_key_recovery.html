@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Organization Key Recovery" %} - {{ survey.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                {% trans "Organisation Key Recovery" %}
+            </h1>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+                {% trans "Administrative recovery for organisation surveys" %}
+            </p>
+        </div>
+
+        <!-- Warning Banner -->
+        <div class="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-500 p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                        {% trans "Administrative Access" %}
+                    </h3>
+                    <p class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                        {% trans "You are about to use organization-level key recovery to access a survey owned by another user. This action is logged for compliance and audit purposes." %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Survey Information -->
+        <div class="mb-6 border dark:border-gray-700 rounded-lg p-4">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                {% trans "Survey Details" %}
+            </h2>
+            <dl class="space-y-2">
+                <div class="flex justify-between">
+                    <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">{% trans "Survey Name" %}:</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white font-semibold">{{ survey.name }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">{% trans "Survey Owner" %}:</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">{{ survey_owner.username }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">{% trans "Organization" %}:</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">{{ organization.name }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm font-medium text-gray-600 dark:text-gray-400">{% trans "Your Role" %}:</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">
+                        {% if is_org_owner %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                {% trans "Organization Owner" %}
+                            </span>
+                        {% elif is_org_admin %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                {% trans "Organization Admin" %}
+                            </span>
+                        {% endif %}
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Recovery Form -->
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    {% trans "Recovery Confirmation" %}
+                </h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    {% blocktrans %}
+                    This action will unlock the survey using the organisation's master key. 
+                    The survey owner will not be notified, but this access will be permanently 
+                    recorded in the audit log.
+                    {% endblocktrans %}
+                </p>
+                
+                <div>
+                    <label for="confirm" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {% trans 'Type "recover" to confirm this action' %}:
+                    </label>
+                    <input 
+                        type="text" 
+                        id="confirm" 
+                        name="confirm" 
+                        autocomplete="off"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="recover"
+                        required
+                    >
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        {% trans "This confirms you understand the administrative nature of this action." %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-between items-center pt-4 border-t dark:border-gray-700">
+                <a href="{% url 'surveys:dashboard' slug=survey.slug %}" 
+                   class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                    {% trans "Cancel" %}
+                </a>
+                <button 
+                    type="submit" 
+                    class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                >
+                    {% trans "Perform Organisation Key Recovery" %}
+                </button>
+            </div>
+        </form>
+
+        <!-- Audit Information -->
+        <div class="mt-6 pt-6 border-t dark:border-gray-700">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                {% trans "Audit & Compliance" %}
+            </h3>
+            <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <li class="flex items-start">
+                    <svg class="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    {% trans "All key recovery actions are logged with timestamp, actor, and target details" %}
+                </li>
+                <li class="flex items-start">
+                    <svg class="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    {% trans "Audit logs are immutable and cannot be deleted" %}
+                </li>
+                <li class="flex items-start">
+                    <svg class="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    {% trans "Organisation master keys are encrypted with industry-standard KMS (production)" %}
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

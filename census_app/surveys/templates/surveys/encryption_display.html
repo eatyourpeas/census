@@ -31,18 +31,18 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
-        {% trans "Save Your Encryption Keys" %}
+        {% trans "Save Your Recovery Phrase" %}
       </h1>
 
       <div class="alert alert-warning">
         <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
         <div>
-          <h4 class="font-bold text-lg">{% trans "Critical: This is the only time you will see these keys!" %}</h4>
+          <h4 class="font-bold text-lg">{% trans "Critical: This is the only time you will see this recovery phrase!" %}</h4>
           <ul class="list-disc list-inside mt-2 text-sm">
             <li>{% trans "Write down or print your recovery phrase immediately" %}</li>
             <li>{% trans "Store it in a safe place (not on your computer)" %}</li>
-            <li>{% trans "You'll need your password OR recovery phrase to access survey data" %}</li>
-            <li>{% trans "If you lose both, your data cannot be recovered" %}</li>
+            <li>{% trans "You'll need this if you lose access to SSO" %}</li>
+            <li>{% trans "If you lose this phrase, you cannot recover your data" %}</li>
           </ul>
         </div>
       </div>
@@ -61,7 +61,7 @@
       </h2>
 
       <p class="mb-4 text-sm opacity-80">
-        {% trans "If you forget your password, use this 12-word recovery phrase to unlock your survey:" %}
+        {% trans "If you lose access to SSO, use this 12-word recovery phrase to unlock your survey:" %}
       </p>
 
       <div class="grid grid-cols-3 md:grid-cols-4 gap-3 mb-4">
@@ -92,12 +92,179 @@
     </div>
   </div>
 
-  <!-- Encryption Key Section (for technical users) -->
+  {% if kek_hex %}
+  <!-- Encryption Key Section (for technical users) - only shown for password users -->
   <div class="collapse collapse-arrow bg-base-200 mb-6">
     <input type="checkbox" />
     <div class="collapse-title text-lg font-medium">
       {% trans "Advanced: Encryption Key (Hexadecimal)" %}
     </div>
+    <div class="collapse-content">
+      <p class="text-sm opacity-80 mb-3">
+        {% trans "This is the raw 256-bit encryption key in hexadecimal format. Most users should use the recovery phrase above instead." %}
+      </p>
+      <div class="mockup-code text-xs">
+        <pre><code>{{ kek_hex }}</code></pre>
+      </div>
+      <button class="btn btn-sm btn-outline mt-3" id="copyKeyBtn">
+        {% trans "Copy Key" %}
+      </button>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Actions -->
+  <div class="card bg-base-100 shadow-xl no-print">
+    <div class="card-body">
+      <h3 class="font-bold text-lg mb-3">{% trans "Next Steps" %}</h3>
+
+      <div class="flex flex-wrap gap-3 mb-4">
+        <button class="btn btn-outline btn-sm" id="printBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+          {% trans "Print This Page" %}
+        </button>
+
+        <button class="btn btn-outline btn-sm" id="downloadBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          {% trans "Download as Text File" %}
+        </button>
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-block">
+          {% trans "I have saved my recovery information" %}
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+      </form>
+
+      <p class="text-xs text-center mt-3 opacity-60">
+        {% trans "After clicking this button, you will not be able to view these keys again." %}
+      </p>
+    </div>
+  </div>
+</div>
+
+<script nonce="{{ request.csp_nonce }}">
+// Translated strings for i18n support
+const i18n = {
+  recoveryPhraseCopied: "{% trans 'Recovery phrase copied to clipboard!' %}",
+  encryptionKeyCopied: "{% trans 'Encryption key copied to clipboard!' %}",
+  copyFailed: "{% trans 'Failed to copy. Please copy manually.' %}",
+  surveyLabel: "{% trans 'Survey:' %}",
+  surveySlugLabel: "{% trans 'Survey Slug:' %}",
+  generatedLabel: "{% trans 'Generated:' %}",
+  recoveryPhraseHeader: "{% trans '=== RECOVERY PHRASE (12 words) ===' %}",
+  recoveryHintLabel: "{% trans 'Recovery Hint:' %}",
+  encryptionKeyHeader: "{% trans '=== ENCRYPTION KEY (Hexadecimal) ===' %}",
+  importantHeader: "{% trans '=== IMPORTANT ===' %}",
+  keepSafe: "{% trans '- Keep this information safe and secure' %}",
+  needRecovery: "{% trans '- You need your recovery phrase if you lose SSO access' %}",
+  cannotRecover: "{% trans '- If you lose this phrase, your data cannot be recovered' %}",
+  storeSecure: "{% trans '- Store this in a secure location (password manager, safe, etc.)' %}"
+};
+
+function copyToClipboard(text, successMessage) {
+  // Try modern Clipboard API first
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert(successMessage);
+    }).catch((err) => {
+      console.error('Clipboard API failed:', err);
+      fallbackCopy(text, successMessage);
+    });
+  } else {
+    // Fallback for older browsers
+    fallbackCopy(text, successMessage);
+  }
+}
+
+function fallbackCopy(text, successMessage) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    alert(successMessage);
+  } catch (err) {
+    console.error('Fallback copy failed:', err);
+    alert(i18n.copyFailed);
+  }
+  document.body.removeChild(textarea);
+}
+
+function copyRecoveryPhrase() {
+  const phrase = "{{ recovery_phrase }}";
+  copyToClipboard(phrase, i18n.recoveryPhraseCopied);
+}
+
+function copyKey() {
+  const key = "{{ kek_hex }}";
+  copyToClipboard(key, i18n.encryptionKeyCopied);
+}
+
+function downloadAsText() {
+  let content = `${i18n.surveyLabel} {{ survey.name }}
+${i18n.surveySlugLabel} {{ survey.slug }}
+${i18n.generatedLabel} {{ survey.published_at|date:"Y-m-d H:i:s" }}
+
+${i18n.recoveryPhraseHeader}
+{{ recovery_phrase }}
+
+${i18n.recoveryHintLabel} {{ recovery_hint }}
+`;
+
+  {% if kek_hex %}
+  content += `
+${i18n.encryptionKeyHeader}
+{{ kek_hex }}
+`;
+  {% endif %}
+
+  content += `
+${i18n.importantHeader}
+${i18n.keepSafe}
+${i18n.needRecovery}
+${i18n.cannotRecover}
+${i18n.storeSecure}
+`;
+
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'survey-{{ survey.slug }}-recovery-phrase.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Add event listeners when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('copyRecoveryPhraseBtn').addEventListener('click', copyRecoveryPhrase);
+  {% if kek_hex %}
+  const copyKeyBtn = document.getElementById('copyKeyBtn');
+  if (copyKeyBtn) {
+    copyKeyBtn.addEventListener('click', copyKey);
+  }
+  {% endif %}
+  document.getElementById('printBtn').addEventListener('click', function() {
+    window.print();
+  });
+  document.getElementById('downloadBtn').addEventListener('click', downloadAsText);
+});
+</script>
+{% endblock %}
     <div class="collapse-content">
       <p class="text-sm opacity-80 mb-3">
         {% trans "This is the raw 256-bit encryption key in hexadecimal format. Most users should use the recovery phrase above instead." %}

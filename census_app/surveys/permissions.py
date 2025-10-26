@@ -18,6 +18,11 @@ def can_view_survey(user, survey: Survey) -> bool:
         return False
     if survey.owner_id == getattr(user, "id", None):
         return True
+    # Organization owner can view all surveys in their organization
+    if survey.organization_id and survey.organization.owner_id == getattr(
+        user, "id", None
+    ):
+        return True
     if survey.organization_id and is_org_admin(user, survey.organization):
         return True
     # creators and viewers of the specific survey can view it
@@ -27,10 +32,15 @@ def can_view_survey(user, survey: Survey) -> bool:
 
 
 def can_edit_survey(user, survey: Survey) -> bool:
-    # Edit requires: owner, org admin, or survey-level creator/editor
+    # Edit requires: owner, org owner, org admin, or survey-level creator/editor
     if not user.is_authenticated:
         return False
     if survey.owner_id == getattr(user, "id", None):
+        return True
+    # Organization owner can edit all surveys in their organization
+    if survey.organization_id and survey.organization.owner_id == getattr(
+        user, "id", None
+    ):
         return True
     if survey.organization_id and is_org_admin(user, survey.organization):
         return True

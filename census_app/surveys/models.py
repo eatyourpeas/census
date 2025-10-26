@@ -293,6 +293,25 @@ class Survey(models.Model):
         """Check if survey uses Option 2 dual-path encryption."""
         return bool(self.encrypted_kek_password and self.encrypted_kek_recovery)
 
+    def has_any_encryption(self) -> bool:
+        """
+        Check if survey has any form of encryption enabled.
+
+        Returns:
+            True if the survey has at least one encryption method configured
+            (password, recovery phrase, OIDC, or organization)
+
+        This is used to determine if encryption setup is needed when publishing.
+        A survey with any encryption method is considered "encrypted" and won't
+        require the encryption setup flow.
+        """
+        return bool(
+            self.encrypted_kek_password
+            or self.encrypted_kek_recovery
+            or self.encrypted_kek_oidc
+            or self.encrypted_kek_org
+        )
+
     def set_oidc_encryption(self, kek: bytes, user) -> None:
         """
         Set up OIDC encryption for automatic survey unlocking.

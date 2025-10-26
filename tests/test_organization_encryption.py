@@ -7,8 +7,8 @@ where organization owners/admins can recover surveys from their members.
 
 import os
 
-from django.contrib.auth import get_user_model
 import pytest
+from django.contrib.auth import get_user_model
 
 from census_app.surveys.models import (
     AuditLog,
@@ -362,3 +362,570 @@ class TestAuditLogKeyRecovery:
         """Test that AuditLog.Action has KEY_RECOVERY option."""
         assert hasattr(AuditLog.Action, "KEY_RECOVERY")
         assert AuditLog.Action.KEY_RECOVERY == "key_recovery"
+
+
+@pytest.mark.django_db
+class TestOrganizationKeyRecoveryView:
+    """Test the organization key recovery view."""
+
+    def test_org_owner_can_access_recovery_page(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that organization owner can access the recovery page."""
+        # Create a survey belonging to a member
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        # Set up organization encryption
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Log in as organization owner
+        client.force_login(org_with_master_key.owner)
+
+        # Access recovery page
+        response = client.get(f"/surveys/{survey.slug}/organization-recovery/")
+
+        assert response.status_code == 200
+        assert "Organization Key Recovery" in response.content.decode()
+        assert survey.owner.username in response.content.decode()
+
+
+@pytest.mark.django_db
+class TestOrganizationKeyRecoverySecurityChecks:
+    """Test security protections for organization key recovery."""
+
+    def test_regular_member_cannot_access_recovery(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that regular organization members cannot perform key recovery."""
+        # Create a second member (not owner, not admin)
+        other_member = User.objects.create_user(
+            username="other_member", email="other@example.com"
+        )
+        OrganizationMembership.objects.create(
+            organization=org_with_master_key,
+            user=other_member,
+            role=OrganizationMembership.Role.CREATOR,  # Regular member role
+        )
+
+        # Create a survey by first member
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Log in as other_member (regular member, not admin)
+        client.force_login(other_member)
+
+        # Try to access recovery page
+        response = client.get(f"/surveys/{survey.slug}/organization-recovery/")
+
+        # Should be blocked
+        assert response.status_code == 302
+        messages = list(response.wsgi_request._messages)
+        assert any("Only organization owners and admins" in str(m) for m in messages)
+
+        # Verify no audit log was created
+        assert (
+            AuditLog.objects.filter(
+                action=AuditLog.Action.KEY_RECOVERY, survey=survey
+            ).count()
+            == 0
+        )
+
+    def test_viewer_role_cannot_access_recovery(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that organization viewers cannot perform key recovery."""
+        # Create a viewer (lowest permission level)
+        viewer = User.objects.create_user(username="viewer", email="viewer@example.com")
+        OrganizationMembership.objects.create(
+            organization=org_with_master_key,
+            user=viewer,
+            role=OrganizationMembership.Role.VIEWER,
+        )
+
+        # Create a survey
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Log in as viewer
+        client.force_login(viewer)
+
+        # Try to access recovery page
+        response = client.get(f"/surveys/{survey.slug}/organization-recovery/")
+
+        # Should be blocked
+        assert response.status_code == 302
+        messages = list(response.wsgi_request._messages)
+        assert any("Only organization owners and admins" in str(m) for m in messages)
+
+    def test_user_from_different_org_cannot_access_recovery(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that admins from different organizations cannot perform key recovery."""
+        # Create a different organization with its own owner
+        other_owner = User.objects.create_user(
+            username="other_org_owner", email="other_owner@example.com"
+        )
+        other_org = Organization.objects.create(name="Other Org", owner=other_owner)
+        other_org.encrypted_master_key = os.urandom(32)
+        other_org.save()
+
+        # Create a survey in the FIRST organization
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Log in as owner of DIFFERENT organization
+        client.force_login(other_owner)
+
+        # Try to access recovery page
+        response = client.get(f"/surveys/{survey.slug}/organization-recovery/")
+
+        # Should be blocked
+        assert response.status_code == 302
+        messages = list(response.wsgi_request._messages)
+        assert any("Only organization owners and admins" in str(m) for m in messages)
+
+    def test_non_authenticated_user_redirected(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that unauthenticated users are redirected to login."""
+        # Create a survey
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Don't log in - try to access as anonymous user
+        response = client.get(f"/surveys/{survey.slug}/organization-recovery/")
+
+        # Should redirect to login page
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
+
+    def test_cannot_recover_survey_without_org_encryption(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that recovery is blocked if survey doesn't have org encryption."""
+        # Create survey WITHOUT org encryption
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        # Log in as organization owner
+        client.force_login(org_with_master_key.owner)
+
+        # Try to access recovery page
+        response = client.get(f"/surveys/{survey.slug}/organization-recovery/")
+
+        # Should be blocked
+        assert response.status_code == 302
+        messages = list(response.wsgi_request._messages)
+        assert any(
+            "does not have organization-level encryption" in str(m) for m in messages
+        )
+
+    def test_cannot_perform_recovery_without_confirmation_text(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that POST requests require exact confirmation text."""
+        # Create and encrypt survey
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Log in as organization owner
+        client.force_login(org_with_master_key.owner)
+
+        # Try various incorrect confirmations
+        for wrong_confirm in ["", "yes", "confirm", "RECOVER", "Recover", "rec"]:
+            response = client.post(
+                f"/surveys/{survey.slug}/organization-recovery/",
+                {"confirm": wrong_confirm},
+            )
+
+            # Should stay on same page with error
+            assert response.status_code == 200
+
+            # No audit log should be created
+            assert (
+                AuditLog.objects.filter(
+                    action=AuditLog.Action.KEY_RECOVERY, survey=survey
+                ).count()
+                == 0
+            )
+
+        # Only exact "recover" should work
+        response = client.post(
+            f"/surveys/{survey.slug}/organization-recovery/",
+            {"confirm": "recover"},
+        )
+        assert response.status_code == 302  # Redirect on success
+        assert (
+            AuditLog.objects.filter(
+                action=AuditLog.Action.KEY_RECOVERY, survey=survey
+            ).count()
+            == 1
+        )
+
+
+@pytest.mark.django_db
+class TestOrganizationKeyRecoveryAuditTrail:
+    """Test audit logging for organization key recovery."""
+
+    def test_audit_log_records_all_details(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that audit log captures all important details."""
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Perform recovery as owner
+        client.force_login(org_with_master_key.owner)
+        client.post(
+            f"/surveys/{survey.slug}/organization-recovery/",
+            {"confirm": "recover"},
+        )
+
+        # Check audit log details
+        audit_log = AuditLog.objects.get(
+            action=AuditLog.Action.KEY_RECOVERY, survey=survey
+        )
+
+        assert audit_log.actor == org_with_master_key.owner
+        assert audit_log.scope == AuditLog.Scope.SURVEY
+        assert audit_log.organization == org_with_master_key
+        assert audit_log.target_user == member_user
+        assert audit_log.metadata["recovery_method"] == "organization_master_key"
+        assert audit_log.metadata["survey_owner"] == member_user.username
+        assert audit_log.metadata["org_role"] == "owner"
+        assert audit_log.created_at is not None
+
+    def test_admin_recovery_logged_with_admin_role(
+        self, org_with_master_key, member_user, admin_user, client
+    ):
+        """Test that admin recoveries are logged with correct role."""
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Perform recovery as admin (not owner)
+        client.force_login(admin_user)
+        client.post(
+            f"/surveys/{survey.slug}/organization-recovery/",
+            {"confirm": "recover"},
+        )
+
+        # Check audit log shows admin role
+        audit_log = AuditLog.objects.get(
+            action=AuditLog.Action.KEY_RECOVERY, survey=survey
+        )
+
+        assert audit_log.actor == admin_user
+        assert audit_log.metadata["org_role"] == "admin"
+
+
+@pytest.mark.django_db
+class TestOrganizationKeyRecoveryIntegration:
+    """Integration tests for organization key recovery view."""
+
+    def test_org_admin_can_access_recovery_page(
+        self, org_with_master_key, member_user, admin_user, client
+    ):
+        """Test that organization admin can access the recovery page."""
+        # Create a survey belonging to a member
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        # Set up organization encryption
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Log in as organization admin
+        client.force_login(admin_user)
+
+        # Access recovery page
+        response = client.get(f"/surveys/{survey.slug}/organization-recovery/")
+
+        assert response.status_code == 200
+        assert "Organization Admin" in response.content.decode()
+
+    def test_non_admin_cannot_access_recovery_page(
+        self, org_with_master_key, member_user, non_member_user, client
+    ):
+        """Test that non-admin users cannot access recovery page."""
+        # Create a survey
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Log in as non-member
+        client.force_login(non_member_user)
+
+        # Try to access recovery page
+        response = client.get(f"/surveys/{survey.slug}/organization-recovery/")
+
+        # Should redirect with error
+        assert response.status_code == 302
+        messages = list(response.wsgi_request._messages)
+        assert any("Only organization owners and admins" in str(m) for m in messages)
+
+    def test_survey_owner_redirected_to_regular_unlock(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that survey owner is redirected to regular unlock page."""
+        # Create a survey owned by the logged-in user
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="My Survey",
+            slug="my-survey",
+        )
+
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Log in as survey owner (who is also a member)
+        client.force_login(member_user)
+
+        # Try to access recovery page for own survey
+        response = client.get(f"/surveys/{survey.slug}/organization-recovery/")
+
+        # Should redirect (either to unlock or dashboard)
+        assert response.status_code == 302
+        # Should have a redirect message (but we don't need to check exact text)
+        # The view redirects survey owners to the unlock page
+
+    def test_successful_organization_key_recovery(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test successful organization key recovery with audit logging."""
+        # Create and encrypt survey
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Log in as organization owner
+        client.force_login(org_with_master_key.owner)
+
+        # Perform recovery
+        response = client.post(
+            f"/surveys/{survey.slug}/organization-recovery/",
+            {"confirm": "recover"},
+        )
+
+        # Should redirect to dashboard
+        assert response.status_code == 302
+        assert response.url == f"/surveys/{survey.slug}/dashboard/"
+
+        # Check audit log was created
+        audit_logs = AuditLog.objects.filter(
+            action=AuditLog.Action.KEY_RECOVERY,
+            survey=survey,
+            actor=org_with_master_key.owner,
+        )
+        assert audit_logs.count() == 1
+
+        audit_log = audit_logs.first()
+        assert audit_log.organization == org_with_master_key
+        assert audit_log.target_user == member_user
+        assert audit_log.metadata["recovery_method"] == "organization_master_key"
+        assert audit_log.metadata["survey_owner"] == member_user.username
+        assert audit_log.metadata["org_role"] == "owner"
+
+        # Check session contains recovery credentials
+        session = client.session
+        assert session.get("unlock_method") == "organization_recovery"
+        assert session.get("unlock_survey_slug") == survey.slug
+
+    def test_recovery_requires_confirmation_text(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that recovery requires typing 'recover' to confirm."""
+        # Create and encrypt survey
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        kek = os.urandom(32)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Log in as organization owner
+        client.force_login(org_with_master_key.owner)
+
+        # Try to recover without correct confirmation
+        response = client.post(
+            f"/surveys/{survey.slug}/organization-recovery/",
+            {"confirm": "wrong"},
+        )
+
+        # Should stay on same page with error
+        assert response.status_code == 200
+        messages = list(response.wsgi_request._messages)
+        assert any('type "recover"' in str(m) for m in messages)
+
+        # No audit log should be created
+        assert (
+            AuditLog.objects.filter(
+                action=AuditLog.Action.KEY_RECOVERY, survey=survey
+            ).count()
+            == 0
+        )
+
+    def test_recovery_fails_without_org_encryption(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that recovery fails if survey doesn't have org encryption."""
+        # Create survey without org encryption
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        # Log in as organization owner
+        client.force_login(org_with_master_key.owner)
+
+        # Try to access recovery page
+        response = client.get(f"/surveys/{survey.slug}/organization-recovery/")
+
+        # Should redirect with error
+        assert response.status_code == 302
+        messages = list(response.wsgi_request._messages)
+        assert any(
+            "does not have organization-level encryption" in str(m) for m in messages
+        )
+
+    def test_recovery_fails_for_non_org_survey(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that recovery fails if survey doesn't belong to organization."""
+        # Create survey without organization
+        survey = Survey.objects.create(
+            owner=member_user, name="Personal Survey", slug="personal-survey"
+        )
+
+        # Log in as organization owner
+        client.force_login(org_with_master_key.owner)
+
+        # Try to access recovery page
+        response = client.get(f"/surveys/{survey.slug}/organization-recovery/")
+
+        # Should redirect with error
+        assert response.status_code == 302
+        messages = list(response.wsgi_request._messages)
+        assert any("does not belong to an organization" in str(m) for m in messages)
+
+    def test_recovered_survey_can_be_accessed(
+        self, org_with_master_key, member_user, client
+    ):
+        """Test that after recovery, survey data can be accessed."""
+        from census_app.surveys.utils import generate_bip39_phrase
+
+        # Create survey with full encryption
+        survey = Survey.objects.create(
+            owner=member_user,
+            organization=org_with_master_key,
+            name="Member Survey",
+            slug="member-survey",
+        )
+
+        kek = os.urandom(32)
+        password = "test_password_123"
+        recovery_words = generate_bip39_phrase(12)
+
+        # Set up all encryption methods
+        survey.set_dual_encryption(kek, password, recovery_words)
+        survey.set_org_encryption(kek, org_with_master_key)
+
+        # Log in as organization owner
+        client.force_login(org_with_master_key.owner)
+
+        # Perform recovery
+        response = client.post(
+            f"/surveys/{survey.slug}/organization-recovery/",
+            {"confirm": "recover"},
+            follow=True,
+        )
+
+        # Should be able to access dashboard
+        assert response.status_code == 200
+        assert "Member Survey" in response.content.decode()
+
+        # Verify session has unlock credentials
+        from census_app.surveys.views import get_survey_key_from_session
+
+        recovered_kek = get_survey_key_from_session(response.wsgi_request, survey.slug)
+        assert recovered_kek == kek
