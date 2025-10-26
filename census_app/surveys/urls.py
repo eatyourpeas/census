@@ -71,6 +71,16 @@ urlpatterns = [
     ),
     path("<slug:slug>/tokens/", views.survey_tokens, name="tokens"),
     path(
+        "<slug:slug>/invites/pending/",
+        views.survey_invites_pending,
+        name="invites_pending",
+    ),
+    path(
+        "<slug:slug>/invites/<int:token_id>/resend/",
+        views.survey_invite_resend,
+        name="invite_resend",
+    ),
+    path(
         "<slug:slug>/tokens/export.csv",
         views.survey_tokens_export_csv,
         name="tokens_export_csv",

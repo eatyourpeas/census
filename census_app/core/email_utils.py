@@ -26,6 +26,9 @@ def get_platform_branding() -> Dict[str, Any]:
     """
     from census_app.core.models import SiteBranding
 
+    # Default primary color from settings or fallback
+    default_primary = getattr(settings, "BRAND_PRIMARY_COLOR", "#3b82f6")
+
     # Try to get from database first
     try:
         branding = SiteBranding.objects.first()
@@ -43,7 +46,7 @@ def get_platform_branding() -> Dict[str, Any]:
                 ),
                 "font_body": branding.font_body
                 or getattr(settings, "BRAND_FONT_BODY", "Merriweather, serif"),
-                "primary_color": "#3b82f6",  # Default blue
+                "primary_color": default_primary,
             }
     except Exception:
         pass
@@ -57,7 +60,7 @@ def get_platform_branding() -> Dict[str, Any]:
             settings, "BRAND_FONT_HEADING", "'IBM Plex Sans', sans-serif"
         ),
         "font_body": getattr(settings, "BRAND_FONT_BODY", "Merriweather, serif"),
-        "primary_color": "#3b82f6",
+        "primary_color": default_primary,
     }
 
 
@@ -362,5 +365,75 @@ def send_survey_deleted_email(user, survey_name: str, survey_slug: str) -> bool:
             "user": user,
             "survey_name": survey_name,
             "survey_slug": survey_slug,
+        },
+    )
+
+
+def send_survey_invite_email(
+    to_email: str,
+    survey,
+    token: str,
+    contact_email: Optional[str] = None,
+) -> bool:
+    """Send survey invitation email with unique token link.
+
+    Args:
+        to_email: Recipient email address
+        survey: Survey object
+        token: Unique access token string
+        contact_email: Optional contact email for questions
+
+    Returns:
+        True if email sent successfully, False otherwise
+    """
+    from django.conf import settings
+
+    logger.info(
+        f"Attempting to send survey invite email to {to_email} for survey: {survey.name} ({survey.slug})"
+    )
+
+    branding = get_survey_branding(survey)
+
+    # Build the survey link with token
+    site_url = getattr(settings, "SITE_URL", "http://localhost:8000")
+    survey_link = f"{site_url}/surveys/{survey.slug}/take/token/{token}/"
+
+    # Get organization name if available
+    organization_name = None
+    if survey.organization:
+        organization_name = survey.organization.name
+
+    # Format end date if available
+    end_date = None
+    if survey.end_at:
+        from django.utils.formats import date_format
+
+        end_date = date_format(survey.end_at, "DATETIME_FORMAT")
+
+    subject = f"You're invited to complete: {survey.name}"
+
+    markdown_content = render_to_string(
+        "emails/survey_invite.md",
+        {
+            "survey_name": survey.name,
+            "survey_link": survey_link,
+            "organization_name": organization_name,
+            "end_date": end_date,
+            "contact_email": contact_email,
+            "brand_title": branding["title"],
+        },
+    )
+
+    return send_branded_email(
+        to_email=to_email,
+        subject=subject,
+        markdown_content=markdown_content,
+        branding=branding,
+        context={
+            "survey_name": survey.name,
+            "survey_link": survey_link,
+            "organization_name": organization_name,
+            "end_date": end_date,
+            "contact_email": contact_email,
         },
     )
