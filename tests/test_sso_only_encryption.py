@@ -13,14 +13,13 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from census_app.core.models import UserOIDC
 from census_app.surveys.models import (
     Organization,
     OrganizationMembership,
     Survey,
     SurveyQuestion,
 )
-
-from census_app.core.models import UserOIDC
 
 User = get_user_model()
 
@@ -551,14 +550,15 @@ class TestSurveyHasAnyEncryption(TestCase):
             slug="test-survey",
             owner=self.user,
         )
-        
+
         kek = os.urandom(32)
         password = "TestPassword123"
         from census_app.surveys.utils import generate_bip39_phrase
+
         recovery_words = generate_bip39_phrase(12)
-        
+
         survey.set_dual_encryption(kek, password, recovery_words)
-        
+
         self.assertTrue(survey.has_any_encryption())
 
     def test_has_any_encryption_oidc_only(self):
@@ -568,7 +568,7 @@ class TestSurveyHasAnyEncryption(TestCase):
             slug="test-survey-oidc",
             owner=self.user,
         )
-        
+
         # Add OIDC to user
         UserOIDC.get_or_create_for_user(
             user=self.user,
@@ -576,10 +576,10 @@ class TestSurveyHasAnyEncryption(TestCase):
             subject="google-789",
             email_verified=True,
         )
-        
+
         kek = os.urandom(32)
         survey.set_oidc_encryption(kek, self.user)
-        
+
         self.assertTrue(survey.has_any_encryption())
 
     def test_has_any_encryption_org_only(self):
@@ -590,17 +590,17 @@ class TestSurveyHasAnyEncryption(TestCase):
         )
         org.encrypted_master_key = os.urandom(32)
         org.save()
-        
+
         survey = Survey.objects.create(
             name="Test Survey",
             slug="test-survey-org",
             owner=self.user,
             organization=org,
         )
-        
+
         kek = os.urandom(32)
         survey.set_org_encryption(kek, org)
-        
+
         self.assertTrue(survey.has_any_encryption())
 
     def test_has_any_encryption_none(self):
@@ -610,5 +610,5 @@ class TestSurveyHasAnyEncryption(TestCase):
             slug="test-survey-none",
             owner=self.user,
         )
-        
+
         self.assertFalse(survey.has_any_encryption())

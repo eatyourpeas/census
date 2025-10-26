@@ -7,8 +7,8 @@ where organization owners/admins can recover surveys from their members.
 
 import os
 
-import pytest
 from django.contrib.auth import get_user_model
+import pytest
 
 from census_app.surveys.models import (
     AuditLog,

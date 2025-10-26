@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import csv
 import io
 import json
 import logging
 import secrets
-from copy import deepcopy
 from typing import Any, Iterable, Union
 
 from django import forms
@@ -2263,27 +2263,27 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
 
     # Check if encryption setup is needed
     prev_status = survey.status
-    
+
     # Determine if we need to redirect to encryption setup
     # Organization + SSO users: auto-encrypt without setup page
     # Organization + Password users: need setup if no encryption yet
     # Individual + SSO users: need to choose SSO-only vs SSO+recovery
     # Individual + Password users: need setup if no encryption yet
-    
+
     is_org_member = survey.organization is not None
     is_sso_user = hasattr(request.user, "oidc")
     is_first_publish = (
         prev_status != Survey.Status.PUBLISHED and status == Survey.Status.PUBLISHED
     )
     has_encryption = survey.has_any_encryption()
-    
+
     # Auto-encrypt for organization SSO users (no setup page needed)
     if is_org_member and is_sso_user and is_first_publish and not has_encryption:
         import os
-        
+
         # Generate survey encryption key
         kek = os.urandom(32)
-        
+
         # Set up OIDC encryption for automatic unlock
         try:
             survey.set_oidc_encryption(kek, request.user)
@@ -2292,9 +2292,11 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
             )
         except Exception as e:
             logger.error(f"Failed to add OIDC encryption: {e}")
-            messages.error(request, "Failed to set up SSO encryption. Please try again.")
+            messages.error(
+                request, "Failed to set up SSO encryption. Please try again."
+            )
             return redirect("surveys:dashboard", slug=slug)
-        
+
         # Set up organization encryption for admin recovery
         if survey.organization and survey.organization.encrypted_master_key:
             try:
@@ -2304,14 +2306,14 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
                 )
             except Exception as e:
                 logger.warning(f"Failed to add organization encryption: {e}")
-        
+
         # Continue with publish (encryption is set up)
         provider_name = request.user.oidc.provider.title()
         messages.success(
             request,
             f"Survey encrypted automatically with your {provider_name} account + organization recovery.",
         )
-    
+
     # All other cases: check if encryption setup is needed
     elif is_first_publish and not has_encryption:
         # Store pending publish settings in session
@@ -2359,7 +2361,7 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
 def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
     """
     Encryption setup page for users publishing surveys.
-    
+
     - SSO individual users: choose between SSO-only or SSO+recovery
     - Password individual users: password + recovery phrase (traditional)
     - Organization users: should not reach this page (auto-encrypted)
@@ -2377,20 +2379,21 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
     if survey.has_any_encryption():
         messages.info(request, "Survey already has encryption enabled.")
         return redirect("surveys:dashboard", slug=slug)
-    
+
     is_sso_user = hasattr(request.user, "oidc")
     is_org_member = survey.organization is not None
 
     if request.method == "POST":
         import os
+
         from .utils import generate_bip39_phrase
-        
+
         kek = os.urandom(32)  # 256-bit survey encryption key
-        
+
         # Handle SSO user choice (individual users only)
         if is_sso_user and not is_org_member:
             encryption_choice = request.POST.get("encryption_choice", "")
-            
+
             if encryption_choice == "sso_only":
                 # SSO-only encryption (no password/recovery phrase)
                 try:
@@ -2400,59 +2403,74 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
                     )
                 except Exception as e:
                     logger.error(f"Failed to set up SSO-only encryption: {e}")
-                    messages.error(request, "Failed to set up SSO encryption. Please try again.")
-                    return render(request, "surveys/encryption_setup.html", {
-                        "survey": survey,
-                        "is_sso_user": is_sso_user,
-                        "is_org_member": is_org_member,
-                    })
-                
+                    messages.error(
+                        request, "Failed to set up SSO encryption. Please try again."
+                    )
+                    return render(
+                        request,
+                        "surveys/encryption_setup.html",
+                        {
+                            "survey": survey,
+                            "is_sso_user": is_sso_user,
+                            "is_org_member": is_org_member,
+                        },
+                    )
+
                 # Apply pending publish settings and complete
                 _apply_pending_publish_settings(survey, pending)
-                
+
                 # Clear session data
                 if "pending_publish" in request.session:
                     del request.session["pending_publish"]
-                
+
                 provider_name = request.user.oidc.provider.title()
                 messages.success(
                     request,
                     f"Survey published with SSO-only encryption ({provider_name}). "
-                    f"Your survey will auto-unlock when you sign in."
+                    f"Your survey will auto-unlock when you sign in.",
                 )
                 return redirect("surveys:dashboard", slug=slug)
-            
+
             elif encryption_choice == "sso_recovery":
                 # SSO + recovery phrase (belt and suspenders)
                 recovery_words = generate_bip39_phrase(12)
-                
+
                 try:
                     # Set up OIDC encryption
                     survey.set_oidc_encryption(kek, request.user)
                     # Set up recovery phrase encryption (no password)
-                    from .utils import encrypt_kek_with_passphrase, create_recovery_hint
+                    from .utils import create_recovery_hint, encrypt_kek_with_passphrase
+
                     recovery_phrase = " ".join(recovery_words)
                     survey.encrypted_kek_recovery = encrypt_kek_with_passphrase(
                         kek, recovery_phrase
                     )
                     survey.recovery_code_hint = create_recovery_hint(recovery_words)
-                    survey.save(update_fields=["encrypted_kek_recovery", "recovery_code_hint"])
-                    
+                    survey.save(
+                        update_fields=["encrypted_kek_recovery", "recovery_code_hint"]
+                    )
+
                     logger.info(
                         f"Set up SSO+recovery encryption for survey {survey.slug} (provider: {request.user.oidc.provider})"
                     )
                 except Exception as e:
                     logger.error(f"Failed to set up SSO+recovery encryption: {e}")
-                    messages.error(request, "Failed to set up encryption. Please try again.")
-                    return render(request, "surveys/encryption_setup.html", {
-                        "survey": survey,
-                        "is_sso_user": is_sso_user,
-                        "is_org_member": is_org_member,
-                    })
-                
+                    messages.error(
+                        request, "Failed to set up encryption. Please try again."
+                    )
+                    return render(
+                        request,
+                        "surveys/encryption_setup.html",
+                        {
+                            "survey": survey,
+                            "is_sso_user": is_sso_user,
+                            "is_org_member": is_org_member,
+                        },
+                    )
+
                 # Apply pending publish settings
                 _apply_pending_publish_settings(survey, pending)
-                
+
                 # Store recovery phrase for display
                 request.session["encryption_display"] = {
                     "slug": slug,
@@ -2460,22 +2478,26 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
                     "recovery_hint": survey.recovery_code_hint,
                     "is_sso_recovery": True,
                 }
-                
+
                 # Clear pending publish settings
                 if "pending_publish" in request.session:
                     del request.session["pending_publish"]
-                
+
                 # Redirect to recovery phrase display
                 return redirect("surveys:encryption_display", slug=slug)
-            
+
             else:
                 messages.error(request, "Please select an encryption option.")
-                return render(request, "surveys/encryption_setup.html", {
-                    "survey": survey,
-                    "is_sso_user": is_sso_user,
-                    "is_org_member": is_org_member,
-                })
-        
+                return render(
+                    request,
+                    "surveys/encryption_setup.html",
+                    {
+                        "survey": survey,
+                        "is_sso_user": is_sso_user,
+                        "is_org_member": is_org_member,
+                    },
+                )
+
         # Handle password-based user (traditional dual encryption)
         else:
             password = request.POST.get("password", "").strip()
@@ -2484,27 +2506,39 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
             # Validate password
             if not password:
                 messages.error(request, "Password is required.")
-                return render(request, "surveys/encryption_setup.html", {
-                    "survey": survey,
-                    "is_sso_user": is_sso_user,
-                    "is_org_member": is_org_member,
-                })
+                return render(
+                    request,
+                    "surveys/encryption_setup.html",
+                    {
+                        "survey": survey,
+                        "is_sso_user": is_sso_user,
+                        "is_org_member": is_org_member,
+                    },
+                )
 
             if len(password) < 12:
                 messages.error(request, "Password must be at least 12 characters.")
-                return render(request, "surveys/encryption_setup.html", {
-                    "survey": survey,
-                    "is_sso_user": is_sso_user,
-                    "is_org_member": is_org_member,
-                })
+                return render(
+                    request,
+                    "surveys/encryption_setup.html",
+                    {
+                        "survey": survey,
+                        "is_sso_user": is_sso_user,
+                        "is_org_member": is_org_member,
+                    },
+                )
 
             if password != password_confirm:
                 messages.error(request, "Passwords do not match.")
-                return render(request, "surveys/encryption_setup.html", {
-                    "survey": survey,
-                    "is_sso_user": is_sso_user,
-                    "is_org_member": is_org_member,
-                })
+                return render(
+                    request,
+                    "surveys/encryption_setup.html",
+                    {
+                        "survey": survey,
+                        "is_sso_user": is_sso_user,
+                        "is_org_member": is_org_member,
+                    },
+                )
 
             # Generate 12-word recovery phrase
             recovery_words = generate_bip39_phrase(12)
@@ -2555,11 +2589,15 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
             return redirect("surveys:encryption_display", slug=slug)
 
     # GET request: show encryption setup form
-    return render(request, "surveys/encryption_setup.html", {
-        "survey": survey,
-        "is_sso_user": is_sso_user,
-        "is_org_member": is_org_member,
-    })
+    return render(
+        request,
+        "surveys/encryption_setup.html",
+        {
+            "survey": survey,
+            "is_sso_user": is_sso_user,
+            "is_org_member": is_org_member,
+        },
+    )
 
 
 def _apply_pending_publish_settings(survey: Survey, pending: dict) -> None:
@@ -2568,7 +2606,7 @@ def _apply_pending_publish_settings(survey: Survey, pending: dict) -> None:
     Used by survey_encryption_setup after encryption is configured.
     """
     from django.utils.dateparse import parse_datetime
-    
+
     # Set status to PUBLISHED (this is a publish action)
     survey.status = Survey.Status.PUBLISHED
     survey.visibility = pending.get("visibility", survey.visibility)
