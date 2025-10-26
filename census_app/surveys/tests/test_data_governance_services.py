@@ -22,10 +22,12 @@ from census_app.surveys.models import (
 )
 from census_app.surveys.services import ExportService, RetentionService
 
+TEST_PASSWORD = "x"
+
 
 @pytest.fixture
 def user(db):
-    return User.objects.create_user(username="testuser", password="test123")
+    return User.objects.create_user(username="testuser", password=TEST_PASSWORD)
 
 
 @pytest.fixture
@@ -148,7 +150,7 @@ class TestExportService:
         """Export with password should be encrypted."""
         with patch.object(ExportService, "_generate_csv", return_value="mock,csv"):
             export = ExportService.create_export(
-                survey_with_responses, user, password="secret123"
+                survey_with_responses, user, password=TEST_PASSWORD
             )
 
         assert export.is_encrypted is True
