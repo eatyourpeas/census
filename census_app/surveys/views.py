@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import csv
 import io
 import json
 import logging
 import secrets
-from copy import deepcopy
 from typing import Any, Iterable, Union
 
 from django import forms
@@ -4062,7 +4062,7 @@ def organization_key_recovery(request: HttpRequest, slug: str) -> HttpResponse:
                 "survey_owner": survey.owner,
             }
             return render(request, "surveys/organization_key_recovery.html", context)
-        
+
         # Attempt to unlock with organization key
         kek = survey.unlock_with_org_key(org)
 
