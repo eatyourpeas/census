@@ -2020,10 +2020,11 @@ def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
             prev_status = survey.status
 
             # Check if encryption setup is needed
+            # Only surveys that collect patient data require encryption
             needs_encryption_setup = (
-                prev_status != Survey.Status.PUBLISHED
-                and not survey.has_dual_encryption()
-                and request.user.groups.filter(name="Individual Users").exists()
+                collects_patient
+                and prev_status != Survey.Status.PUBLISHED
+                and not survey.has_any_encryption()
             )
 
             if needs_encryption_setup:
@@ -2265,11 +2266,13 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
     prev_status = survey.status
 
     # Determine if we need to redirect to encryption setup
+    # Only surveys that collect patient data require encryption
     # Organization + SSO users: auto-encrypt without setup page
     # Organization + Password users: need setup if no encryption yet
     # Individual + SSO users: need to choose SSO-only vs SSO+recovery
     # Individual + Password users: need setup if no encryption yet
 
+    collects_patient = _survey_collects_patient_data(survey)
     is_org_member = survey.organization is not None
     is_sso_user = hasattr(request.user, "oidc")
     is_first_publish = (
@@ -2278,7 +2281,14 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
     has_encryption = survey.has_any_encryption()
 
     # Auto-encrypt for organization SSO users (no setup page needed)
-    if is_org_member and is_sso_user and is_first_publish and not has_encryption:
+    # Only if survey collects patient data
+    if (
+        collects_patient
+        and is_org_member
+        and is_sso_user
+        and is_first_publish
+        and not has_encryption
+    ):
         import os
 
         # Generate survey encryption key
@@ -2315,7 +2325,8 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
         )
 
     # All other cases: check if encryption setup is needed
-    elif is_first_publish and not has_encryption:
+    # Only redirect to setup if survey collects patient data and has no encryption
+    elif collects_patient and is_first_publish and not has_encryption:
         # Store pending publish settings in session
         request.session["pending_publish"] = {
             "slug": slug,

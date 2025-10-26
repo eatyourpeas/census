@@ -93,10 +93,11 @@ class TestAPIPermissions:
         resp = client.get(url_s2)
         assert resp.status_code in (401, 403)
 
-        # owner of s1 cannot fetch s2 (not admin) -> explicit 403
+        # Organization owner CAN fetch s2 (they have admin-like permissions over org surveys)
+        # This is required for organization key recovery feature
         hdrs = self.get_auth_header(client, "owner", TEST_PASSWORD)
         resp = client.get(url_s2, **hdrs)
-        assert resp.status_code == 403
+        assert resp.status_code == 200  # Changed: org owners can view all org surveys
 
         # admin can fetch any org survey
         hdrs = self.get_auth_header(client, "admin", TEST_PASSWORD)
