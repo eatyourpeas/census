@@ -73,7 +73,6 @@ def survey(db, users, org):
         organization=org,
         name="Test Survey",
         slug="test-survey",
-        title="Test Survey",
     )
 
 
@@ -183,7 +182,6 @@ class TestExtendRetentionPermissions:
             organization=None,
             name="No Org Survey",
             slug="no-org",
-            title="No Org",
         )
         assert can_extend_retention(users["owner"], survey) is True
 
@@ -219,7 +217,6 @@ class TestLegalHoldPermissions:
             organization=None,
             name="No Org Survey",
             slug="no-org",
-            title="No Org",
         )
         assert can_manage_legal_hold(users["owner"], survey) is True
 
@@ -255,7 +252,6 @@ class TestManageDataCustodiansPermissions:
             organization=None,
             name="No Org Survey",
             slug="no-org",
-            title="No Org",
         )
         assert can_manage_data_custodians(users["owner"], survey) is True
 
@@ -312,7 +308,6 @@ class TestHardDeletePermissions:
             organization=None,
             name="No Org Survey",
             slug="no-org",
-            title="No Org",
         )
         assert can_hard_delete_survey(users["owner"], survey) is True
 

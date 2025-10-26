@@ -1060,7 +1060,7 @@ class CollectionItem(models.Model):
 class DataExport(models.Model):
     """
     Tracks data exports for audit trail and download management.
-    
+
     - UUID primary key for secure, non-sequential export identification
     - Download tokens prevent unauthorized access after export creation
     - Audit trail tracks who exported what and when
@@ -1069,24 +1069,26 @@ class DataExport(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="exports")
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="exports")
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="exports"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     # Download management
     download_token = models.CharField(max_length=64, unique=True, db_index=True)
     download_url_expires_at = models.DateTimeField()
     downloaded_at = models.DateTimeField(null=True, blank=True)
     download_count = models.PositiveIntegerField(default=0)
-    
+
     # Export metadata
     file_size_bytes = models.BigIntegerField(null=True, blank=True)
     response_count = models.PositiveIntegerField()
     export_format = models.CharField(max_length=10, default="csv")  # Future: json, xlsx
-    
+
     # Encryption (stored exports are encrypted at rest)
     is_encrypted = models.BooleanField(default=True)
     encryption_key_id = models.CharField(max_length=255, null=True, blank=True)
-    
+
     class Meta:
         ordering = ["-created_at"]
         indexes = [
@@ -1101,11 +1103,13 @@ class DataExport(models.Model):
     def is_download_url_expired(self) -> bool:
         """Check if the download URL has expired."""
         from django.utils import timezone
+
         return timezone.now() > self.download_url_expires_at
 
     def mark_downloaded(self) -> None:
         """Record that this export was downloaded."""
         from django.utils import timezone
+
         if not self.downloaded_at:
             self.downloaded_at = timezone.now()
         self.download_count += 1
@@ -1115,20 +1119,24 @@ class DataExport(models.Model):
 class LegalHold(models.Model):
     """
     Legal hold prevents automatic deletion of survey data.
-    
+
     - OneToOne with Survey - one hold per survey
     - Blocks all automatic deletion processes
     - Requires reason and authority for audit compliance
     - Can only be placed/removed by org owners
     """
 
-    survey = models.OneToOneField(Survey, on_delete=models.CASCADE, related_name="legal_hold")
-    placed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="legal_holds_placed")
+    survey = models.OneToOneField(
+        Survey, on_delete=models.CASCADE, related_name="legal_hold"
+    )
+    placed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="legal_holds_placed"
+    )
     placed_at = models.DateTimeField(auto_now_add=True)
-    
+
     reason = models.TextField()
     authority = models.CharField(max_length=255)  # e.g., "Court order XYZ-2024-001"
-    
+
     removed_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -1154,6 +1162,7 @@ class LegalHold(models.Model):
     def remove(self, user: User, reason: str) -> None:
         """Remove the legal hold."""
         from django.utils import timezone
+
         self.removed_by = user
         self.removed_at = timezone.now()
         self.removal_reason = reason
@@ -1163,16 +1172,20 @@ class LegalHold(models.Model):
 class DataCustodian(models.Model):
     """
     Grant download-only access to specific surveys for external auditors.
-    
+
     - User has download access without organization membership
     - Access can be time-limited (expires_at)
     - No edit permissions - read/export only
     - Audit trail of who granted access and why
     """
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="custodian_assignments")
-    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="data_custodians")
-    
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="custodian_assignments"
+    )
+    survey = models.ForeignKey(
+        Survey, on_delete=models.CASCADE, related_name="data_custodians"
+    )
+
     granted_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -1181,9 +1194,9 @@ class DataCustodian(models.Model):
     )
     granted_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
-    
+
     reason = models.TextField()  # Why this user needs access
-    
+
     revoked_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -1211,6 +1224,7 @@ class DataCustodian(models.Model):
     def is_active(self) -> bool:
         """Check if this custodian assignment is currently active."""
         from django.utils import timezone
+
         if self.revoked_at:
             return False
         if self.expires_at and timezone.now() > self.expires_at:
@@ -1220,6 +1234,7 @@ class DataCustodian(models.Model):
     def revoke(self, user: User) -> None:
         """Revoke custodian access."""
         from django.utils import timezone
+
         self.revoked_by = user
         self.revoked_at = timezone.now()
         self.save(update_fields=["revoked_by", "revoked_at"])
@@ -1228,25 +1243,29 @@ class DataCustodian(models.Model):
 class DataRetentionExtension(models.Model):
     """
     Audit trail for retention period extensions.
-    
+
     - Immutable log of each extension request
     - Tracks who requested, when, and why
     - Shows progression of retention period over time
     - Critical for compliance audits
     """
 
-    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="retention_extensions")
-    requested_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="retention_extensions")
+    survey = models.ForeignKey(
+        Survey, on_delete=models.CASCADE, related_name="retention_extensions"
+    )
+    requested_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="retention_extensions"
+    )
     requested_at = models.DateTimeField(auto_now_add=True)
-    
+
     # Extension details
     previous_deletion_date = models.DateTimeField()
     new_deletion_date = models.DateTimeField()
     months_extended = models.PositiveIntegerField()
-    
+
     # Justification for audit trail
     reason = models.TextField()
-    
+
     # Approval workflow (future: require org owner approval)
     approved_by = models.ForeignKey(
         User,

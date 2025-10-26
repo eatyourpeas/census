@@ -40,7 +40,6 @@ def survey(db, user, org):
         organization=org,
         name="Test Survey",
         slug="test-survey",
-        title="Test Survey",
     )
 
 
@@ -93,7 +92,6 @@ def closed_survey(db, user, org):
         organization=org,
         name="Closed Survey",
         slug="closed-survey",
-        title="Closed Survey",
     )
     survey.close_survey(user)
     return survey
