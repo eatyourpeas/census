@@ -404,3 +404,111 @@ class TestSparklineInvitesSeries:
         # Check for legend elements
         if response.context.get("invites_points"):
             assert "Invites sent" in content or "invites" in content.lower()
+
+
+@pytest.mark.django_db
+class TestInvitesBadgeVisibility:
+    """Test that the invites badge only shows for token-based surveys."""
+
+    def test_invites_badge_shown_for_token_visibility(self, client, user, survey):
+        """Invites badge should be shown when visibility is 'token'."""
+        client.force_login(user)
+        
+        # Ensure survey has token visibility
+        survey.visibility = Survey.Visibility.TOKEN
+        survey.save()
+        
+        # Create some invites
+        SurveyAccessToken.objects.create(
+            survey=survey,
+            token="token1",
+            created_by=user,
+            note="Invited: user1@example.com",
+        )
+
+        response = client.get(
+            reverse("surveys:dashboard", kwargs={"slug": survey.slug})
+        )
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "Invites:" in content
+        assert "invites_pending" in response.context
+
+    def test_invites_badge_hidden_for_public_visibility(self, client, user, survey):
+        """Invites badge should NOT be shown when visibility is 'public'."""
+        client.force_login(user)
+        
+        # Change to public visibility
+        survey.visibility = Survey.Visibility.PUBLIC
+        survey.no_patient_data_ack = True
+        survey.save()
+        
+        # Create some invites (they exist but shouldn't show the badge)
+        SurveyAccessToken.objects.create(
+            survey=survey,
+            token="token1",
+            created_by=user,
+            note="Invited: user1@example.com",
+        )
+
+        response = client.get(
+            reverse("surveys:dashboard", kwargs={"slug": survey.slug})
+        )
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        # The badge should not appear
+        assert 'href="/surveys/test-survey/invites/pending/">Invites:' not in content
+
+    def test_invites_badge_hidden_for_authenticated_visibility(self, client, user, survey):
+        """Invites badge should NOT be shown when visibility is 'authenticated'."""
+        client.force_login(user)
+        
+        # Change to authenticated visibility
+        survey.visibility = Survey.Visibility.AUTHENTICATED
+        survey.save()
+        
+        # Create some invites
+        SurveyAccessToken.objects.create(
+            survey=survey,
+            token="token1",
+            created_by=user,
+            note="Invited: user1@example.com",
+        )
+
+        response = client.get(
+            reverse("surveys:dashboard", kwargs={"slug": survey.slug})
+        )
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        # The badge should not appear
+        assert 'href="/surveys/test-survey/invites/pending/">Invites:' not in content
+
+    def test_invites_badge_hidden_for_unlisted_visibility(self, client, user, survey):
+        """Invites badge should NOT be shown when visibility is 'unlisted'."""
+        client.force_login(user)
+        
+        # Change to unlisted visibility
+        survey.visibility = Survey.Visibility.UNLISTED
+        survey.unlisted_key = "test-key-12345"
+        survey.no_patient_data_ack = True
+        survey.save()
+        
+        # Create some invites
+        SurveyAccessToken.objects.create(
+            survey=survey,
+            token="token1",
+            created_by=user,
+            note="Invited: user1@example.com",
+        )
+
+        response = client.get(
+            reverse("surveys:dashboard", kwargs={"slug": survey.slug})
+        )
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        # The badge should not appear
+        assert 'href="/surveys/test-survey/invites/pending/">Invites:' not in content

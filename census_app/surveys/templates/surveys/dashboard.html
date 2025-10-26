@@ -39,7 +39,9 @@
   <span class="badge badge-primary badge-outline">{% trans "Visibility" %}: {{ visible }}</span>
   <span class="badge badge-primary badge-outline">{% trans "Window" %}: {{ survey.start_at|default:'—' }} → {{ survey.end_at|default:'—' }}</span>
   <span class="badge badge-primary badge-outline">{% trans "Total responses" %}: {{ total }}{% if survey.max_responses %} / {{ survey.max_responses }}{% endif %}</span>
-  <a class="badge badge-primary badge-outline hover:bg-primary hover:text-primary-content transition-colors cursor-pointer" href="{% url 'surveys:invites_pending' slug=survey.slug %}">{% trans "Invites" %}: {{ invites_sent }} / {{ total }}</a>
+  {% if survey.visibility == 'token' %}
+    <a class="badge badge-primary badge-outline hover:bg-primary hover:text-primary-content transition-colors cursor-pointer" href="{% url 'surveys:invites_pending' slug=survey.slug %}">{% trans "Invites" %}: {{ invites_sent }} / {{ total }}</a>
+  {% endif %}
 </div>
 
 <div class="flex flex-wrap gap-2 mb-4">
