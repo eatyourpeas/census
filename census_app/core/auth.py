@@ -168,12 +168,12 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         return response.json()
 
     def _get_azure_userinfo(self, access_token):
-        """Get userinfo from Microsoft Graph /me endpoint which includes email."""
+        """Get userinfo from Azure OIDC userinfo endpoint (works with openid scope)."""
         try:
             import requests
 
             response = requests.get(
-                "https://graph.microsoft.com/v1.0/me",
+                "https://graph.microsoft.com/oidc/userinfo",
                 headers={"Authorization": f"Bearer {access_token}"},
             )
             response.raise_for_status()

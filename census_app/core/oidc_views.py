@@ -62,10 +62,14 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
                 # Set Azure values
                 settings.OIDC_RP_CLIENT_ID = settings.OIDC_RP_CLIENT_ID_AZURE
                 settings.OIDC_RP_CLIENT_SECRET = settings.OIDC_RP_CLIENT_SECRET_AZURE
-                settings.OIDC_OP_TOKEN_ENDPOINT = f"https://login.microsoftonline.com/{settings.OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/token"
-                settings.OIDC_OP_USER_ENDPOINT = "https://graph.microsoft.com/v1.0/me"
+                settings.OIDC_OP_TOKEN_ENDPOINT = (
+                    "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+                )
+                settings.OIDC_OP_USER_ENDPOINT = (
+                    "https://graph.microsoft.com/oidc/userinfo"
+                )
                 settings.OIDC_OP_JWKS_ENDPOINT = settings.OIDC_OP_JWKS_ENDPOINT_AZURE
-                settings.OIDC_RP_SCOPES = "openid email profile User.Read"
+                settings.OIDC_RP_SCOPES = "openid email profile"
 
                 logger.info(
                     f"Set Azure token endpoint: {settings.OIDC_OP_TOKEN_ENDPOINT}"
@@ -209,13 +213,19 @@ class HealthcareOIDCAuthView(OIDCAuthenticationRequestView):
         # Set the attributes that the parent class reads directly
         self.OIDC_RP_CLIENT_ID = settings.OIDC_RP_CLIENT_ID_AZURE
         self.OIDC_RP_CLIENT_SECRET = settings.OIDC_RP_CLIENT_SECRET_AZURE
-        self.OIDC_OP_AUTH_ENDPOINT = f"https://login.microsoftonline.com/{settings.OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/authorize"
-        self.OIDC_OP_AUTHORIZATION_ENDPOINT = f"https://login.microsoftonline.com/{settings.OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/authorize"
-        self.OIDC_OP_TOKEN_ENDPOINT = f"https://login.microsoftonline.com/{settings.OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/token"
+        self.OIDC_OP_AUTH_ENDPOINT = (
+            "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+        )
+        self.OIDC_OP_AUTHORIZATION_ENDPOINT = (
+            "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+        )
+        self.OIDC_OP_TOKEN_ENDPOINT = (
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+        )
         self.OIDC_OP_USER_ENDPOINT = "https://graph.microsoft.com/oidc/userinfo"
         self.OIDC_OP_JWKS_ENDPOINT = settings.OIDC_OP_JWKS_ENDPOINT_AZURE
-        # Azure requires specific scope for email
-        self.OIDC_RP_SCOPES = "openid email profile User.Read"
+        # Use only OIDC protocol scopes - no Graph API permissions needed
+        self.OIDC_RP_SCOPES = "openid email profile"
 
     # Override get_settings to use instance variables
     def get_settings(self, attr, *args):

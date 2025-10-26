@@ -1,6 +1,6 @@
 # SimpleJWT defaults
-from datetime import timedelta
 import os
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -397,8 +397,8 @@ OIDC_PROVIDERS = {
     "azure": {
         "OIDC_RP_CLIENT_ID": OIDC_RP_CLIENT_ID_AZURE,
         "OIDC_RP_CLIENT_SECRET": OIDC_RP_CLIENT_SECRET_AZURE,
-        "OIDC_OP_AUTHORIZATION_ENDPOINT": f"https://login.microsoftonline.com/{OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/authorize",
-        "OIDC_OP_TOKEN_ENDPOINT": f"https://login.microsoftonline.com/{OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/token",
+        "OIDC_OP_AUTHORIZATION_ENDPOINT": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+        "OIDC_OP_TOKEN_ENDPOINT": "https://login.microsoftonline.com/common/oauth2/v2.0/token",
         "OIDC_OP_USER_ENDPOINT": "https://graph.microsoft.com/oidc/userinfo",
         "OIDC_OP_JWKS_ENDPOINT": OIDC_OP_JWKS_ENDPOINT_AZURE,
         "OIDC_RP_SCOPES": "openid email profile",
