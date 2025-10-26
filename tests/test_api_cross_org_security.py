@@ -41,14 +41,14 @@ class TestCrossOrganizationSecurity:
         # Org A
         owner_a = User.objects.create_user(username="owner_a", password=TEST_PASSWORD)
         org_a = Organization.objects.create(name="Org A", owner=owner_a)
-        survey_a = Survey.objects.create(
+        Survey.objects.create(
             owner=owner_a, organization=org_a, name="Survey A", slug="survey-a"
         )
 
         # Org B
         owner_b = User.objects.create_user(username="owner_b", password=TEST_PASSWORD)
         org_b = Organization.objects.create(name="Org B", owner=owner_b)
-        survey_b = Survey.objects.create(
+        Survey.objects.create(
             owner=owner_b, organization=org_b, name="Survey B", slug="survey-b"
         )
 
@@ -79,7 +79,7 @@ class TestCrossOrganizationSecurity:
 
         # Org B
         owner_b = User.objects.create_user(username="owner_b2", password=TEST_PASSWORD)
-        org_b = Organization.objects.create(name="Org B2", owner=owner_b)
+        Organization.objects.create(name="Org B2", owner=owner_b)
 
         # Owner B tries to access Org A's survey
         token_b = get_jwt_token(client, "owner_b2", TEST_PASSWORD)
@@ -97,7 +97,7 @@ class TestCrossOrganizationSecurity:
 
         # Org B
         owner_b = User.objects.create_user(username="owner_b3", password=TEST_PASSWORD)
-        org_b = Organization.objects.create(name="Org B3", owner=owner_b)
+        Organization.objects.create(name="Org B3", owner=owner_b)
 
         # Owner B tries to update Org A's survey
         token_b = get_jwt_token(client, "owner_b3", TEST_PASSWORD)
@@ -124,7 +124,7 @@ class TestCrossOrganizationSecurity:
 
         # Org B
         owner_b = User.objects.create_user(username="owner_b4", password=TEST_PASSWORD)
-        org_b = Organization.objects.create(name="Org B4", owner=owner_b)
+        Organization.objects.create(name="Org B4", owner=owner_b)
 
         # Owner B tries to publish Org A's survey
         token_b = get_jwt_token(client, "owner_b4", TEST_PASSWORD)
@@ -175,7 +175,7 @@ class TestCrossOrganizationSecurity:
     def test_jwt_token_user_identity_properly_scoped(self, client):
         """Verify JWT contains correct user identity and cannot be used for other users."""
         user1 = User.objects.create_user(username="user1", password=TEST_PASSWORD)
-        user2 = User.objects.create_user(username="user2", password=TEST_PASSWORD)
+        User.objects.create_user(username="user2", password=TEST_PASSWORD)
 
         # Create survey for user1
         survey1 = Survey.objects.create(
