@@ -20,15 +20,17 @@ from census_app.surveys.models import (
     Survey,
 )
 
+TEST_PASSWORD = "x"
+
 
 @pytest.fixture
 def user(db):
-    return User.objects.create_user(username="testuser", password="test123")
+    return User.objects.create_user(username="testuser", password=TEST_PASSWORD)
 
 
 @pytest.fixture
 def other_user(db):
-    return User.objects.create_user(username="otheruser", password="test123")
+    return User.objects.create_user(username="otheruser", password=TEST_PASSWORD)
 
 
 @pytest.fixture

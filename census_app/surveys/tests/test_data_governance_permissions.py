@@ -33,15 +33,17 @@ from census_app.surveys.permissions import (
     require_can_export_survey_data,
 )
 
+TEST_PASSWORD = "x"
+
 
 @pytest.fixture
 def users(db):
     """Create test users."""
-    owner = User.objects.create_user(username="owner", password="test")
-    org_owner = User.objects.create_user(username="org_owner", password="test")
-    org_admin = User.objects.create_user(username="org_admin", password="test")
-    custodian = User.objects.create_user(username="custodian", password="test")
-    outsider = User.objects.create_user(username="outsider", password="test")
+    owner = User.objects.create_user(username="owner", password=TEST_PASSWORD)
+    org_owner = User.objects.create_user(username="org_owner", password=TEST_PASSWORD)
+    org_admin = User.objects.create_user(username="org_admin", password=TEST_PASSWORD)
+    custodian = User.objects.create_user(username="custodian", password=TEST_PASSWORD)
+    outsider = User.objects.create_user(username="outsider", password=TEST_PASSWORD)
     return {
         "owner": owner,
         "org_owner": org_owner,

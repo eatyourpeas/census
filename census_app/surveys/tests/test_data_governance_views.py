@@ -17,6 +17,7 @@ from census_app.surveys.models import DataExport, Survey
 from census_app.surveys.services import ExportService
 
 User = get_user_model()
+TEST_PASSWORD = "x"
 
 
 @pytest.fixture
@@ -25,7 +26,7 @@ def user(db):
     return User.objects.create_user(
         username="testuser",
         email="test@example.com",
-        password="testpass123",
+        password=TEST_PASSWORD,
     )
 
 
@@ -60,7 +61,7 @@ def other_user(db):
     return User.objects.create_user(
         username="other_user",
         email="other@example.com",
-        password="password123",
+        password=TEST_PASSWORD,
     )
 
 
