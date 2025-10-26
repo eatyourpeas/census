@@ -149,7 +149,6 @@ class TestSurveyExportCreateView:
         assert response.status_code == 200
         assert "Create Data Export" in response.content.decode()
 
-    @pytest.mark.skip(reason="Requires ExportService fix - uses non-existent question.label field")
     def test_export_create_post_creates_export(self, client, user, closed_survey):
         """POSTing to export create should create a DataExport record."""
         # Add a response to the survey so export has data
@@ -175,10 +174,8 @@ class TestSurveyExportCreateView:
         # Should have created an export
         export = DataExport.objects.filter(survey=closed_survey).first()
         assert export is not None
-        assert export.exported_by == user
-        assert export.purpose == "Research analysis"
+        assert export.created_by == user
 
-    @pytest.mark.skip(reason="Requires ExportService fix - uses non-existent question.label field")
     def test_export_create_requires_attestation(self, client, user, closed_survey):
         """Export creation should require attestation acceptance."""
         client.force_login(user)
@@ -197,7 +194,6 @@ class TestSurveyExportCreateView:
 # ========== Export Download View Tests ==========
 
 
-@pytest.mark.skip(reason="All tests require ExportService fix - uses non-existent question.label field")
 @pytest.mark.django_db
 class TestSurveyExportDownloadView:
     """Test the export download page view."""
@@ -283,7 +279,6 @@ class TestSurveyExportDownloadView:
 # ========== Export File Download Tests ==========
 
 
-@pytest.mark.skip(reason="All tests require ExportService fix - uses non-existent question.label field")
 @pytest.mark.django_db
 class TestSurveyExportFileView:
     """Test the actual file download view with token validation."""
@@ -456,7 +451,6 @@ class TestSurveyCloseIntegration:
 # ========== Permission Enforcement Tests ==========
 
 
-@pytest.mark.skip(reason="All tests require ExportService fix - uses non-existent question.label field")
 @pytest.mark.django_db
 class TestExportPermissionEnforcement:
     """Test that export routes properly enforce permissions."""

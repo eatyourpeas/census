@@ -57,7 +57,7 @@ def survey_export_create(request: HttpRequest, slug: str) -> HttpResponse:
                 f"Export created successfully. {export.response_count} responses exported."
             )
             
-            return redirect('survey_export_download', slug=slug, export_id=export.id)
+            return redirect('surveys:survey_export_download', slug=slug, export_id=export.id)
             
         except ValueError as e:
             messages.error(request, str(e))

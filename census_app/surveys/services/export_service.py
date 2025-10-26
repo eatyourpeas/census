@@ -125,12 +125,17 @@ class ExportService:
             
         Returns:
             CSV string with headers and response data
+            
+        Note:
+            - Answers are stored in SurveyResponse.answers as JSON dict
+            - enc_demographics contains encrypted patient demographics
+            - Question IDs are used as keys in the answers dict
         """
         from ..models import SurveyQuestion, SurveyResponse
         
         output = StringIO()
         
-        # Get all questions for this survey
+        # Get all questions for this survey, ordered
         questions = SurveyQuestion.objects.filter(
             survey=survey
         ).order_by('order')
@@ -142,29 +147,37 @@ class ExportService:
         headers = [
             'Response ID',
             'Submitted At',
-            'IP Address',
+            'Submitted By',
         ]
-        for question in questions:
-            headers.append(f'{question.label} ({question.field_name})')
+        
+        # Add question text as headers (using question ID as reference)
+        question_list = list(questions)
+        for question in question_list:
+            # Use question text for header, will lookup by ID in answers
+            headers.append(question.text)
+        
         writer.writerow(headers)
         
         # Write response rows
-        responses = SurveyResponse.objects.filter(survey=survey).order_by('created_at')
+        responses = SurveyResponse.objects.filter(survey=survey).order_by('submitted_at')
         
         for response in responses:
-            # Decrypt response data
-            response_data = response.get_decrypted_data()
+            # Get the answers dict (already decrypted at model level if needed)
+            # Note: enc_demographics would need survey_key to decrypt, but answers field is plain JSON
+            answers_dict = response.answers or {}
             
             row = [
                 str(response.id),
-                response.created_at.isoformat(),
-                response.ip_address or '',
+                response.submitted_at.isoformat() if response.submitted_at else '',
+                response.submitted_by.username if response.submitted_by else 'Anonymous',
             ]
             
             # Add answer for each question
-            for question in questions:
-                answer = response_data.get(question.field_name, '')
-                row.append(str(answer) if answer is not None else '')
+            # Answers are keyed by question ID or field name
+            for question in question_list:
+                # Try both question.id and str(question.id) as keys
+                answer = answers_dict.get(str(question.id)) or answers_dict.get(question.id) or ''
+                row.append(str(answer) if answer else '')
             
             writer.writerow(row)
         
