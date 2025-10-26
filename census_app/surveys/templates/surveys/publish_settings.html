@@ -177,6 +177,7 @@
   const patientDataWarning = document.getElementById('patient-data-warning');
   const noPatientDataCheckbox = document.getElementById('no_patient_data');
   const inviteEmailsSection = document.getElementById('invite-emails-section');
+  const publishForm = document.getElementById('publish-form');
 
   function updatePatientDataWarning() {
     const requiresAck = ['public', 'unlisted', 'token'].includes(visibilitySelect.value);
@@ -204,6 +205,26 @@
 
   visibilitySelect.addEventListener('change', updateVisibility);
   updateVisibility();
+
+  // Handle close survey confirmation
+  publishForm.addEventListener('submit', function(e) {
+    const actionButton = document.activeElement;
+    if (actionButton && actionButton.name === 'action' && actionButton.value === 'close') {
+      e.preventDefault();
+      
+      const retentionMonths = {{ survey.retention_months|default:12 }};
+      const message = `{% trans "Are you sure you want to close this survey?" %}\n\n` +
+                      `{% trans "This action will:" %}\n` +
+                      `• {% trans "Stop accepting new responses immediately" %}\n` +
+                      `• {% trans "Start the retention period countdown" %}\n` +
+                      `• {% trans "Schedule automatic deletion after" %} ${retentionMonths} {% trans "months" %}\n\n` +
+                      `{% trans "You can still download survey data during the retention period." %}`;
+      
+      if (confirm(message)) {
+        publishForm.submit();
+      }
+    }
+  });
 })();
 </script>
 {% endblock %}
