@@ -176,7 +176,6 @@ class TestSurveyExportCreateView:
         assert export is not None
         assert export.created_by == user
 
-    @pytest.mark.skip(reason="Attestation feature not yet implemented")
     def test_export_create_requires_attestation(self, client, user, closed_survey):
         """Export creation should require attestation acceptance."""
         client.force_login(user)

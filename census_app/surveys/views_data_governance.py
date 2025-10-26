@@ -48,6 +48,21 @@ def survey_export_create(request: HttpRequest, slug: str) -> HttpResponse:
     
     if request.method == 'POST':
         password = request.POST.get('password', '').strip() or None
+        attestation_accepted = request.POST.get('attestation_accepted') in ['true', 'True', True, '1', 1]
+        
+        # Validate attestation
+        if not attestation_accepted:
+            messages.error(
+                request,
+                "You must confirm that you are authorized to export this data."
+            )
+            # Return to form with error
+            response_count = survey.responses.count()
+            context = {
+                'survey': survey,
+                'response_count': response_count,
+            }
+            return render(request, 'surveys/data_governance/export_create.html', context)
         
         try:
             export = ExportService.create_export(survey, request.user, password)
