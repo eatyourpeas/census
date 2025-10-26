@@ -598,6 +598,19 @@ def survey_create(request: HttpRequest) -> HttpResponse:
                                 )
                                 # Don't fail the entire survey creation if OIDC encryption fails
 
+                        # Also set up organization encryption if user belongs to an organization
+                        if survey.organization and survey.organization.encrypted_master_key:
+                            try:
+                                survey.set_org_encryption(survey_kek, survey.organization)
+                                logger.info(
+                                    f"Added organization encryption for survey {survey.slug} (org: {survey.organization.name})"
+                                )
+                            except Exception as e:
+                                logger.warning(
+                                    f"Failed to add organization encryption to survey {survey.slug}: {e}"
+                                )
+                                # Don't fail the entire survey creation if org encryption fails
+
                         # Determine success message based on encryption methods
                         if hasattr(request.user, "oidc"):
                             provider_name = request.user.oidc.provider.title()
@@ -2343,6 +2356,30 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
 
         # Set up dual encryption
         survey.set_dual_encryption(kek, password, recovery_words)
+
+        # Also set up OIDC encryption if user has OIDC authentication
+        if hasattr(request.user, "oidc"):
+            try:
+                survey.set_oidc_encryption(kek, request.user)
+                logger.info(
+                    f"Added OIDC encryption for survey {survey.slug} during encryption setup (provider: {request.user.oidc.provider})"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to add OIDC encryption to survey {survey.slug}: {e}"
+                )
+
+        # Also set up organization encryption if survey belongs to an organization
+        if survey.organization and survey.organization.encrypted_master_key:
+            try:
+                survey.set_org_encryption(kek, survey.organization)
+                logger.info(
+                    f"Added organization encryption for survey {survey.slug} during encryption setup (org: {survey.organization.name})"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to add organization encryption to survey {survey.slug}: {e}"
+                )
 
         # Apply pending publish settings
         from django.utils.dateparse import parse_datetime
