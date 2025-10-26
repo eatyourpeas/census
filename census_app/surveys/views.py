@@ -49,6 +49,7 @@ from .models import (
 )
 from .permissions import (
     can_edit_survey,
+    can_export_survey_data,
     can_manage_org_users,
     can_manage_survey_users,
     can_view_survey,
@@ -1735,6 +1736,11 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
         "invites_points": invites_points,
         "survey_not_started": survey_not_started,
         "can_manage_users": can_manage_survey_users(request.user, survey),
+        # Data governance
+        "can_export": (
+            survey.is_closed
+            and can_export_survey_data(request.user, survey)
+        ),
     }
     if any(
         v for k, v in brand_overrides.items() if k != "primary_hex"
@@ -2009,10 +2015,12 @@ def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
 
         # Handle different actions
         if action == "close":
-            # Close the survey
-            survey.status = Survey.Status.CLOSED
-            survey.save()
-            messages.success(request, "Survey has been closed.")
+            # Close the survey and start retention period
+            survey.close_survey(request.user)
+            messages.success(
+                request,
+                f"Survey has been closed. Data will be retained for {survey.retention_months} months.",
+            )
             return redirect("surveys:dashboard", slug=slug)
 
         elif action == "publish":

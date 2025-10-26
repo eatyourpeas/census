@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import views
+from . import views_data_governance as gov_views
 
 app_name = "surveys"
 
@@ -228,4 +229,45 @@ urlpatterns = [
     # User management portal
     path("org/<int:org_id>/users/", views.org_users, name="org_users"),
     path("<slug:slug>/users/", views.survey_users, name="survey_users"),
+    # Data Governance (exports, retention, legal holds, custodians)
+    path(
+        "<slug:slug>/export/",
+        gov_views.survey_export_create,
+        name="survey_export_create",
+    ),
+    path(
+        "<slug:slug>/export/<uuid:export_id>/",
+        gov_views.survey_export_download,
+        name="survey_export_download",
+    ),
+    path(
+        "<slug:slug>/export/<uuid:export_id>/download/<str:token>/",
+        gov_views.survey_export_file,
+        name="survey_export_file",
+    ),
+    path(
+        "<slug:slug>/retention/extend/",
+        gov_views.survey_extend_retention,
+        name="survey_extend_retention",
+    ),
+    path(
+        "<slug:slug>/legal-hold/place/",
+        gov_views.survey_legal_hold_place,
+        name="survey_legal_hold_place",
+    ),
+    path(
+        "<slug:slug>/legal-hold/remove/",
+        gov_views.survey_legal_hold_remove,
+        name="survey_legal_hold_remove",
+    ),
+    path(
+        "<slug:slug>/custodian/grant/",
+        gov_views.survey_custodian_grant,
+        name="survey_custodian_grant",
+    ),
+    path(
+        "<slug:slug>/custodian/<int:custodian_id>/revoke/",
+        gov_views.survey_custodian_revoke,
+        name="survey_custodian_revoke",
+    ),
 ]

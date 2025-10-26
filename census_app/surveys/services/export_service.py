@@ -132,8 +132,8 @@ class ExportService:
         
         # Get all questions for this survey
         questions = SurveyQuestion.objects.filter(
-            questiongroup__surveys=survey
-        ).order_by('questiongroup__order', 'order')
+            survey=survey
+        ).order_by('order')
         
         # Create CSV writer
         writer = csv.writer(output)

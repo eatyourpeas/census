@@ -123,6 +123,39 @@
   </div>
 </div>
 
+{% if survey.is_closed %}
+<div class="mt-6 card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <h2 class="card-title">{% trans "Data Governance" %}</h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="stat bg-base-200 rounded-box">
+        <div class="stat-title">{% trans "Survey Status" %}</div>
+        <div class="stat-value text-sm">{% trans "Closed" %}</div>
+        <div class="stat-desc">{% trans "Closed on" %} {{ survey.closed_at|date:"Y-m-d H:i" }}</div>
+      </div>
+      
+      <div class="stat bg-base-200 rounded-box">
+        <div class="stat-title">{% trans "Retention Period" %}</div>
+        <div class="stat-value text-sm">{{ survey.retention_months }} {% trans "months" %}</div>
+        {% if survey.deletion_date %}
+        <div class="stat-desc">{% trans "Deletion scheduled" %}: {{ survey.deletion_date|date:"Y-m-d" }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if can_export %}
+    <div class="card-actions justify-end mt-4">
+      <a href="{% url 'surveys:survey_export_create' survey.slug %}" class="btn btn-primary">
+        {% include "components/icons/download.html" with classes="h-4 w-4 mr-1" %}
+        {% trans "Download Survey Data" %}
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 <div class="prose mt-3">
   <div class="text-sm opacity-80 max-w-3xl">
     <p>{% blocktrans %}<strong>Groups</strong> are reusable sets of questions. You can mark one or more groups as a repeating entity (for example, <em>People</em> or <em>Visits</em>) directly on the Groups page, with optional one-level nesting.{% endblocktrans %}</p>
