@@ -8,9 +8,9 @@ Tests all three publication options:
 4. TOKEN - one-time use tokens via /surveys/<slug>/take/token/<token>/
 """
 
+import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-import pytest
 
 from census_app.surveys.models import (
     Organization,
@@ -696,36 +696,43 @@ class TestPublicationEdgeCases:
 class TestDashboardPublishButton:
     """Tests for dashboard publish button display."""
 
-    def test_draft_survey_shows_publish_button(self, client, survey_owner, basic_survey):
+    def test_draft_survey_shows_publish_button(
+        self, client, survey_owner, basic_survey
+    ):
         """Draft surveys should show 'Publish Survey' button on dashboard."""
         client.force_login(survey_owner)
-        
+
         # Ensure survey is draft
         basic_survey.status = Survey.Status.DRAFT
         basic_survey.save()
-        
+
         url = reverse("surveys:dashboard", kwargs={"slug": basic_survey.slug})
         response = client.get(url)
-        
+
         assert response.status_code == 200
         content = response.content.decode()
         assert "Publish Survey" in content
         # Check that SVG is present with proper viewBox
         assert 'viewBox="0 0 24 24"' in content
         # Check for cloud upload icon path (should not be truncated)
-        assert "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" in content
+        assert (
+            "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+            in content
+        )
 
-    def test_published_survey_shows_edit_button(self, client, survey_owner, basic_survey):
+    def test_published_survey_shows_edit_button(
+        self, client, survey_owner, basic_survey
+    ):
         """Published surveys should show 'Edit Publication' button on dashboard."""
         client.force_login(survey_owner)
-        
+
         # Ensure survey is published
         basic_survey.status = Survey.Status.PUBLISHED
         basic_survey.save()
-        
+
         url = reverse("surveys:dashboard", kwargs={"slug": basic_survey.slug})
         response = client.get(url)
-        
+
         assert response.status_code == 200
         content = response.content.decode()
         assert "Edit Publication" in content

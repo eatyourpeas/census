@@ -1,6 +1,6 @@
+import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-import pytest
 
 from census_app.core.models import UserOIDC
 from census_app.surveys.models import Organization, OrganizationMembership, Survey
@@ -278,7 +278,7 @@ def test_profile_shows_different_encryption_badges_for_password_and_oidc_users(c
         email="password_user@example.com",
         password=TEST_PASSWORD,
     )
-    
+
     # Create a survey with password/recovery encryption
     password_survey = Survey.objects.create(
         name="Password Encrypted Survey",
@@ -305,7 +305,7 @@ def test_profile_shows_different_encryption_badges_for_password_and_oidc_users(c
         email="oidc_user@example.com",
         password=TEST_PASSWORD,
     )
-    
+
     # Create UserOIDC record
     UserOIDC.objects.create(
         user=oidc_user,
@@ -314,7 +314,7 @@ def test_profile_shows_different_encryption_badges_for_password_and_oidc_users(c
         email_verified=True,
         key_derivation_salt=os.urandom(32),
     )
-    
+
     # Create a survey with OIDC encryption
     oidc_survey = Survey.objects.create(
         name="OIDC Encrypted Survey",
@@ -339,7 +339,7 @@ def test_profile_shows_different_encryption_badges_for_password_and_oidc_users(c
         email="dual_user@example.com",
         password=TEST_PASSWORD,
     )
-    
+
     UserOIDC.objects.create(
         user=dual_user,
         provider="google",
@@ -347,7 +347,7 @@ def test_profile_shows_different_encryption_badges_for_password_and_oidc_users(c
         email_verified=True,
         key_derivation_salt=os.urandom(32),
     )
-    
+
     # Survey with password encryption
     password_survey2 = Survey.objects.create(
         name="Password Survey 2",
@@ -357,7 +357,7 @@ def test_profile_shows_different_encryption_badges_for_password_and_oidc_users(c
     password_survey2.encrypted_kek_password = os.urandom(64)
     password_survey2.encrypted_kek_recovery = os.urandom(64)
     password_survey2.save()
-    
+
     # Survey with OIDC encryption
     oidc_survey2 = Survey.objects.create(
         name="OIDC Survey 2",

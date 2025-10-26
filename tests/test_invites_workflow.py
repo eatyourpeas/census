@@ -2,10 +2,10 @@
 Tests for survey invite workflow: dashboard stats, pending invites list, and resend functionality.
 """
 
+import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
-import pytest
 
 from census_app.surveys.models import (
     Organization,
@@ -413,11 +413,11 @@ class TestInvitesBadgeVisibility:
     def test_invites_badge_shown_for_token_visibility(self, client, user, survey):
         """Invites badge should be shown when visibility is 'token'."""
         client.force_login(user)
-        
+
         # Ensure survey has token visibility
         survey.visibility = Survey.Visibility.TOKEN
         survey.save()
-        
+
         # Create some invites
         SurveyAccessToken.objects.create(
             survey=survey,
@@ -438,12 +438,12 @@ class TestInvitesBadgeVisibility:
     def test_invites_badge_hidden_for_public_visibility(self, client, user, survey):
         """Invites badge should NOT be shown when visibility is 'public'."""
         client.force_login(user)
-        
+
         # Change to public visibility
         survey.visibility = Survey.Visibility.PUBLIC
         survey.no_patient_data_ack = True
         survey.save()
-        
+
         # Create some invites (they exist but shouldn't show the badge)
         SurveyAccessToken.objects.create(
             survey=survey,
@@ -461,14 +461,16 @@ class TestInvitesBadgeVisibility:
         # The badge should not appear
         assert 'href="/surveys/test-survey/invites/pending/">Invites:' not in content
 
-    def test_invites_badge_hidden_for_authenticated_visibility(self, client, user, survey):
+    def test_invites_badge_hidden_for_authenticated_visibility(
+        self, client, user, survey
+    ):
         """Invites badge should NOT be shown when visibility is 'authenticated'."""
         client.force_login(user)
-        
+
         # Change to authenticated visibility
         survey.visibility = Survey.Visibility.AUTHENTICATED
         survey.save()
-        
+
         # Create some invites
         SurveyAccessToken.objects.create(
             survey=survey,
@@ -489,13 +491,13 @@ class TestInvitesBadgeVisibility:
     def test_invites_badge_hidden_for_unlisted_visibility(self, client, user, survey):
         """Invites badge should NOT be shown when visibility is 'unlisted'."""
         client.force_login(user)
-        
+
         # Change to unlisted visibility
         survey.visibility = Survey.Visibility.UNLISTED
         survey.unlisted_key = "test-key-12345"
         survey.no_patient_data_ack = True
         survey.save()
-        
+
         # Create some invites
         SurveyAccessToken.objects.create(
             survey=survey,
