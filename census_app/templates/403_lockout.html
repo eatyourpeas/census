@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Account Locked" %} - {{ block.super }}{% endblock %}
+{% block content %}
+<div class="hero min-h-[60vh] bg-base-100">
+  <div class="hero-content text-center">
+    <div class="max-w-2xl">
+      <div class="flex justify-center mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      </div>
+      <h1 class="text-5xl font-bold text-error mb-4">{% trans "Account Locked" %}</h1>
+      <h2 class="text-3xl font-bold mb-4">{% trans "Too Many Failed Attempts" %}</h2>
+      <p class="py-6 text-lg opacity-80">
+        {% trans "Your account has been temporarily locked due to too many failed login attempts." %}
+      </p>
+      <div class="alert alert-error max-w-lg mx-auto mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div class="text-left">
+          <div class="font-bold">{% trans "Security Protection Active" %}</div>
+          <div class="text-sm">{% trans "Please wait 1 hour before trying again, or contact your administrator for assistance." %}</div>
+        </div>
+      </div>
+      <div class="prose max-w-md mx-auto mb-6">
+        <h3 class="text-lg font-semibold">{% trans "What you can do:" %}</h3>
+        <ul class="text-left">
+          <li>{% trans "Wait for the cooldown period to expire (1 hour)" %}</li>
+          <li>{% trans "Reset your password if you've forgotten it" %}</li>
+          <li>{% trans "Contact your system administrator for help" %}</li>
+        </ul>
+      </div>
+      <div class="flex gap-3 justify-center">
+        <a href="/accounts/password/reset/" class="btn btn-primary">{% trans "Reset Password" %}</a>
+        <a href="/" class="btn btn-ghost">{% trans "Go Home" %}</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

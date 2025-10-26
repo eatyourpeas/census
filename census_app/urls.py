@@ -68,3 +68,26 @@ urlpatterns = [
 # Serve uploaded media (icons) in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # Debug views for testing error pages
+    from census_app.core.debug_error_views import (
+        error_test_menu,
+        trigger_403,
+        trigger_404,
+        trigger_405,
+        trigger_500,
+        trigger_lockout,
+    )
+
+    urlpatterns += [
+        path("debug/errors/", error_test_menu, name="debug_error_menu"),
+        path("debug/errors/403", trigger_403, name="debug_403"),
+        path("debug/errors/404", trigger_404, name="debug_404"),
+        path("debug/errors/405", trigger_405, name="debug_405"),
+        path("debug/errors/500", trigger_500, name="debug_500"),
+        path("debug/errors/lockout", trigger_lockout, name="debug_lockout"),
+    ]
+
+# Custom error handlers
+handler403 = "census_app.core.error_handlers.custom_permission_denied_view"
+handler404 = "census_app.core.error_handlers.custom_page_not_found_view"
+handler500 = "census_app.core.error_handlers.custom_server_error_view"

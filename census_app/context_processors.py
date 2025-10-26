@@ -211,4 +211,7 @@ def branding(request):
         "brand": brand,
         "can_manage_any_users": can_manage_any_users,
         "build": build,
+        "settings": {
+            "HCAPTCHA_SITEKEY": getattr(settings, "HCAPTCHA_SITEKEY", ""),
+        },
     }

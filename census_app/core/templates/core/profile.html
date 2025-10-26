@@ -144,6 +144,28 @@
             </div>
           </div>
         {% endif %}
+        {% if stats.has_encryption_setup %}
+          {% trans "You have encryption enabled on your surveys with a user key for secure data collection" as tooltip_encryption %}
+          <div class="tooltip" data-tip="{{ tooltip_encryption }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-success text-xs">{% trans "Encrypted with User key" %}</span>
+              <div class="bg-success text-success-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/lock.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.has_oidc_encryption %}
+          {% trans "Your surveys are automatically encrypted using your SSO identity" as tooltip_oidc_encryption %}
+          <div class="tooltip" data-tip="{{ tooltip_oidc_encryption }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-success text-xs">{% trans "Automatically encrypted" %}</span>
+              <div class="bg-success text-success-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/lock.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -406,4 +428,155 @@
     <div class="alert alert-info">You already have user management permissions.</div>
   {% endif %}
 </div>
+
+<!-- Account Management Information -->
+<div class="mt-8 max-w-2xl">
+  {% if request.user.is_superuser %}
+    <!-- Superuser Administration Section -->
+    <div class="card bg-warning/10 border border-warning/20 shadow">
+      <div class="card-body">
+        <h2 class="card-title inline-flex items-center gap-2 text-warning">
+          {% include "components/icons/shield-exclamation.html" with classes="w-3 h-3 text-warning flex-shrink-0" %}
+          <span>{% trans "Superuser Administration" %}</span>
+        </h2>
+
+        <div class="alert alert-warning text-sm mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w- h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.962-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+          </svg>
+          <div>
+            <strong>{% trans "Administrator Access:" %}</strong>
+            {% trans "As a superuser, you can manage users and organizations through the Django Admin interface." %}
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="border border-warning/20 rounded-lg p-4">
+            <h3 class="font-semibold text-warning mb-2">{% trans "User Management" %}</h3>
+            <p class="text-sm opacity-80 mb-3">
+              {% trans "User accounts can only be deleted by superusers through the admin interface to maintain security and audit trails. Regular users cannot delete their own accounts to prevent accidental data loss." %}
+            </p>
+            <a href="/admin/auth/user/" class="btn btn-warning btn-outline btn-sm">
+              {% trans "Manage Users" %}
+            </a>
+          </div>
+
+          <div class="border border-warning/20 rounded-lg p-4">
+            <h3 class="font-semibold text-warning mb-2">{% trans "Organization Management" %}</h3>
+            <p class="text-sm opacity-80 mb-3">
+              {% trans "Organization deletion cascades to all associated surveys and data. This operation should only be performed by administrators after careful consideration." %}
+            </p>
+            <a href="/admin/surveys/organization/" class="btn btn-warning btn-outline btn-sm">
+              {% trans "Manage Organizations" %}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <!-- Regular User Information Section -->
+    <div class="card bg-info/10 border border-info/20 shadow">
+      <div class="card-body">
+        <h2 class="card-title inline-flex items-center gap-2 text-info">
+          <span style="width: 16px; height: 16px; flex-shrink: 0;">
+            {% include "components/icons/information-circle.html" with classes="w-4 h-4 text-info" %}
+          </span>
+          <span>{% trans "Account Information" %}</span>
+        </h2>
+
+        <div class="space-y-4">
+          <div class="border border-info/20 rounded-lg p-4">
+            <h3 class="font-semibold text-info mb-2">{% trans "Account Security" %}</h3>
+            <p class="text-sm opacity-80">
+              {% trans "Your account and data are protected. Only system administrators can perform account deletions to ensure data integrity and prevent accidental loss." %}
+            </p>
+          </div>
+
+          <div class="border border-info/20 rounded-lg p-4">
+            <h3 class="font-semibold text-info mb-2">{% trans "Data Management" %}</h3>
+            <p class="text-sm opacity-80 mb-3">
+              {% trans "You can manage your surveys and survey access through the appropriate sections above. For account-level changes, please contact your system administrator." %}
+            </p>
+            {% if stats.surveys_owned > 0 %}
+              <div class="text-sm opacity-70">
+                {% blocktrans with count=stats.surveys_owned %}
+                You currently own {{ count }} survey(s) that would be affected by account changes.
+                {% endblocktrans %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="border border-info/20 rounded-lg p-4">
+            <h3 class="font-semibold text-info mb-2">{% trans "Need Help?" %}</h3>
+            <p class="text-sm opacity-80">
+              {% trans "If you need to delete your account or have questions about data management, please contact your system administrator." %}
+            </p>
+          </div>
+
+          {% if can_safely_delete_account %}
+          <div class="border border-warning/20 rounded-lg p-4">
+            <h3 class="font-semibold text-warning mb-2">{% trans "Delete Account" %}</h3>
+            <p class="text-sm opacity-80 mb-3">
+              {% trans "As an individual user with no collaborators or organization memberships, you can safely delete your own account." %}
+            </p>
+            {% if stats.surveys_owned > 0 %}
+              <div class="alert alert-warning text-sm mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.962-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+                <div>
+                  <strong>{% trans "Warning:" %}</strong>
+                  {% blocktrans with count=stats.surveys_owned %}
+                  This will permanently delete your account and {{ count }} survey(s). This action cannot be undone.
+                  {% endblocktrans %}
+                </div>
+              </div>
+            {% endif %}
+            <button id="delete-account-btn" class="btn btn-warning btn-sm">
+              {% trans "Delete My Account" %}
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<script nonce="{{ request.csp_nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+  const deleteBtn = document.getElementById('delete-account-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', confirmAccountDeletion);
+  }
+});
+
+function confirmAccountDeletion() {
+  const surveysCount = {{ stats.surveys_owned|default:0 }};
+
+  let message = '{% trans "Are you sure you want to permanently delete your account?" %}\n\n{% trans "This will:" %}\n• {% trans "Permanently delete your account and profile" %}';
+
+  if (surveysCount > 0) {
+    message += `\n• {% trans "PERMANENTLY DELETE" %} ${surveysCount} {% trans "survey(s) you own" %}`;
+  }
+
+  message += '\n• {% trans "Remove all your data from the system" %}\n\n{% trans "This action cannot be undone." %}\n\n{% trans "Type" %} "DELETE MY ACCOUNT" {% trans "to confirm" %}:';
+
+  const confirmation = prompt(message);
+  if (confirmation === 'DELETE MY ACCOUNT') {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "core:delete_account" %}';
+
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrfmiddlewaretoken';
+    csrfToken.value = '{{ csrf_token }}';
+
+    form.appendChild(csrfToken);
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+</script>
 {% endblock %}

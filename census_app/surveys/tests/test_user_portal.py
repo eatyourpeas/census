@@ -74,4 +74,4 @@ def test_viewer_cannot_manage_survey_users(client):
     resp = client.post(
         url, data={"action": "add", "user_id": owner.id, "role": "viewer"}
     )
-    assert resp.status_code == 403
+    assert resp.status_code == 404  # View raises 404 for unauthorized users

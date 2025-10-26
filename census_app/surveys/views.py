@@ -598,6 +598,24 @@ def survey_create(request: HttpRequest) -> HttpResponse:
                                 )
                                 # Don't fail the entire survey creation if OIDC encryption fails
 
+                        # Also set up organization encryption if user belongs to an organization
+                        if (
+                            survey.organization
+                            and survey.organization.encrypted_master_key
+                        ):
+                            try:
+                                survey.set_org_encryption(
+                                    survey_kek, survey.organization
+                                )
+                                logger.info(
+                                    f"Added organization encryption for survey {survey.slug} (org: {survey.organization.name})"
+                                )
+                            except Exception as e:
+                                logger.warning(
+                                    f"Failed to add organization encryption to survey {survey.slug}: {e}"
+                                )
+                                # Don't fail the entire survey creation if org encryption fails
+
                         # Determine success message based on encryption methods
                         if hasattr(request.user, "oidc"):
                             provider_name = request.user.oidc.provider.title()
@@ -861,11 +879,16 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 @login_required
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "POST"])
 def survey_preview(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     require_can_view(request.user, survey)
-    # Render the same detail template but never accept POST here
+
+    # Handle POST in preview mode - redirect to preview thank you without saving
+    if request.method == "POST":
+        return redirect("surveys:preview_thank_you", slug=slug)
+
+    # Render the same detail template in preview mode
     _prepare_question_rendering(survey)
     qs = list(survey.questions.select_related("group").all())
     for i, q in enumerate(qs, start=1):
@@ -905,6 +928,7 @@ def survey_preview(request: HttpRequest, slug: str) -> HttpResponse:
         "professional_defs": PROFESSIONAL_FIELD_DEFS,
         "professional_ods": professional_ods,
         "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
+        "is_preview": True,  # Flag to indicate this is preview mode
     }
     if any(
         v for k, v in brand_overrides.items() if k != "primary_hex"
@@ -1583,29 +1607,89 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
     # Sparkline data: last 14 full days (oldest -> newest)
     from collections import OrderedDict
 
-    start_14 = start_today - timezone.timedelta(days=13)
-    day_counts = OrderedDict()
-    for i in range(14):
-        day = start_14 + timezone.timedelta(days=i)
-        next_day = day + timezone.timedelta(days=1)
-        day_counts[day.date().isoformat()] = survey.responses.filter(
-            submitted_at__gte=day, submitted_at__lt=next_day
-        ).count()
-    # Build sparkline polyline points (0..100 width, 0..24 height)
-    values = list(day_counts.values())
     spark_points = ""
-    if values:
-        max_v = max(values) or 1
-        n = len(values)
-        width = 100.0
-        height = 24.0
-        dx = width / (n - 1) if n > 1 else width
-        pts = []
-        for i, v in enumerate(values):
-            x = dx * i
-            y = height - (float(v) / float(max_v)) * height
-            pts.append(f"{x:.1f},{y:.1f}")
-        spark_points = " ".join(pts)
+    spark_labels = []
+    invites_points = ""
+    survey_not_started = survey.start_at and survey.start_at > now
+
+    if not survey_not_started:
+        # Show from publication date (or last 14 days, whichever is more recent)
+        # This gives a complete picture of the survey's lifetime submissions
+        if survey.start_at:
+            # Use the survey's publication start date
+            survey_start_day = survey.start_at.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            start_date = survey_start_day
+        else:
+            # No start date specified - show last 14 days as fallback
+            start_date = start_today - timezone.timedelta(days=13)
+
+        # Ensure we always show at least 2 days for a proper line graph
+        if start_date == start_today:
+            start_date = start_today - timezone.timedelta(days=1)
+
+        day_counts = OrderedDict()
+        current_day = start_date
+        # Always include at least up to and including today
+        end_day = start_today + timezone.timedelta(days=1)
+        # Also build invites-per-day alongside response counts so we can
+        # render both series in the sparkline.
+        invite_day_counts = OrderedDict()
+        while current_day < end_day:
+            next_day = current_day + timezone.timedelta(days=1)
+            day_counts[current_day.date().isoformat()] = survey.responses.filter(
+                submitted_at__gte=current_day, submitted_at__lt=next_day
+            ).count()
+            invite_day_counts[current_day.date().isoformat()] = (
+                survey.access_tokens.filter(
+                    created_at__gte=current_day,
+                    created_at__lt=next_day,
+                    note__icontains="Invited",
+                ).count()
+            )
+            current_day = next_day
+
+        # Build sparkline polyline points (0..100 width, 0..24 height)
+        response_values = list(day_counts.values())
+        invite_values = list(invite_day_counts.values())
+        dates = list(day_counts.keys())
+
+        if response_values or invite_values:  # Create sparkline even if all zeros
+            # Use combined max so both series share the same vertical scale
+            max_v = max(
+                max(response_values) if response_values else 0,
+                max(invite_values) if invite_values else 0,
+            )
+            max_v = max_v if max_v > 0 else 1
+            n = len(dates)
+            width = 100.0
+            height = 24.0
+            dx = width / (n - 1) if n > 1 else width
+
+            # Response series (primary)
+            resp_pts = []
+            for i, v in enumerate(response_values):
+                x = dx * i
+                y = height - (float(v) / float(max_v)) * height
+                resp_pts.append(f"{x:.1f},{y:.1f}")
+            spark_points = " ".join(resp_pts)
+
+            # Invite series (secondary)
+            invite_pts = []
+            for i, v in enumerate(invite_values):
+                x = dx * i
+                y = height - (float(v) / float(max_v)) * height
+                invite_pts.append(f"{x:.1f},{y:.1f}")
+            invites_points = " ".join(invite_pts)
+
+            # Create labels for axis
+            if n > 0:
+                spark_labels = [
+                    {"date": dates[0], "label": "Start"},
+                    {"date": dates[-1], "label": "Today"},
+                    {"max_count": max_v},
+                ]
     # Derived status
     is_live = survey.is_live()
     visible = (
@@ -1641,8 +1725,16 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
         "visible": visible,
         "today_count": today_count,
         "last7_count": last7_count,
-        "day_counts": list(day_counts.values()),
         "spark_points": spark_points,
+        "spark_labels": spark_labels,
+        # Invites stats
+        "invites_sent": survey.access_tokens.filter(note__icontains="Invited").count(),
+        "invites_pending": survey.access_tokens.filter(
+            note__icontains="Invited", response__isnull=True
+        ).count(),
+        "invites_points": invites_points,
+        "survey_not_started": survey_not_started,
+        "can_manage_users": can_manage_survey_users(request.user, survey),
     }
     if any(
         v for k, v in brand_overrides.items() if k != "primary_hex"
@@ -1675,6 +1767,80 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
             "primary": hex_to_oklch(brand_overrides.get("primary_hex") or ""),
         }
     return render(request, "surveys/dashboard.html", ctx)
+
+
+@login_required
+def survey_invites_pending(request: HttpRequest, slug: str) -> HttpResponse:
+    """List invited email addresses that have not yet submitted a response.
+
+    This shows tokens created via the invite workflow where there is no
+    associated response yet.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_view(request.user, survey)
+
+    tokens = survey.access_tokens.filter(
+        note__icontains="Invited", response__isnull=True
+    ).order_by("-created_at")
+
+    invites = []
+    for t in tokens:
+        # Note format used when creating invites: 'Invited: email@domain'
+        email = None
+        if t.note and ":" in t.note:
+            email = t.note.split(":", 1)[1].strip()
+        invites.append({"token": t, "email": email or t.note or ""})
+
+    return render(
+        request, "surveys/invites_pending.html", {"survey": survey, "invites": invites}
+    )
+
+
+@login_required
+@require_http_methods(["POST"])
+def survey_invite_resend(
+    request: HttpRequest, slug: str, token_id: int
+) -> HttpResponse:
+    """Resend an invitation email for a pending access token.
+
+    Only allows resending for tokens that haven't been used yet (no response).
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+
+    token = get_object_or_404(
+        SurveyAccessToken,
+        id=token_id,
+        survey=survey,
+        note__icontains="Invited",
+        response__isnull=True,
+    )
+
+    # Extract email from note (format: "Invited: email@domain.com")
+    email = None
+    if token.note and ":" in token.note:
+        email = token.note.split(":", 1)[1].strip()
+
+    if not email or "@" not in email:
+        messages.error(request, "Cannot resend: invalid email address in token note.")
+        return redirect("surveys:invites_pending", slug=slug)
+
+    # Send the invitation email
+    from census_app.core.email_utils import send_survey_invite_email
+
+    contact_email = request.user.email if request.user.email else None
+
+    if send_survey_invite_email(
+        to_email=email,
+        survey=survey,
+        token=token.token,
+        contact_email=contact_email,
+    ):
+        messages.success(request, f"Invitation resent to {email}")
+    else:
+        messages.error(request, f"Failed to resend invitation to {email}")
+
+    return redirect("surveys:invites_pending", slug=slug)
 
 
 @login_required
@@ -1751,6 +1917,304 @@ def survey_delete(request: HttpRequest, slug: str) -> HttpResponse:
     return redirect("core:home")
 
 
+def _parse_email_addresses(text: str) -> list[str]:
+    """Parse email addresses from various formats.
+
+    Supports:
+    - One per line: email@domain.com
+    - Outlook format: Name <email@domain.com>
+    - Semicolon separated: email1@domain.com; email2@domain.com
+    - Combined: Name1 <email1@domain.com>; Name2 <email2@domain.com>
+
+    Returns list of email addresses.
+    """
+    import re
+
+    # First split by semicolons and newlines
+    raw_entries = re.split(r"[;\n]", text)
+
+    email_list = []
+    # Extract email from each entry (handle both plain and "Name <email>" formats)
+    email_pattern = r"<([^>]+)>|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})"
+
+    for entry in raw_entries:
+        entry = entry.strip()
+        if not entry:
+            continue
+
+        # Try to find email in angle brackets first (Outlook format)
+        match = re.search(email_pattern, entry)
+        if match:
+            # Group 1 is email in angle brackets, group 2 is plain email
+            email = match.group(1) or match.group(2)
+            if email:
+                email_list.append(email.strip())
+
+    return email_list
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def survey_publish_settings(request: HttpRequest, slug: str) -> HttpResponse:
+    """
+    Dedicated publish settings page with clearer UX.
+    Handles both initial publish and editing published surveys.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_edit(request.user, survey)
+
+    if request.method == "POST":
+        action = request.POST.get("action", "publish")
+
+        # Parse fields
+        visibility = request.POST.get("visibility") or survey.visibility
+        start_at_str = request.POST.get("start_at") or None
+        end_at_str = request.POST.get("end_at") or None
+        max_responses = request.POST.get("max_responses") or None
+        captcha_required = bool(request.POST.get("captcha_required"))
+        no_patient_data_ack = bool(request.POST.get("no_patient_data_ack"))
+        invite_emails = request.POST.get("invite_emails", "").strip()
+
+        # Parse dates
+        from django.utils.dateparse import parse_datetime
+
+        start_at = parse_datetime(start_at_str) if start_at_str else None
+        end_at = parse_datetime(end_at_str) if end_at_str else None
+
+        if max_responses:
+            try:
+                max_responses = int(max_responses)
+            except ValueError:
+                max_responses = None
+
+        # Validate patient data acknowledgment for non-auth visibility
+        collects_patient = _survey_collects_patient_data(survey)
+        if (
+            visibility
+            in {
+                Survey.Visibility.PUBLIC,
+                Survey.Visibility.UNLISTED,
+                Survey.Visibility.TOKEN,
+            }
+            and collects_patient
+        ):
+            if not no_patient_data_ack:
+                messages.error(
+                    request,
+                    "To use public, unlisted, or tokenized visibility, confirm that no patient data is collected.",
+                )
+                return render(
+                    request, "surveys/publish_settings.html", {"survey": survey}
+                )
+
+        # Handle different actions
+        if action == "close":
+            # Close the survey
+            survey.status = Survey.Status.CLOSED
+            survey.save()
+            messages.success(request, "Survey has been closed.")
+            return redirect("surveys:dashboard", slug=slug)
+
+        elif action == "publish":
+            # Publishing for the first time
+            prev_status = survey.status
+
+            # Check if encryption setup is needed
+            # Only surveys that collect patient data require encryption
+            needs_encryption_setup = (
+                collects_patient
+                and prev_status != Survey.Status.PUBLISHED
+                and not survey.has_any_encryption()
+            )
+
+            if needs_encryption_setup:
+                # Store pending publish settings in session
+                request.session["pending_publish"] = {
+                    "slug": slug,
+                    "visibility": visibility,
+                    "start_at": start_at.isoformat() if start_at else None,
+                    "end_at": end_at.isoformat() if end_at else None,
+                    "max_responses": max_responses,
+                    "captcha_required": captcha_required,
+                    "no_patient_data_ack": no_patient_data_ack,
+                }
+                return redirect("surveys:encryption_setup", slug=slug)
+
+            # Apply settings
+            survey.visibility = visibility
+            survey.start_at = start_at
+            survey.end_at = end_at
+            survey.max_responses = max_responses
+            survey.captcha_required = captcha_required
+            survey.no_patient_data_ack = no_patient_data_ack
+
+            # Set status to PUBLISHED
+            survey.status = Survey.Status.PUBLISHED
+
+            # On first publish, set published_at and start_at if not provided
+            if prev_status != Survey.Status.PUBLISHED and not survey.published_at:
+                survey.published_at = timezone.now()
+                # If start_at not provided, set it to now (survey starts immediately)
+                if not survey.start_at:
+                    survey.start_at = timezone.now()
+
+            # Generate unlisted key if needed
+            if (
+                survey.visibility == Survey.Visibility.UNLISTED
+                and not survey.unlisted_key
+            ):
+                import secrets
+
+                survey.unlisted_key = secrets.token_urlsafe(24)
+
+            survey.save()
+
+            # Process invite emails if provided and visibility is TOKEN
+            if invite_emails and visibility == Survey.Visibility.TOKEN:
+                import secrets
+
+                from census_app.core.email_utils import send_survey_invite_email
+
+                # Parse email addresses (supports Outlook format and various separators)
+                email_list = _parse_email_addresses(invite_emails)
+
+                # Get contact email (use survey owner's email)
+                contact_email = request.user.email if request.user.email else None
+
+                sent_count = 0
+                failed_emails = []
+
+                for email_address in email_list:
+                    # Validate email format (basic check)
+                    if (
+                        "@" not in email_address
+                        or "." not in email_address.split("@")[1]
+                    ):
+                        failed_emails.append(f"{email_address} (invalid format)")
+                        continue
+
+                    # Create token for this email
+                    token = SurveyAccessToken(
+                        survey=survey,
+                        token=secrets.token_urlsafe(24),
+                        created_by=request.user,
+                        expires_at=end_at if end_at else None,
+                        note=f"Invited: {email_address}",
+                    )
+                    token.save()
+
+                    # Send invitation email
+                    if send_survey_invite_email(
+                        to_email=email_address,
+                        survey=survey,
+                        token=token.token,
+                        contact_email=contact_email,
+                    ):
+                        sent_count += 1
+                    else:
+                        failed_emails.append(email_address)
+
+                # Show summary message
+                if sent_count > 0:
+                    messages.success(
+                        request,
+                        f"Survey published! {sent_count} invitation(s) sent successfully.",
+                    )
+                if failed_emails:
+                    messages.warning(
+                        request,
+                        f"Failed to send invites to: {', '.join(failed_emails)}",
+                    )
+            else:
+                messages.success(request, "Survey has been published successfully!")
+
+            return redirect("surveys:dashboard", slug=slug)
+
+        elif action == "save":
+            # Saving changes to already-published survey
+            survey.visibility = visibility
+            survey.start_at = start_at
+            survey.end_at = end_at
+            survey.max_responses = max_responses
+            survey.captcha_required = captcha_required
+            survey.no_patient_data_ack = no_patient_data_ack
+
+            # Generate unlisted key if needed
+            if (
+                survey.visibility == Survey.Visibility.UNLISTED
+                and not survey.unlisted_key
+            ):
+                import secrets
+
+                survey.unlisted_key = secrets.token_urlsafe(24)
+
+            survey.save()
+
+            # Process invite emails if provided and visibility is TOKEN
+            if invite_emails and visibility == Survey.Visibility.TOKEN:
+                import secrets
+
+                from census_app.core.email_utils import send_survey_invite_email
+
+                # Parse email addresses (supports Outlook format and various separators)
+                email_list = _parse_email_addresses(invite_emails)
+
+                # Get contact email (use survey owner's email)
+                contact_email = request.user.email if request.user.email else None
+
+                sent_count = 0
+                failed_emails = []
+
+                for email_address in email_list:
+                    # Validate email format (basic check)
+                    if (
+                        "@" not in email_address
+                        or "." not in email_address.split("@")[1]
+                    ):
+                        failed_emails.append(f"{email_address} (invalid format)")
+                        continue
+
+                    # Create token for this email
+                    token = SurveyAccessToken(
+                        survey=survey,
+                        token=secrets.token_urlsafe(24),
+                        created_by=request.user,
+                        expires_at=end_at if end_at else None,
+                        note=f"Invited: {email_address}",
+                    )
+                    token.save()
+
+                    # Send invitation email
+                    if send_survey_invite_email(
+                        to_email=email_address,
+                        survey=survey,
+                        token=token.token,
+                        contact_email=contact_email,
+                    ):
+                        sent_count += 1
+                    else:
+                        failed_emails.append(email_address)
+
+                # Show summary message
+                if sent_count > 0:
+                    messages.success(
+                        request,
+                        f"Settings updated! {sent_count} invitation(s) sent successfully.",
+                    )
+                if failed_emails:
+                    messages.warning(
+                        request,
+                        f"Failed to send invites to: {', '.join(failed_emails)}",
+                    )
+            else:
+                messages.success(request, "Publication settings updated.")
+
+            return redirect("surveys:dashboard", slug=slug)
+
+    # GET request - show the form
+    return render(request, "surveys/publish_settings.html", {"survey": survey})
+
+
 @login_required
 @require_http_methods(["POST"])
 def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
@@ -1798,16 +2262,71 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
             )
             return redirect("surveys:dashboard", slug=slug)
 
-    # Check if encryption setup is needed (first-time publish for individual users)
+    # Check if encryption setup is needed
     prev_status = survey.status
-    needs_encryption_setup = (
-        prev_status != Survey.Status.PUBLISHED
-        and status == Survey.Status.PUBLISHED
-        and not survey.has_dual_encryption()
-        and survey.organization is None  # Individual user, not organization
-    )
 
-    if needs_encryption_setup:
+    # Determine if we need to redirect to encryption setup
+    # Only surveys that collect patient data require encryption
+    # Organization + SSO users: auto-encrypt without setup page
+    # Organization + Password users: need setup if no encryption yet
+    # Individual + SSO users: need to choose SSO-only vs SSO+recovery
+    # Individual + Password users: need setup if no encryption yet
+
+    collects_patient = _survey_collects_patient_data(survey)
+    is_org_member = survey.organization is not None
+    is_sso_user = hasattr(request.user, "oidc")
+    is_first_publish = (
+        prev_status != Survey.Status.PUBLISHED and status == Survey.Status.PUBLISHED
+    )
+    has_encryption = survey.has_any_encryption()
+
+    # Auto-encrypt for organization SSO users (no setup page needed)
+    # Only if survey collects patient data
+    if (
+        collects_patient
+        and is_org_member
+        and is_sso_user
+        and is_first_publish
+        and not has_encryption
+    ):
+        import os
+
+        # Generate survey encryption key
+        kek = os.urandom(32)
+
+        # Set up OIDC encryption for automatic unlock
+        try:
+            survey.set_oidc_encryption(kek, request.user)
+            logger.info(
+                f"Added OIDC encryption for org survey {survey.slug} during publish (provider: {request.user.oidc.provider})"
+            )
+        except Exception as e:
+            logger.error(f"Failed to add OIDC encryption: {e}")
+            messages.error(
+                request, "Failed to set up SSO encryption. Please try again."
+            )
+            return redirect("surveys:dashboard", slug=slug)
+
+        # Set up organization encryption for admin recovery
+        if survey.organization and survey.organization.encrypted_master_key:
+            try:
+                survey.set_org_encryption(kek, survey.organization)
+                logger.info(
+                    f"Added organization encryption for survey {survey.slug} during publish (org: {survey.organization.name})"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to add organization encryption: {e}")
+
+        # Continue with publish (encryption is set up)
+        provider_name = request.user.oidc.provider.title()
+        messages.success(
+            request,
+            f"Survey encrypted automatically with your {provider_name} account + organization recovery.",
+        )
+
+    # All other cases: check if encryption setup is needed
+    # Only redirect to setup if survey collects patient data and has no encryption
+    elif collects_patient and is_first_publish and not has_encryption:
         # Store pending publish settings in session
         request.session["pending_publish"] = {
             "slug": slug,
@@ -1830,13 +2349,16 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
     survey.max_responses = max_responses
     survey.captcha_required = captcha_required
     survey.no_patient_data_ack = no_patient_data_ack
-    # On first publish, set published_at
+    # On first publish, set published_at and start_at if not provided
     if (
         prev_status != Survey.Status.PUBLISHED
         and status == Survey.Status.PUBLISHED
         and not survey.published_at
     ):
         survey.published_at = timezone.now()
+        # If start_at not provided, set it to now
+        if not survey.start_at:
+            survey.start_at = timezone.now()
     # Generate unlisted key if needed
     if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
         survey.unlisted_key = secrets.token_urlsafe(24)
@@ -1849,8 +2371,11 @@ def survey_publish_update(request: HttpRequest, slug: str) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
     """
-    Encryption setup page for individual users publishing surveys.
-    Prompts for password and generates recovery phrase for Option 2 encryption.
+    Encryption setup page for users publishing surveys.
+
+    - SSO individual users: choose between SSO-only or SSO+recovery
+    - Password individual users: password + recovery phrase (traditional)
+    - Organization users: should not reach this page (auto-encrypted)
     """
     survey = get_object_or_404(Survey, slug=slug)
     require_can_edit(request.user, survey)
@@ -1862,79 +2387,260 @@ def survey_encryption_setup(request: HttpRequest, slug: str) -> HttpResponse:
         return redirect("surveys:dashboard", slug=slug)
 
     # Check if survey already has encryption
-    if survey.has_dual_encryption():
+    if survey.has_any_encryption():
         messages.info(request, "Survey already has encryption enabled.")
         return redirect("surveys:dashboard", slug=slug)
 
+    is_sso_user = hasattr(request.user, "oidc")
+    is_org_member = survey.organization is not None
+
     if request.method == "POST":
-        password = request.POST.get("password", "").strip()
-        password_confirm = request.POST.get("password_confirm", "").strip()
-
-        # Validate password
-        if not password:
-            messages.error(request, "Password is required.")
-            return render(request, "surveys/encryption_setup.html", {"survey": survey})
-
-        if len(password) < 12:
-            messages.error(request, "Password must be at least 12 characters.")
-            return render(request, "surveys/encryption_setup.html", {"survey": survey})
-
-        if password != password_confirm:
-            messages.error(request, "Passwords do not match.")
-            return render(request, "surveys/encryption_setup.html", {"survey": survey})
-
-        # Generate survey encryption key (KEK)
         import os
 
         from .utils import generate_bip39_phrase
 
         kek = os.urandom(32)  # 256-bit survey encryption key
 
-        # Generate 12-word recovery phrase
-        recovery_words = generate_bip39_phrase(12)
+        # Handle SSO user choice (individual users only)
+        if is_sso_user and not is_org_member:
+            encryption_choice = request.POST.get("encryption_choice", "")
 
-        # Set up dual encryption
-        survey.set_dual_encryption(kek, password, recovery_words)
+            if encryption_choice == "sso_only":
+                # SSO-only encryption (no password/recovery phrase)
+                try:
+                    survey.set_oidc_encryption(kek, request.user)
+                    logger.info(
+                        f"Set up SSO-only encryption for survey {survey.slug} (provider: {request.user.oidc.provider})"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to set up SSO-only encryption: {e}")
+                    messages.error(
+                        request, "Failed to set up SSO encryption. Please try again."
+                    )
+                    return render(
+                        request,
+                        "surveys/encryption_setup.html",
+                        {
+                            "survey": survey,
+                            "is_sso_user": is_sso_user,
+                            "is_org_member": is_org_member,
+                        },
+                    )
 
-        # Apply pending publish settings
-        from django.utils.dateparse import parse_datetime
+                # Apply pending publish settings and complete
+                _apply_pending_publish_settings(survey, pending)
 
-        survey.status = pending.get("status", survey.status)
-        survey.visibility = pending.get("visibility", survey.visibility)
-        start_at_str = pending.get("start_at")
-        end_at_str = pending.get("end_at")
-        survey.start_at = parse_datetime(start_at_str) if start_at_str else None
-        survey.end_at = parse_datetime(end_at_str) if end_at_str else None
-        survey.max_responses = pending.get("max_responses")
-        survey.captcha_required = pending.get("captcha_required", False)
-        survey.no_patient_data_ack = pending.get("no_patient_data_ack", False)
+                # Clear session data
+                if "pending_publish" in request.session:
+                    del request.session["pending_publish"]
 
-        # Set published_at if first publish
-        if survey.status == Survey.Status.PUBLISHED and not survey.published_at:
-            survey.published_at = timezone.now()
+                provider_name = request.user.oidc.provider.title()
+                messages.success(
+                    request,
+                    f"Survey published with SSO-only encryption ({provider_name}). "
+                    f"Your survey will auto-unlock when you sign in.",
+                )
+                return redirect("surveys:dashboard", slug=slug)
 
-        # Generate unlisted key if needed
-        if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
-            survey.unlisted_key = secrets.token_urlsafe(24)
+            elif encryption_choice == "sso_recovery":
+                # SSO + recovery phrase (belt and suspenders)
+                recovery_words = generate_bip39_phrase(12)
 
-        survey.save()
+                try:
+                    # Set up OIDC encryption
+                    survey.set_oidc_encryption(kek, request.user)
+                    # Set up recovery phrase encryption (no password)
+                    from .utils import create_recovery_hint, encrypt_kek_with_passphrase
 
-        # Store KEK and recovery phrase in session for key display page (one-time access)
-        request.session["encryption_display"] = {
-            "slug": slug,
-            "kek_hex": kek.hex(),
-            "recovery_phrase": " ".join(recovery_words),
-            "recovery_hint": survey.recovery_code_hint,
-        }
+                    recovery_phrase = " ".join(recovery_words)
+                    survey.encrypted_kek_recovery = encrypt_kek_with_passphrase(
+                        kek, recovery_phrase
+                    )
+                    survey.recovery_code_hint = create_recovery_hint(recovery_words)
+                    survey.save(
+                        update_fields=["encrypted_kek_recovery", "recovery_code_hint"]
+                    )
 
-        # Clear pending publish settings
-        if "pending_publish" in request.session:
-            del request.session["pending_publish"]
+                    logger.info(
+                        f"Set up SSO+recovery encryption for survey {survey.slug} (provider: {request.user.oidc.provider})"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to set up SSO+recovery encryption: {e}")
+                    messages.error(
+                        request, "Failed to set up encryption. Please try again."
+                    )
+                    return render(
+                        request,
+                        "surveys/encryption_setup.html",
+                        {
+                            "survey": survey,
+                            "is_sso_user": is_sso_user,
+                            "is_org_member": is_org_member,
+                        },
+                    )
 
-        # Redirect to key display page
-        return redirect("surveys:encryption_display", slug=slug)
+                # Apply pending publish settings
+                _apply_pending_publish_settings(survey, pending)
 
-    return render(request, "surveys/encryption_setup.html", {"survey": survey})
+                # Store recovery phrase for display
+                request.session["encryption_display"] = {
+                    "slug": slug,
+                    "recovery_phrase": recovery_phrase,
+                    "recovery_hint": survey.recovery_code_hint,
+                    "is_sso_recovery": True,
+                }
+
+                # Clear pending publish settings
+                if "pending_publish" in request.session:
+                    del request.session["pending_publish"]
+
+                # Redirect to recovery phrase display
+                return redirect("surveys:encryption_display", slug=slug)
+
+            else:
+                messages.error(request, "Please select an encryption option.")
+                return render(
+                    request,
+                    "surveys/encryption_setup.html",
+                    {
+                        "survey": survey,
+                        "is_sso_user": is_sso_user,
+                        "is_org_member": is_org_member,
+                    },
+                )
+
+        # Handle password-based user (traditional dual encryption)
+        else:
+            password = request.POST.get("password", "").strip()
+            password_confirm = request.POST.get("password_confirm", "").strip()
+
+            # Validate password
+            if not password:
+                messages.error(request, "Password is required.")
+                return render(
+                    request,
+                    "surveys/encryption_setup.html",
+                    {
+                        "survey": survey,
+                        "is_sso_user": is_sso_user,
+                        "is_org_member": is_org_member,
+                    },
+                )
+
+            if len(password) < 12:
+                messages.error(request, "Password must be at least 12 characters.")
+                return render(
+                    request,
+                    "surveys/encryption_setup.html",
+                    {
+                        "survey": survey,
+                        "is_sso_user": is_sso_user,
+                        "is_org_member": is_org_member,
+                    },
+                )
+
+            if password != password_confirm:
+                messages.error(request, "Passwords do not match.")
+                return render(
+                    request,
+                    "surveys/encryption_setup.html",
+                    {
+                        "survey": survey,
+                        "is_sso_user": is_sso_user,
+                        "is_org_member": is_org_member,
+                    },
+                )
+
+            # Generate 12-word recovery phrase
+            recovery_words = generate_bip39_phrase(12)
+
+            # Set up dual encryption
+            survey.set_dual_encryption(kek, password, recovery_words)
+
+            # Also set up OIDC encryption if user has OIDC authentication (org password users)
+            if is_sso_user:
+                try:
+                    survey.set_oidc_encryption(kek, request.user)
+                    logger.info(
+                        f"Added OIDC encryption for survey {survey.slug} during encryption setup (provider: {request.user.oidc.provider})"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to add OIDC encryption to survey {survey.slug}: {e}"
+                    )
+
+            # Also set up organization encryption if survey belongs to an organization
+            if survey.organization and survey.organization.encrypted_master_key:
+                try:
+                    survey.set_org_encryption(kek, survey.organization)
+                    logger.info(
+                        f"Added organization encryption for survey {survey.slug} during encryption setup (org: {survey.organization.name})"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to add organization encryption to survey {survey.slug}: {e}"
+                    )
+
+            # Apply pending publish settings
+            _apply_pending_publish_settings(survey, pending)
+
+            # Store KEK and recovery phrase in session for key display page (one-time access)
+            request.session["encryption_display"] = {
+                "slug": slug,
+                "kek_hex": kek.hex(),
+                "recovery_phrase": " ".join(recovery_words),
+                "recovery_hint": survey.recovery_code_hint,
+            }
+
+            # Clear pending publish settings
+            if "pending_publish" in request.session:
+                del request.session["pending_publish"]
+
+            # Redirect to key display page
+            return redirect("surveys:encryption_display", slug=slug)
+
+    # GET request: show encryption setup form
+    return render(
+        request,
+        "surveys/encryption_setup.html",
+        {
+            "survey": survey,
+            "is_sso_user": is_sso_user,
+            "is_org_member": is_org_member,
+        },
+    )
+
+
+def _apply_pending_publish_settings(survey: Survey, pending: dict) -> None:
+    """
+    Helper function to apply pending publish settings to a survey.
+    Used by survey_encryption_setup after encryption is configured.
+    """
+    from django.utils.dateparse import parse_datetime
+
+    # Set status to PUBLISHED (this is a publish action)
+    survey.status = Survey.Status.PUBLISHED
+    survey.visibility = pending.get("visibility", survey.visibility)
+    start_at_str = pending.get("start_at")
+    end_at_str = pending.get("end_at")
+    survey.start_at = parse_datetime(start_at_str) if start_at_str else None
+    survey.end_at = parse_datetime(end_at_str) if end_at_str else None
+    survey.max_responses = pending.get("max_responses")
+    survey.captcha_required = pending.get("captcha_required", False)
+    survey.no_patient_data_ack = pending.get("no_patient_data_ack", False)
+
+    # Set published_at and start_at if first publish
+    if survey.status == Survey.Status.PUBLISHED and not survey.published_at:
+        survey.published_at = timezone.now()
+        # If start_at not provided, set it to now
+        if not survey.start_at:
+            survey.start_at = timezone.now()
+
+    # Generate unlisted key if needed
+    if survey.visibility == Survey.Visibility.UNLISTED and not survey.unlisted_key:
+        survey.unlisted_key = secrets.token_urlsafe(24)
+
+    survey.save()
 
 
 @login_required
@@ -1989,7 +2695,20 @@ def survey_take(request: HttpRequest, slug: str) -> HttpResponse:
     """
     survey = get_object_or_404(Survey, slug=slug)
     if not survey.is_live():
-        raise Http404()
+        # Determine specific reason for being closed
+        from django.utils import timezone
+
+        now = timezone.now()
+        if survey.status != Survey.Status.PUBLISHED:
+            return redirect("surveys:closed", slug=slug)
+        elif survey.start_at and survey.start_at > now:
+            return redirect(f"/surveys/{slug}/closed/?reason=not_started")
+        elif survey.end_at and now > survey.end_at:
+            return redirect(f"/surveys/{slug}/closed/?reason=ended")
+        elif survey.max_responses and hasattr(survey, "responses"):
+            if survey.responses.count() >= survey.max_responses:
+                return redirect(f"/surveys/{slug}/closed/?reason=max_responses")
+        return redirect("surveys:closed", slug=slug)
     if survey.visibility == Survey.Visibility.UNLISTED:
         raise Http404()
     if survey.visibility == Survey.Visibility.TOKEN:
@@ -2025,6 +2744,24 @@ def survey_take_unlisted(request: HttpRequest, slug: str, key: str) -> HttpRespo
         or survey.visibility != Survey.Visibility.UNLISTED
         or survey.unlisted_key != key
     ):
+        # Determine specific reason if survey exists but is closed
+        if (
+            survey.visibility == Survey.Visibility.UNLISTED
+            and survey.unlisted_key == key
+        ):
+            if not survey.is_live():
+                from django.utils import timezone
+
+                now = timezone.now()
+                if survey.status != Survey.Status.PUBLISHED:
+                    return redirect("surveys:closed", slug=slug)
+                elif survey.start_at and survey.start_at > now:
+                    return redirect(f"/surveys/{slug}/closed/?reason=not_started")
+                elif survey.end_at and now > survey.end_at:
+                    return redirect(f"/surveys/{slug}/closed/?reason=ended")
+                elif survey.max_responses and hasattr(survey, "responses"):
+                    if survey.responses.count() >= survey.max_responses:
+                        return redirect(f"/surveys/{slug}/closed/?reason=max_responses")
         raise Http404()
     if (
         request.method == "POST"
@@ -2042,11 +2779,28 @@ def survey_take_unlisted(request: HttpRequest, slug: str, key: str) -> HttpRespo
 def survey_take_token(request: HttpRequest, slug: str, token: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
     if not survey.is_live() or survey.visibility != Survey.Visibility.TOKEN:
+        if survey.visibility == Survey.Visibility.TOKEN and not survey.is_live():
+            # Survey exists and has correct visibility but is closed
+            from django.utils import timezone
+
+            now = timezone.now()
+            if survey.status != Survey.Status.PUBLISHED:
+                return redirect("surveys:closed", slug=slug)
+            elif survey.start_at and survey.start_at > now:
+                return redirect(f"/surveys/{slug}/closed/?reason=not_started")
+            elif survey.end_at and now > survey.end_at:
+                return redirect(f"/surveys/{slug}/closed/?reason=ended")
+            elif survey.max_responses and hasattr(survey, "responses"):
+                if survey.responses.count() >= survey.max_responses:
+                    return redirect(f"/surveys/{slug}/closed/?reason=max_responses")
         raise Http404()
     tok = get_object_or_404(SurveyAccessToken, survey=survey, token=token)
     if not tok.is_valid():
-        messages.error(request, "This invite link has expired or already been used.")
-        raise Http404()
+        # Token expired or already used - redirect to closed page
+        if tok.used_at:
+            return redirect(f"/surveys/{slug}/closed/?reason=token_used")
+        else:
+            return redirect(f"/surveys/{slug}/closed/?reason=token_expired")
     if (
         request.method == "POST"
         and not request.user.is_authenticated
@@ -2061,6 +2815,14 @@ def survey_take_token(request: HttpRequest, slug: str, token: str) -> HttpRespon
 def _handle_participant_submission(
     request: HttpRequest, survey: Survey, token_obj: SurveyAccessToken | None
 ) -> HttpResponse:
+    # Block survey owner from taking their own survey
+    if request.user.is_authenticated and survey.owner_id == request.user.id:
+        messages.info(
+            request,
+            "You cannot submit responses to your own survey. Use Preview to test the survey.",
+        )
+        return redirect("surveys:dashboard", slug=survey.slug)
+
     # Disallow collecting patient data on non-authenticated visibilities unless explicitly acknowledged at publish.
     collects_patient = _survey_collects_patient_data(survey)
     if (
@@ -2077,8 +2839,7 @@ def _handle_participant_submission(
     if request.method == "POST":
         # Prevent duplicate submission for tokenized link
         if token_obj and SurveyResponse.objects.filter(access_token=token_obj).exists():
-            messages.error(request, "This invite link was already used.")
-            raise Http404()
+            return redirect(f"/surveys/{survey.slug}/closed/?reason=token_used")
 
         answers = {}
         for q in survey.questions.all():
@@ -2143,9 +2904,9 @@ def _handle_participant_submission(
                 token_obj.used_by = request.user
             token_obj.save(update_fields=["used_at", "used_by"])
 
-    messages.success(request, "Thank you for your response.")
-    # Redirect to thank-you page
-    return redirect("surveys:thank_you", slug=survey.slug)
+        messages.success(request, "Thank you for your response.")
+        # Redirect to thank-you page
+        return redirect("surveys:thank_you", slug=survey.slug)
 
     # GET: render using existing detail template
     _prepare_question_rendering(survey)
@@ -2177,8 +2938,23 @@ def _handle_participant_submission(
         "professional_defs": PROFESSIONAL_FIELD_DEFS,
         "professional_ods": professional_ods,
         "professional_field_datasets": PROFESSIONAL_FIELD_TO_DATASET,
+        "is_preview": False,  # Flag to indicate this is public submission
     }
     return render(request, "surveys/detail.html", ctx)
+
+
+@require_http_methods(["GET"])
+def survey_closed(request: HttpRequest, slug: str) -> HttpResponse:
+    """Landing page for surveys that are closed, ended, or at capacity.
+
+    Provides user-friendly messaging instead of 404 errors.
+    Accepts optional 'reason' query parameter to customize the message.
+    """
+    survey = Survey.objects.filter(slug=slug).first()
+    reason = request.GET.get("reason", "closed")
+    return render(
+        request, "surveys/survey_closed.html", {"survey": survey, "reason": reason}
+    )
 
 
 @require_http_methods(["GET"])
@@ -2189,7 +2965,22 @@ def survey_thank_you(request: HttpRequest, slug: str) -> HttpResponse:
     """
     survey = Survey.objects.filter(slug=slug).first()
     # Render generic thank you even if survey missing to avoid information leakage
-    return render(request, "surveys/thank_you.html", {"survey": survey})
+    return render(
+        request, "surveys/thank_you.html", {"survey": survey, "is_preview": False}
+    )
+
+
+@login_required
+@require_http_methods(["GET"])
+def survey_preview_thank_you(request: HttpRequest, slug: str) -> HttpResponse:
+    """Thank you page for preview mode - no data is saved."""
+    survey = get_object_or_404(Survey, slug=slug)
+    require_can_view(request.user, survey)
+    return render(
+        request,
+        "surveys/preview_thank_you.html",
+        {"survey": survey, "is_preview": True},
+    )
 
 
 @login_required
@@ -2284,7 +3075,7 @@ from the Groups UI and bulk upload. Collections remain as backend entities only.
 @login_required
 def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
     survey = get_object_or_404(Survey, slug=slug)
-    require_can_view(request.user, survey)
+    require_can_edit(request.user, survey)
     can_edit = can_edit_survey(request.user, survey)
     groups_qs = survey.question_groups.annotate(
         q_count=models.Count(
@@ -2651,9 +3442,9 @@ def org_users(request: HttpRequest, org_id: int) -> HttpResponse:
 def survey_users(request: HttpRequest, slug: str) -> HttpResponse:
     User = get_user_model()
     survey = get_object_or_404(Survey, slug=slug)
-    # Creator, org admin, or owner can manage; viewers can only view
+    # Only users who can manage survey users should access this view
     can_manage = can_manage_survey_users(request.user, survey)
-    if not can_manage and not can_view_survey(request.user, survey):
+    if not can_manage:
         raise Http404
 
     if request.method == "POST":
@@ -2956,6 +3747,16 @@ def get_survey_key_from_session(request: HttpRequest, survey_slug: str) -> bytes
             recovery_phrase = creds.get("recovery_phrase")
             if recovery_phrase:
                 return survey.unlock_with_recovery(recovery_phrase)
+        elif unlock_method == "oidc":
+            oidc_provider = creds.get("oidc_provider")
+            oidc_subject = creds.get("oidc_subject")
+            if oidc_provider and oidc_subject:
+                return survey.unlock_with_oidc(request.user)
+        elif unlock_method == "organization_recovery":
+            organization_id = creds.get("organization_id")
+            if organization_id:
+                org = Organization.objects.get(id=organization_id)
+                return survey.unlock_with_org_key(org)
         elif unlock_method == "legacy":
             legacy_key_b64 = creds.get("legacy_key")
             if legacy_key_b64:
@@ -3195,6 +3996,144 @@ def survey_unlock(request: HttpRequest, slug: str) -> HttpResponse:
         ),
     }
     return render(request, "surveys/unlock.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def organization_key_recovery(request: HttpRequest, slug: str) -> HttpResponse:
+    """
+    Organization key recovery view.
+
+    Allows organization owners and admins to unlock surveys created by their members
+    using the organization master key (Option 1: Key Escrow).
+
+    This is for administrative recovery scenarios only and all access is audited.
+    """
+    survey = get_object_or_404(Survey, slug=slug)
+
+    # Check if survey belongs to an organization
+    if not survey.organization:
+        messages.error(request, "This survey does not belong to an organization.")
+        return redirect("surveys:dashboard", slug=slug)
+
+    # Check if survey has organization encryption
+    if not survey.has_org_encryption():
+        messages.error(
+            request, "This survey does not have organization-level encryption enabled."
+        )
+        return redirect("surveys:dashboard", slug=slug)
+
+    # Check if user is owner or admin of the organization
+    org = survey.organization
+    is_org_owner = org.owner == request.user
+    is_org_admin = OrganizationMembership.objects.filter(
+        organization=org, user=request.user, role=OrganizationMembership.Role.ADMIN
+    ).exists()
+
+    if not (is_org_owner or is_org_admin):
+        messages.error(
+            request,
+            "Only organization owners and admins can perform key recovery.",
+        )
+        return redirect("surveys:dashboard", slug=slug)
+
+    # Don't allow recovery if user is the survey owner (they should use their own unlock methods)
+    if survey.owner == request.user:
+        messages.info(
+            request,
+            "You are the owner of this survey. Please use the regular unlock page instead.",
+        )
+        return redirect("surveys:unlock", slug=slug)
+
+    if request.method == "POST":
+        # Confirm the recovery action - requires EXACT "recover" (case-sensitive for security)
+        confirm = request.POST.get("confirm", "").strip()
+        if confirm != "recover":
+            messages.error(
+                request,
+                'Please type "recover" to confirm this administrative key recovery action.',
+            )
+            # Re-render the page with the error message
+            context = {
+                "survey": survey,
+                "organization": org,
+                "is_org_owner": is_org_owner,
+                "is_org_admin": is_org_admin,
+                "survey_owner": survey.owner,
+            }
+            return render(request, "surveys/organization_key_recovery.html", context)
+
+        # Attempt to unlock with organization key
+        kek = survey.unlock_with_org_key(org)
+
+        if kek:
+            # Create audit log entry for key recovery
+            AuditLog.objects.create(
+                actor=request.user,
+                scope=AuditLog.Scope.SURVEY,
+                action=AuditLog.Action.KEY_RECOVERY,
+                survey=survey,
+                organization=org,
+                target_user=survey.owner,
+                metadata={
+                    "recovery_method": "organization_master_key",
+                    "survey_owner": survey.owner.username,
+                    "org_role": "owner" if is_org_owner else "admin",
+                },
+            )
+
+            # Store organization key recovery credentials in session
+            import base64
+
+            from .utils import encrypt_sensitive
+
+            session_key = request.session.session_key or request.session.create()
+
+            # Store organization ID for re-derivation (don't store the master key itself)
+            encrypted_creds = encrypt_sensitive(
+                session_key.encode("utf-8"),
+                {
+                    "organization_id": org.id,
+                    "survey_slug": slug,
+                    "recovery_type": "organization",
+                },
+            )
+            request.session["unlock_credentials"] = base64.b64encode(
+                encrypted_creds
+            ).decode("ascii")
+            request.session["unlock_method"] = "organization_recovery"
+            request.session["unlock_verified_at"] = timezone.now().isoformat()
+            request.session["unlock_survey_slug"] = slug
+
+            logger.warning(
+                f"Organization key recovery performed by {request.user.username} "
+                f"for survey {slug} owned by {survey.owner.username} "
+                f"(organization: {org.name})"
+            )
+
+            messages.success(
+                request,
+                f"Survey unlocked using organization key recovery. This action has been logged. "
+                f"Survey owner: {survey.owner.username}",
+            )
+            return redirect("surveys:dashboard", slug=slug)
+        else:
+            logger.error(
+                f"Organization key recovery failed for survey {slug} by {request.user.username}"
+            )
+            messages.error(
+                request,
+                "Failed to unlock survey with organization key. Please contact technical support.",
+            )
+
+    context = {
+        "survey": survey,
+        "organization": org,
+        "is_org_owner": is_org_owner,
+        "is_org_admin": is_org_admin,
+        "survey_owner": survey.owner,
+    }
+    return render(request, "surveys/organization_key_recovery.html", context)
 
 
 @login_required

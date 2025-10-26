@@ -17,25 +17,25 @@ The dashboard shows badges for Status, Visibility, Window, and Total responses, 
 
 All participant pages are server-rendered (SSR). The exact URL depends on the visibility you choose:
 
-1. Authenticated
+### Authenticated
 
 - URL: `/surveys/<slug>/take/`
 - Requires a logged-in account. Enforced by session auth + CSRF.
 - Recommended for surveys that include patient-identifiable data (see below).
 
-1. Public
+### Public
 
 - URL: `/surveys/<slug>/take/`
 - Anyone can view and submit without an account. You must confirm “No patient-identifiable data.”
 - Recommended: enable CAPTCHA and rate limiting (defaults are already on).
 
-1. Unlisted (secret link)
+### Unlisted (secret link)
 
 - URL: `/surveys/<slug>/take/unlisted/<unlisted_key>/`
 - Link is not discoverable in navigation or the API; only users with the key can access.
 - Anyone with the link can submit without an account. You must confirm “No patient-identifiable data.”
 
-1. Invite token (one-time codes)
+### Invite token (one-time codes)
 
 - Flow:
   - Generate tokens from Dashboard → Publish settings → Manage invite tokens

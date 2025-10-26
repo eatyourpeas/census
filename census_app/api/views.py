@@ -114,7 +114,9 @@ class SurveyViewSet(viewsets.ModelViewSet):
             organization__memberships__user=user,
             organization__memberships__role=OrganizationMembership.Role.ADMIN,
         )
-        return (owned | org_admin).distinct()
+        # Survey membership: surveys where user has explicit membership
+        survey_member = Survey.objects.filter(memberships__user=user)
+        return (owned | org_admin | survey_member).distinct()
 
     def get_object(self):
         """Fetch object without scoping to queryset, then run object permissions.
@@ -333,6 +335,18 @@ class SurveyViewSet(viewsets.ModelViewSet):
             )
 
         prev_status = survey.status
+        is_first_publish = (
+            prev_status != Survey.Status.PUBLISHED and status == Survey.Status.PUBLISHED
+        )
+
+        # Enforce encryption requirement for surveys collecting patient data
+        # API users must set up encryption through the web interface before publishing
+        if collects_patient and is_first_publish and not survey.has_any_encryption():
+            raise serializers.ValidationError(
+                {
+                    "encryption": "This survey collects patient data and requires encryption to be set up before publishing. Please use the web interface to configure encryption, then publish via API.",
+                }
+            )
         survey.status = status
         survey.visibility = visibility
         survey.start_at = start_at
@@ -767,13 +781,13 @@ def list_datasets(request):
 
 
 @api_view(["GET"])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny])
 def get_dataset(request, dataset_key):
     """
     Fetch options for a specific dataset from external API.
 
     Returns cached data when available to minimize external API calls.
-    Requires authentication to prevent abuse.
+    Allows anonymous access to support public survey submissions.
     """
     try:
         options = fetch_dataset(dataset_key)

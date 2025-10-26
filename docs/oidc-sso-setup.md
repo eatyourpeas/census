@@ -5,7 +5,7 @@ This guide provides step-by-step instructions for setting up Single Sign-On (SSO
 ## Overview
 
 Census supports healthcare SSO through:
-- **Google OAuth**: For healthcare workers with personal Google accounts
+- **Google OAuth**: For clinicians with personal Google accounts
 - **Microsoft Azure AD**: For hospital staff with organizational Microsoft 365 accounts
 - **Multi-provider support**: Users can authenticate via either method
 
@@ -85,7 +85,7 @@ From the **Overview** tab, copy:
 
 ### Step 4: Configure External User Access (Optional)
 
-For guest users (external healthcare workers):
+For guest users (external clinicians):
 
 1. Go to **Azure AD** > **External Identities** > **External collaboration settings**
 2. Under **Guest user access**, ensure appropriate permissions
@@ -118,7 +118,7 @@ For guest users (external healthcare workers):
    - **Authorized domains**: Add your Census domain
    - **Developer contact**: Your IT contact email
 4. **Scopes**: Add `openid`, `email`, `profile`
-5. **Test users**: Add healthcare worker emails for testing
+5. **Test users**: Add clinician emails for testing
 
 ### Step 4: Create OAuth Credentials
 
@@ -359,7 +359,7 @@ OIDC_RP_CLIENT_ID_AZURE=a1b2c3d4-e5f6-7890-abcd-ef1234567890
 OIDC_RP_CLIENT_SECRET_AZURE=your-secret-from-azure
 OIDC_OP_TENANT_ID_AZURE=hospital-tenant-id
 
-# Google OAuth for external healthcare workers
+# Google OAuth for external clinicians
 OIDC_RP_CLIENT_ID_GOOGLE=123456789-abcdef.apps.googleusercontent.com
 OIDC_RP_CLIENT_SECRET_GOOGLE=your-secret-from-google
 

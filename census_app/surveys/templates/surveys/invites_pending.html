@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Pending invites" %} - {{ survey.name }}{% endblock %}
+{% block content %}
+<div class="prose">
+  {% trans "Surveys" as bc_surveys %}
+  {% trans "Survey Dashboard" as bc_survey_dashboard %}
+  {% include 'components/breadcrumbs.html' with crumb1_label=bc_surveys crumb1_href="/surveys/" crumb2_label=bc_survey_dashboard crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" %}
+  <h2>{{ survey.name }} — {% trans "Pending invites" %}</h2>
+</div>
+
+<div class="mt-4">
+  <p class="mb-3">{% blocktrans %}The list below shows invited email addresses that have not yet submitted a response.{% endblocktrans %}</p>
+  {% if invites %}
+    <div class="overflow-x-auto">
+      <table class="table w-full">
+        <thead>
+          <tr>
+            <th>{% trans "Invited at" %}</th>
+            <th>{% trans "Email / Note" %}</th>
+            <th>{% trans "Token" %}</th>
+            <th>{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in invites %}
+          <tr>
+            <td>{{ item.token.created_at }}</td>
+            <td>{{ item.email }}</td>
+            <td class="font-mono text-xs">{{ item.token.token }}</td>
+            <td>
+              <form method="post" action="{% url 'surveys:invite_resend' slug=survey.slug token_id=item.token.id %}" class="inline" onsubmit="return confirm('{% trans "Resend invitation to" %} {{ item.email }}?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-xs btn-outline btn-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  {% trans "Resend" %}
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="opacity-60">{% trans "No pending invites found." %}</div>
+  {% endif %}
+
+  <p class="mt-4"><a class="btn btn-primary hover:bg-primary-focus transition-colors" href="{% url 'surveys:dashboard' slug=survey.slug %}">{% trans "Back to dashboard" %}</a></p>
+</div>
+{% endblock %}

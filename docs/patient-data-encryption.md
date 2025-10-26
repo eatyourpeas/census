@@ -4,7 +4,7 @@ Census implements a security-first approach to handling sensitive patient data, 
 
 ## 🎯 Current Status (October 2025)
 
-**✅ PRODUCTION READY** for healthcare workers and organizations:
+**✅ PRODUCTION READY** for clinicians and organizations:
 
 - **Option 2 (Dual Encryption)**: Password + BIP39 recovery phrase ✅
 - **OIDC Integration**: SSO with automatic survey unlocking ✅
@@ -42,7 +42,7 @@ Census implements a security-first approach to handling sensitive patient data, 
 
 ## Current Implementation
 
-Census implements a **production-ready dual-encryption system** (Option 2 + Option 4) for healthcare workers and organizations:
+Census implements a **production-ready dual-encryption system** (Option 2 + Option 4) for clinicians and organizations:
 
 ### Overview
 
@@ -157,7 +157,7 @@ if survey_key:
 ✅ **Automatic Timeout**: 30-minute session expiration for unlocked surveys
 ✅ **Recovery Phrase**: BIP39-compatible 12-word backup phrases
 ✅ **Production Ready**: 46/46 unit tests + 7/7 integration tests passing
-✅ **Healthcare Compliant**: Designed for healthcare worker workflows
+✅ **Healthcare Compliant**: Designed for clinician workflows
 
 ### Session Security Model
 
@@ -2085,7 +2085,7 @@ def get_encryption_strategy(user: User, survey: Survey) -> str:
 - Backward compatibility with existing dual encryption ✅
 - Comprehensive test coverage (8/8 OIDC tests passing) ✅
 
-**Current Status**: **PRODUCTION READY** for healthcare workers and organizations
+**Current Status**: **PRODUCTION READY** for clinicians and organizations
 
 ### 🚀 Phase 3: Organization Key Management (FUTURE)
 
@@ -2284,7 +2284,7 @@ docker compose exec web python manage.py test tests.test_encryption_integration
 ```
 
 **End-to-End Validation:**
-1. **Complete Password Unlock Workflow** - Healthcare workers unlock with passwords ✅
+1. **Complete Password Unlock Workflow** - Clinicians unlock with passwords ✅
 2. **Recovery Phrase Workflow** - BIP39 backup method works end-to-end ✅
 3. **Session Timeout Security** - 30-minute timeout enforced ✅
 4. **Encrypted Data Export** - CSV export after unlock ✅
@@ -2295,7 +2295,7 @@ docker compose exec web python manage.py test tests.test_encryption_integration
 ### Test Implementation Notes
 
 - **Real Encryption Used**: Tests use actual `survey.set_dual_encryption()` methods, not mocks
-- **Production Workflow**: Integration tests validate the complete healthcare worker workflow
+- **Production Workflow**: Integration tests validate the complete clinician workflow
 - **Security Validation**: Forward secrecy, session isolation, and timeout behavior verified
 - **Healthcare Ready**: Tests designed for healthcare deployment scenarios
 

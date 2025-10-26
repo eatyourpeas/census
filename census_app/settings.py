@@ -210,6 +210,7 @@ CSP_SCRIPT_SRC = (
     # hCaptcha widget script
     "https://js.hcaptcha.com",
 )
+CSP_INCLUDE_NONCE_IN = ["script-src"]
 CSP_IMG_SRC = ("'self'", "data:")
 CSP_CONNECT_SRC = ("'self'", "https://hcaptcha.com", "https://*.hcaptcha.com")
 CSPO_FRAME_SRC = ("'self'", "https://hcaptcha.com", "https://*.hcaptcha.com")
@@ -225,6 +226,8 @@ AXES_LOCKOUT_PARAMETERS = ["username"]
 # Disable axes for OIDC callbacks to avoid interference
 AXES_NEVER_LOCKOUT_WHITELIST = True
 AXES_IP_WHITELIST = ["127.0.0.1", "localhost"]
+# Use custom lockout template
+AXES_LOCKOUT_TEMPLATE = "403_lockout.html"
 
 # Ratelimit example (used in views)
 RATELIMIT_ENABLE = True
@@ -368,6 +371,10 @@ OIDC_RP_SIGN_ALGO = env("OIDC_RP_SIGN_ALGO")
 OIDC_OP_JWKS_ENDPOINT_GOOGLE = env("OIDC_OP_JWKS_ENDPOINT_GOOGLE")
 OIDC_OP_JWKS_ENDPOINT_AZURE = env("OIDC_OP_JWKS_ENDPOINT_AZURE")
 
+# hCaptcha Configuration
+HCAPTCHA_SITEKEY = env("HCAPTCHA_SITEKEY")
+HCAPTCHA_SECRET = env("HCAPTCHA_SECRET")
+
 # Dynamic base URL for development vs production
 if DEBUG:
     # Local development with Docker
@@ -390,8 +397,8 @@ OIDC_PROVIDERS = {
     "azure": {
         "OIDC_RP_CLIENT_ID": OIDC_RP_CLIENT_ID_AZURE,
         "OIDC_RP_CLIENT_SECRET": OIDC_RP_CLIENT_SECRET_AZURE,
-        "OIDC_OP_AUTHORIZATION_ENDPOINT": f"https://login.microsoftonline.com/{OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/authorize",
-        "OIDC_OP_TOKEN_ENDPOINT": f"https://login.microsoftonline.com/{OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/token",
+        "OIDC_OP_AUTHORIZATION_ENDPOINT": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+        "OIDC_OP_TOKEN_ENDPOINT": "https://login.microsoftonline.com/common/oauth2/v2.0/token",
         "OIDC_OP_USER_ENDPOINT": "https://graph.microsoft.com/oidc/userinfo",
         "OIDC_OP_JWKS_ENDPOINT": OIDC_OP_JWKS_ENDPOINT_AZURE,
         "OIDC_RP_SCOPES": "openid email profile",
@@ -419,9 +426,12 @@ OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 15 * 60  # 15 minutes
 # Integration with existing encryption system
 OIDC_CREATE_USER = True  # Allow creating new users via OIDC
 
+# Use our custom authentication backend for OIDC
+OIDC_AUTHENTICATION_BACKEND = "census_app.core.auth.CustomOIDCAuthenticationBackend"
+
 # Custom user creation and linking
 # OIDC_USERNAME_ALGO = 'census_app.core.auth.generate_username'  # Temporarily disable custom username algo
 
-# Login/logout redirect URLs - use surveys page for authenticated healthcare workers
+# Login/logout redirect URLs - use surveys page for authenticated clinicians
 OIDC_LOGIN_REDIRECT_URL = "/surveys/"  # Redirect to surveys after OIDC login
 OIDC_LOGOUT_REDIRECT_URL = "/"  # Where to go after logout

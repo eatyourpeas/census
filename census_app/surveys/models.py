@@ -16,6 +16,15 @@ class Organization(models.Model):
     owner = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="organizations"
     )
+    # Organization master key for encrypting member surveys (Option 1: Key Escrow)
+    # In production, this should be encrypted with AWS KMS or Azure Key Vault
+    # For now, storing as plaintext for development/testing
+    encrypted_master_key = models.BinaryField(
+        blank=True,
+        null=True,
+        editable=False,
+        help_text="Organization master key for administrative recovery of member surveys",
+    )
 
     def __str__(self) -> str:  # pragma: no cover
         return self.name
@@ -125,6 +134,23 @@ class Survey(models.Model):
         editable=False,
         help_text="Survey encryption key encrypted with OIDC-derived key for automatic unlock",
     )
+    # Option 1: Organization-level key escrow
+    encrypted_kek_org = models.BinaryField(
+        blank=True,
+        null=True,
+        editable=False,
+        help_text="Survey encryption key encrypted with organization master key for administrative recovery",
+    )
+    recovery_threshold = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Number of recovery admins required for Shamir's Secret Sharing (optional)",
+    )
+    recovery_shares_count = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Total number of recovery shares distributed (optional, for Shamir's Secret Sharing)",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def is_live(self) -> bool:
@@ -142,6 +168,20 @@ class Survey(models.Model):
             if count >= self.max_responses:
                 return False
         return status_ok and time_ok
+
+    def days_remaining(self) -> int | None:
+        """
+        Calculate days remaining until survey end date.
+
+        Returns:
+            Number of days remaining (can be negative if expired),
+            or None if no end date is set.
+        """
+        if self.end_at is None:
+            return None
+        now = timezone.now()
+        delta = self.end_at - now
+        return delta.days
 
     def __str__(self) -> str:  # pragma: no cover
         return self.name
@@ -253,6 +293,25 @@ class Survey(models.Model):
         """Check if survey uses Option 2 dual-path encryption."""
         return bool(self.encrypted_kek_password and self.encrypted_kek_recovery)
 
+    def has_any_encryption(self) -> bool:
+        """
+        Check if survey has any form of encryption enabled.
+
+        Returns:
+            True if the survey has at least one encryption method configured
+            (password, recovery phrase, OIDC, or organization)
+
+        This is used to determine if encryption setup is needed when publishing.
+        A survey with any encryption method is considered "encrypted" and won't
+        require the encryption setup flow.
+        """
+        return bool(
+            self.encrypted_kek_password
+            or self.encrypted_kek_recovery
+            or self.encrypted_kek_oidc
+            or self.encrypted_kek_org
+        )
+
     def set_oidc_encryption(self, kek: bytes, user) -> None:
         """
         Set up OIDC encryption for automatic survey unlocking.
@@ -345,6 +404,73 @@ class Survey(models.Model):
             and hasattr(user, "oidc")
             and user.is_authenticated
         )
+
+    def set_org_encryption(self, kek: bytes, organization: Organization) -> None:
+        """
+        Set up Option 1 organization-level key escrow.
+
+        Args:
+            kek: 32-byte survey encryption key (same KEK used for password/OIDC encryption)
+            organization: Organization whose master key will encrypt the KEK
+
+        This encrypts the KEK with the organization's master key,
+        enabling organization owners/admins to recover surveys from their members.
+
+        In production, organization.encrypted_master_key should be encrypted with
+        AWS KMS or Azure Key Vault. For development/testing, it can be plaintext.
+        """
+        from .utils import encrypt_kek_with_org_key
+
+        if not organization.encrypted_master_key:
+            raise ValueError(
+                f"Organization {organization.name} does not have a master key configured"
+            )
+
+        # Encrypt KEK with organization master key
+        self.encrypted_kek_org = encrypt_kek_with_org_key(
+            kek, organization.encrypted_master_key
+        )
+
+        self.save(update_fields=["encrypted_kek_org"])
+
+    def has_org_encryption(self) -> bool:
+        """Check if survey has organization-level encryption enabled."""
+        return bool(self.encrypted_kek_org)
+
+    def unlock_with_org_key(self, organization: Organization) -> bytes | None:
+        """
+        Unlock survey using organization master key (administrative recovery).
+
+        Args:
+            organization: Organization attempting to unlock the survey
+
+        Returns:
+            32-byte KEK if successful, None if decryption fails
+
+        This should only be used by organization owners/admins for legitimate
+        recovery scenarios. All calls should be logged for audit compliance.
+        """
+        from cryptography.exceptions import InvalidTag
+
+        from .utils import decrypt_kek_with_org_key
+
+        if not self.encrypted_kek_org:
+            return None
+
+        if not organization.encrypted_master_key:
+            return None
+
+        # Verify survey belongs to this organization
+        if self.organization != organization:
+            return None
+
+        try:
+            kek = decrypt_kek_with_org_key(
+                self.encrypted_kek_org, organization.encrypted_master_key
+            )
+            return kek
+        except (InvalidTag, Exception):
+            return None
 
 
 class SurveyQuestion(models.Model):
@@ -490,6 +616,7 @@ class SurveyQuestionCondition(models.Model):
 class SurveyMembership(models.Model):
     class Role(models.TextChoices):
         CREATOR = "creator", "Creator"
+        EDITOR = "editor", "Editor"
         VIEWER = "viewer", "Viewer"
 
     survey = models.ForeignKey(
@@ -597,6 +724,7 @@ class AuditLog(models.Model):
         ADD = "add", "Add"
         REMOVE = "remove", "Remove"
         UPDATE = "update", "Update"
+        KEY_RECOVERY = "key_recovery", "Key Recovery"
 
     actor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="audit_logs")
     scope = models.CharField(max_length=20, choices=Scope.choices)

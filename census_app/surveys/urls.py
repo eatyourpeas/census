@@ -27,6 +27,11 @@ urlpatterns = [
         name="groups_create_from_template",
     ),
     path("<slug:slug>/preview/", views.survey_preview, name="preview"),
+    path(
+        "<slug:slug>/preview/thank-you/",
+        views.survey_preview_thank_you,
+        name="preview_thank_you",
+    ),
     # Participant routes
     path("<slug:slug>/take/", views.survey_take, name="take"),
     path(
@@ -40,9 +45,15 @@ urlpatterns = [
         name="take_token",
     ),
     path("<slug:slug>/thank-you/", views.survey_thank_you, name="thank_you"),
+    path("<slug:slug>/closed/", views.survey_closed, name="closed"),
     path("<slug:slug>/", views.survey_detail, name="detail"),
     path("<slug:slug>/dashboard/", views.survey_dashboard, name="dashboard"),
     path("<slug:slug>/delete/", views.survey_delete, name="delete"),
+    path(
+        "<slug:slug>/publish/",
+        views.survey_publish_settings,
+        name="publish_settings",
+    ),
     path(
         "<slug:slug>/dashboard/publish",
         views.survey_publish_update,
@@ -59,6 +70,16 @@ urlpatterns = [
         name="encryption_display",
     ),
     path("<slug:slug>/tokens/", views.survey_tokens, name="tokens"),
+    path(
+        "<slug:slug>/invites/pending/",
+        views.survey_invites_pending,
+        name="invites_pending",
+    ),
+    path(
+        "<slug:slug>/invites/<int:token_id>/resend/",
+        views.survey_invite_resend,
+        name="invite_resend",
+    ),
     path(
         "<slug:slug>/tokens/export.csv",
         views.survey_tokens_export_csv,
@@ -87,6 +108,11 @@ urlpatterns = [
         name="survey_group_delete",
     ),
     path("<slug:slug>/unlock/", views.survey_unlock, name="unlock"),
+    path(
+        "<slug:slug>/organization-recovery/",
+        views.organization_key_recovery,
+        name="organization_key_recovery",
+    ),
     path("<slug:slug>/export.csv", views.survey_export_csv, name="export_csv"),
     # Group question management (per-group)
     path(

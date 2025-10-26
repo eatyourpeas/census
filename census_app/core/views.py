@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from django.conf import settings
@@ -23,6 +24,8 @@ from census_app.surveys.models import (
 
 from .forms import SignupForm, UserEmailPreferencesForm, UserLanguagePreferenceForm
 from .models import UserLanguagePreference
+
+logger = logging.getLogger(__name__)
 
 try:
     from .models import SiteBranding, UserEmailPreferences
@@ -155,6 +158,20 @@ def profile(request):
     org = primary_owned_org or (
         first_membership.organization if first_membership else None
     )
+
+    # Check if user has any surveys with encryption enabled
+    has_encryption_setup = Survey.objects.filter(
+        owner=user,
+        encrypted_kek_password__isnull=False,
+        encrypted_kek_recovery__isnull=False,
+    ).exists()
+
+    # Check if user has any surveys with OIDC encryption
+    has_oidc_encryption = Survey.objects.filter(
+        owner=user,
+        encrypted_kek_oidc__isnull=False,
+    ).exists()
+
     stats = {
         "is_superuser": getattr(user, "is_superuser", False),
         "is_staff": getattr(user, "is_staff", False),
@@ -171,8 +188,13 @@ def profile(request):
             user=user, role=SurveyMembership.Role.VIEWER
         ).count(),
         "groups_owned": QuestionGroup.objects.filter(owner=user).count(),
+        "question_groups_owned": QuestionGroup.objects.filter(
+            owner=user
+        ).count(),  # Alias for template clarity
         "responses_submitted": SurveyResponse.objects.filter(submitted_by=user).count(),
         "tokens_created": SurveyAccessToken.objects.filter(created_by=user).count(),
+        "has_encryption_setup": has_encryption_setup,
+        "has_oidc_encryption": has_oidc_encryption,
     }
     # Prepare language preference form
     lang_pref, created = UserLanguagePreference.objects.get_or_create(user=user)
@@ -191,6 +213,7 @@ def profile(request):
             "org": org,
             "language_form": language_form,
             "email_prefs_form": email_prefs_form,
+            "can_safely_delete_account": can_user_safely_delete_own_account(user),
         },
     )
 
@@ -238,6 +261,71 @@ def signup(request):
     else:
         form = SignupForm()
     return render(request, "registration/signup.html", {"form": form})
+
+
+@login_required
+def complete_signup(request):
+    """
+    Complete signup for users who authenticated via OIDC from login page.
+    They're already authenticated but need to choose account type and complete setup.
+    """
+    # Check if user needs signup completion
+    if not request.session.get("needs_signup_completion"):
+        # User already completed signup or came here by mistake
+        return redirect("core:home")
+
+    if request.method == "POST":
+        account_type = request.POST.get("account_type")
+
+        # Mark OIDC signup as completed
+        if hasattr(request.user, "oidc"):
+            request.user.oidc.signup_completed = True
+            request.user.oidc.save()
+            logger.info(
+                f"Marked OIDC signup as completed for user: {request.user.email}"
+            )
+
+        # Send welcome email
+        try:
+            from .email_utils import send_welcome_email
+
+            send_welcome_email(request.user)
+        except Exception as e:
+            logger.error(
+                f"Failed to send welcome email to {request.user.username}: {e}"
+            )
+
+        if account_type == "org":
+            with transaction.atomic():
+                org_name = (
+                    request.POST.get("org_name")
+                    or f"{request.user.username}'s Organisation"
+                )
+                org = Organization.objects.create(name=org_name, owner=request.user)
+                OrganizationMembership.objects.create(
+                    organization=org,
+                    user=request.user,
+                    role=OrganizationMembership.Role.ADMIN,
+                )
+            messages.success(
+                request, _("Organisation created. You are an organisation admin.")
+            )
+            # Clear the signup completion flag
+            request.session.pop("needs_signup_completion", None)
+            return redirect("surveys:org_users", org_id=org.id)
+
+        # Individual account - just clear the flag and redirect home
+        messages.success(request, _("Account setup complete! Welcome to Census."))
+        request.session.pop("needs_signup_completion", None)
+        return redirect("core:home")
+
+    return render(
+        request,
+        "registration/complete_signup.html",
+        {
+            "user": request.user,
+        },
+    )
 
 
 # --- Documentation views ---
@@ -592,3 +680,96 @@ class BrandedPasswordResetView(auth_views.PasswordResetView):
 
 
 ## Removed DirectPasswordResetConfirmView to use Django's standard confirm flow.
+
+
+# Note: User and organization deletion is handled through Django Admin interface
+# by superusers only. Regular users cannot delete accounts for security reasons.
+# This protects against accidental data loss and maintains audit trails.
+
+
+def can_user_safely_delete_own_account(user):
+    """
+    Check if a user can safely delete their own account without affecting others.
+
+    Users can delete their account if:
+    - They are not in any organizations
+    - None of their surveys have collaborators
+    - They are not collaborators on others' surveys
+    """
+    if not user.is_authenticated:
+        return False
+
+    # Check org memberships
+    has_org_memberships = OrganizationMembership.objects.filter(user=user).exists()
+    if has_org_memberships:
+        return False
+
+    # Check if any of their surveys have collaborators
+    user_surveys = Survey.objects.filter(owner=user)
+    for survey in user_surveys:
+        has_collaborators = (
+            SurveyMembership.objects.filter(survey=survey).exclude(user=user).exists()
+        )
+        if has_collaborators:
+            return False
+
+    # Check if they are a collaborator on others' surveys
+    is_collaborator = SurveyMembership.objects.filter(user=user).exists()
+    if is_collaborator:
+        return False
+
+    return True
+
+
+@login_required
+def delete_account(request):
+    """
+    Allow individual users to delete their own account if it's safe to do so.
+    Safe deletion means no impact on other users or shared data.
+    """
+    if request.method != "POST":
+        return redirect("core:profile")
+
+    user = request.user
+
+    # Check if user can safely delete their account
+    if not can_user_safely_delete_own_account(user):
+        messages.error(
+            request,
+            _(
+                "Cannot delete account. You are either part of an organization, "
+                "have surveys with collaborators, or are a collaborator on other surveys. "
+                "Please contact an administrator for assistance."
+            ),
+        )
+        return redirect("core:profile")
+
+    try:
+        with transaction.atomic():
+            # Get count of surveys for confirmation message
+            survey_count = Survey.objects.filter(owner=user).count()
+
+            # Delete user (CASCADE will handle owned surveys and responses)
+            user.delete()
+
+            # Add success message to session
+            messages.success(
+                request,
+                _(
+                    f"Your account and {survey_count} survey(s) have been permanently deleted. "
+                    "Thank you for using Census."
+                ),
+            )
+
+        # Redirect to home page after successful deletion
+        return redirect("/")
+
+    except Exception as e:
+        messages.error(
+            request,
+            _(
+                "An error occurred while deleting your account. Please try again or contact support."
+            ),
+        )
+        logger.error(f"Error deleting user account {user.id}: {e}")
+        return redirect("core:profile")
