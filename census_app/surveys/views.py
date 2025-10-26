@@ -4035,8 +4035,8 @@ def organization_key_recovery(request: HttpRequest, slug: str) -> HttpResponse:
         return redirect("surveys:unlock", slug=slug)
 
     if request.method == "POST":
-        # Confirm the recovery action
-        confirm = request.POST.get("confirm", "").strip().lower()
+        # Confirm the recovery action - requires EXACT "recover" (case-sensitive for security)
+        confirm = request.POST.get("confirm", "").strip()
         if confirm != "recover":
             messages.error(
                 request,
