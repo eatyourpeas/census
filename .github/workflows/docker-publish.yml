@@ -76,7 +76,7 @@ jobs:
           echo "3. Visit: http://localhost:8000" >> deployment-artifacts/README.md
 
       - name: Upload deployment artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v5
         with:
           name: census-deployment-${{ github.ref_name }}
           path: deployment-artifacts/
