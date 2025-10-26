@@ -1,7 +1,7 @@
 """
 Integration tests for encryption workflows.
 
-These tests verify end-to-end encryption functionality for healthcare workers
+These tests verify end-to-end encryption functionality for clinicians
 and organizations, including password and recovery phrase unlock methods.
 """
 

@@ -1,5 +1,5 @@
 """
-Custom OIDC views for healthcare worker authentication.
+Custom OIDC views for clinician authentication.
 
 Provides Google and Azure SSO integration while maintaining
 compatibility with existing encryption and authentication systems.
@@ -62,10 +62,14 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
                 # Set Azure values
                 settings.OIDC_RP_CLIENT_ID = settings.OIDC_RP_CLIENT_ID_AZURE
                 settings.OIDC_RP_CLIENT_SECRET = settings.OIDC_RP_CLIENT_SECRET_AZURE
-                settings.OIDC_OP_TOKEN_ENDPOINT = f"https://login.microsoftonline.com/{settings.OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/token"
-                settings.OIDC_OP_USER_ENDPOINT = "https://graph.microsoft.com/v1.0/me"
+                settings.OIDC_OP_TOKEN_ENDPOINT = (
+                    "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+                )
+                settings.OIDC_OP_USER_ENDPOINT = (
+                    "https://graph.microsoft.com/oidc/userinfo"
+                )
                 settings.OIDC_OP_JWKS_ENDPOINT = settings.OIDC_OP_JWKS_ENDPOINT_AZURE
-                settings.OIDC_RP_SCOPES = "openid email profile User.Read"
+                settings.OIDC_RP_SCOPES = "openid email profile"
 
                 logger.info(
                     f"Set Azure token endpoint: {settings.OIDC_OP_TOKEN_ENDPOINT}"
@@ -100,16 +104,55 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
                 logger.error(f"OIDC parent callback failed with exception: {e}")
                 return redirect("/accounts/login/?error=oidc_callback_failed")
 
-            # Check if this was a signup attempt and provide appropriate messaging
-            if signup_mode and request.user.is_authenticated:
+            # Handle new user vs existing user flow
+            if request.user.is_authenticated:
                 from django.contrib import messages
                 from django.utils.translation import gettext as _
 
                 # Check if this user already existed (set by authentication backend)
                 user_existed = getattr(request.user, "_oidc_user_existed", None)
 
-                if user_existed is True:
+                if user_existed is False:
+                    # New user was created
+                    if signup_mode:
+                        # User came from signup page - they already made account type choice
+                        # Mark signup as completed since they went through the signup page
+                        if hasattr(request.user, "oidc"):
+                            request.user.oidc.signup_completed = True
+                            request.user.oidc.save()
+                            logger.info(
+                                f"Marked OIDC signup as completed for user from signup page: {request.user.email}"
+                            )
+                        # Check sessionStorage via JavaScript (handled in template)
+                        messages.success(
+                            request,
+                            _(
+                                "Account created successfully! Your {} account has been linked."
+                            ).format(provider.title()),
+                        )
+                        logger.info(
+                            f"New user from signup page: {request.user.email} - provider: {provider}"
+                        )
+                    else:
+                        # User came from login page - needs to complete signup
+                        logger.info(
+                            f"New user from login page, redirecting to complete signup: {request.user.email}"
+                        )
+                        request.session["needs_signup_completion"] = True
+                        return redirect("core:complete_signup")
+                elif user_existed is True:
                     # Existing user was found and linked
+                    # Check if OIDC user needs to complete signup
+                    if (
+                        hasattr(request.user, "oidc")
+                        and not request.user.oidc.signup_completed
+                    ):
+                        logger.info(
+                            f"Existing OIDC user has not completed signup, redirecting: {request.user.email}"
+                        )
+                        request.session["needs_signup_completion"] = True
+                        return redirect("core:complete_signup")
+
                     messages.info(
                         request,
                         _(
@@ -119,19 +162,19 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
                     logger.info(
                         f"Added existing user message for {request.user.email} - provider: {provider}"
                     )
-                elif user_existed is False:
-                    # New user was created
-                    messages.success(
-                        request,
-                        _(
-                            "Account created successfully! Your {} account has been linked."
-                        ).format(provider.title()),
-                    )
-                    logger.info(
-                        f"Added new user message for {request.user.email} - provider: {provider}"
-                    )
                 else:
                     # Fallback message if flag is not set
+                    # Check if OIDC user needs to complete signup
+                    if (
+                        hasattr(request.user, "oidc")
+                        and not request.user.oidc.signup_completed
+                    ):
+                        logger.info(
+                            f"OIDC user (fallback case) has not completed signup, redirecting: {request.user.email}"
+                        )
+                        request.session["needs_signup_completion"] = True
+                        return redirect("core:complete_signup")
+
                     messages.info(
                         request,
                         _("Successfully signed in with {}.").format(provider.title()),
@@ -160,7 +203,7 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
 
 class HealthcareOIDCAuthView(OIDCAuthenticationRequestView):
     """
-    Custom OIDC authentication view for healthcare workers.
+    Custom OIDC authentication view for clinicians.
 
     Supports both Google and Azure authentication with provider selection.
     """
@@ -209,13 +252,19 @@ class HealthcareOIDCAuthView(OIDCAuthenticationRequestView):
         # Set the attributes that the parent class reads directly
         self.OIDC_RP_CLIENT_ID = settings.OIDC_RP_CLIENT_ID_AZURE
         self.OIDC_RP_CLIENT_SECRET = settings.OIDC_RP_CLIENT_SECRET_AZURE
-        self.OIDC_OP_AUTH_ENDPOINT = f"https://login.microsoftonline.com/{settings.OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/authorize"
-        self.OIDC_OP_AUTHORIZATION_ENDPOINT = f"https://login.microsoftonline.com/{settings.OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/authorize"
-        self.OIDC_OP_TOKEN_ENDPOINT = f"https://login.microsoftonline.com/{settings.OIDC_OP_TENANT_ID_AZURE}/oauth2/v2.0/token"
+        self.OIDC_OP_AUTH_ENDPOINT = (
+            "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+        )
+        self.OIDC_OP_AUTHORIZATION_ENDPOINT = (
+            "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+        )
+        self.OIDC_OP_TOKEN_ENDPOINT = (
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+        )
         self.OIDC_OP_USER_ENDPOINT = "https://graph.microsoft.com/oidc/userinfo"
         self.OIDC_OP_JWKS_ENDPOINT = settings.OIDC_OP_JWKS_ENDPOINT_AZURE
-        # Azure requires specific scope for email
-        self.OIDC_RP_SCOPES = "openid email profile User.Read"
+        # Use only OIDC protocol scopes - no Graph API permissions needed
+        self.OIDC_RP_SCOPES = "openid email profile"
 
     # Override get_settings to use instance variables
     def get_settings(self, attr, *args):
@@ -240,7 +289,7 @@ class HealthcareOIDCAuthView(OIDCAuthenticationRequestView):
 
 class HealthcareLoginView(View):
     """
-    Healthcare worker login page with multiple authentication options.
+    Clinician login page with multiple authentication options.
 
     Provides:
     - Traditional email/password (preserves existing encryption)

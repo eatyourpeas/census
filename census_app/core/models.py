@@ -167,6 +167,10 @@ class UserOIDC(models.Model):
         default=False,
         help_text="Whether the email address has been verified by the OIDC provider",
     )
+    signup_completed = models.BooleanField(
+        default=False,
+        help_text="Whether the user has completed the signup process (account type selection, etc.)",
+    )
     key_derivation_salt = models.BinaryField(
         help_text="Unique salt for deriving encryption keys from OIDC identity"
     )
