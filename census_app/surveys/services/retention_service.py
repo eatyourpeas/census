@@ -14,6 +14,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
@@ -110,33 +111,53 @@ class RetentionService:
     @classmethod
     def send_deletion_warning(cls, survey: Survey, days_remaining: int) -> None:
         """
-        Send deletion warning email to survey owner.
+        Send email warning about upcoming deletion.
 
         Args:
             survey: Survey approaching deletion
             days_remaining: Days until automatic deletion
         """
-        # TODO: Implement email sending
-        # For now, this is a placeholder
+        from django.template.loader import render_to_string
 
-        _owner_email = survey.owner.email
-        _subject = f"Survey Data Deletion Warning: {days_remaining} days remaining"
+        from census_app.core.email_utils import get_platform_branding, send_branded_email
 
-        _message = f"""
-        Your survey "{survey.title}" will be automatically deleted in {days_remaining} days.
-        
-        Deletion date: {survey.deletion_date}
-        
-        To prevent deletion, you can:
-        1. Extend the retention period (up to 24 months total)
-        2. Export your data before deletion
-        3. Contact your organization owner for a legal hold
-        
-        Once deleted, this data cannot be recovered.
-        """
+        owner_email = survey.owner.email
 
-        # TODO: Send email via Django's email system or Celery task
-        print(f"[PLACEHOLDER] Would send email to {_owner_email}: {_subject}")
+        # Determine urgency level for messaging
+        if days_remaining <= 1:
+            urgency = "URGENT"
+            timeframe = "tomorrow" if days_remaining == 1 else "today"
+        elif days_remaining <= 7:
+            urgency = "Important"
+            timeframe = f"in {days_remaining} days"
+        else:
+            urgency = "Notice"
+            timeframe = f"in {days_remaining} days"
+
+        subject = f"{urgency}: Survey Data Deletion Warning - {days_remaining} days remaining"
+
+        branding = get_platform_branding()
+
+        markdown_content = render_to_string(
+            "emails/data_governance/deletion_warning.md",
+            {
+                "survey": survey,
+                "urgency": urgency,
+                "timeframe": timeframe,
+                "deletion_date": survey.deletion_date.strftime("%B %d, %Y at %I:%M %p"),
+                "closure_date": survey.closed_at.strftime("%B %d, %Y"),
+                "days_remaining": days_remaining,
+                "brand_title": branding["title"],
+                "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
+            },
+        )
+
+        send_branded_email(
+            to_email=owner_email,
+            subject=subject,
+            markdown_content=markdown_content,
+            branding=branding,
+        )
 
     @classmethod
     @transaction.atomic

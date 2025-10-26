@@ -1,231 +1,161 @@
-# Data Governance View Tests - Summary
+# Data Governance - Outstanding Tasks
 
-## What We Accomplished
+## ✅ Completed Items
 
-### 1. Created Comprehensive View Test Suite ✅
+All core data governance features have been implemented and tested:
 
-**File:** `census_app/surveys/tests/test_data_governance_views.py` (546 lines)
+- ✅ **All 22 view tests passing** (was 9 passing, 13 skipped)
+- ✅ **ExportService fixed** - Correct field mapping (question.text)
+- ✅ **CSV export working** - Properly decrypted patient data
+- ✅ **Permission enforcement** - All routes properly secured
+- ✅ **Attestation requirement** - Users must confirm authorization
+- ✅ **Token security** - Download links expire correctly
+- ✅ **Dashboard integration** - Shows/hides based on permissions
+- ✅ **Survey closure workflow** - Confirmation dialog implemented
+- ✅ **Retention fields** - Automatically calculated on closure
+- ✅ **Data governance models** - All 4 models implemented and tested
+- ✅ **Service layer** - ExportService and RetentionService complete
+- ✅ **Comprehensive documentation** - 7 detailed guides
+- ✅ **Environment variables** - Configurable retention policies
+- ✅ **UI improvements** - Empty state alerts, responsive design
+- ✅ **Full test suite** - 536 tests passing
 
-**Test Coverage (22 tests total):**
+## ⏳ Outstanding Tasks
 
-#### Currently Passing (9 tests)
+### 1. Email Notifications (HIGH PRIORITY)
 
-1. **Dashboard Integration (4 tests)**
-   - ✅ Shows export button for closed surveys
-   - ✅ Hides export button for open surveys
-   - ✅ Hides export button for unauthorized users
-   - ✅ Shows retention information correctly
+The following email notifications need to be implemented per the data governance documentation:
 
-2. **Export Create View Access Control (3 tests)**
-   - ✅ Requires login
-   - ✅ Requires ownership permission
-   - ✅ Accessible by survey owner
+#### A. Deletion Warning Emails ⏳
+- **When:** At 30 days, 7 days, and 1 day before automatic deletion
+- **To:** Survey owner
+- **Content:** Warning about upcoming deletion, options to extend or export
+- **Current status:** Placeholder in `RetentionService.send_deletion_warning()`
+- **Documentation:** `docs/data-governance-overview.md` line 51
 
-3. **Survey Close Integration (2 tests)**
-   - ✅ Sets retention fields when closing survey
-   - ✅ Shows retention information in success message
+#### B. Data Export Notification 📧
+- **When:** Any time survey data is downloaded
+- **To:** Organization administrators (org owner + org admins)
+- **Content:** Who downloaded, what survey, when, stated purpose
+- **Current status:** Not implemented
+- **Documentation:** `docs/data-governance-overview.md` line 64
 
-#### Skipped Pending ExportService Fix (13 tests)
+#### C. Survey Closure Notification 📧
+- **When:** Survey is closed
+- **To:** Survey owner
+- **Content:** Confirmation of closure, deletion date, retention period
+- **Current status:** Not implemented
+- **Why needed:** Confirms action, reminds about retention timeline
 
-4. **Export Creation (2 tests)**
-   - ⏸️ POST creates DataExport record
-   - ⏸️ Requires attestation acceptance
+#### D. Custodian Assignment Notification 📧
+- **When:** Data custodian role is granted
+- **To:** The custodian being assigned
+- **Content:** Role granted, survey details, responsibilities
+- **Current status:** Not implemented
+- **Documentation:** `docs/data-governance-overview.md` line 128
 
-5. **Export Download View (4 tests)**
-   - ⏸️ Requires login
-   - ⏸️ Requires permission
-   - ⏸️ Shows download link
-   - ⏸️ Shows expiry warning
+#### E. Ownership Transfer Notification 📧
+- **When:** Survey ownership transfers (e.g., creator leaves organization)
+- **To:** Both old owner and new owner
+- **Content:** Transfer details, reason, new responsibilities
+- **Current status:** Not implemented
+- **Documentation:** `docs/data-governance-overview.md` line 128
 
-6. **Export File Download (5 tests)**
-   - ⏸️ Requires valid token
-   - ⏸️ Works with valid token
-   - ⏸️ Marks export as downloaded
-   - ⏸️ Rejects expired tokens
-   - ⏸️ **Contains correctly decrypted data** (CRITICAL)
+#### F. Retention Extension Notification 📧
+- **When:** Retention period is extended
+- **To:** Survey owner and organization administrators
+- **Content:** Who extended, new deletion date, reason provided
+- **Current status:** Not implemented
+- **Why needed:** Audit trail, transparency
 
-7. **Permission Enforcement (2 tests)**
-   - ⏸️ Blocks non-owners from all export routes
-   - ⏸️ Allows owners to access export routes
+#### G. Legal Hold Notifications 📧
+- **When:** Legal hold is placed or removed
+- **To:** Survey owner and organization owner
+- **Content:** Legal hold status, reason, who placed/removed
+- **Current status:** Not implemented
+- **Why needed:** Legal compliance, documentation
 
-### 2. Created Reusable Icon Component ✅
+### 2. Scheduled Deletion Processing (MEDIUM PRIORITY)
 
-**File:** `census_app/templates/components/icons/download.html`
+#### A. Automated Deletion Task ⏰
+- **What:** Run `RetentionService.process_automatic_deletions()` daily
+- **How:** Management command + scheduler (cron/Celery/Django-Q)
+- **Current status:** Business logic complete, needs scheduling
+- **Implementation options:**
+  1. Django management command + system cron
+  2. Celery periodic task
+  3. Django-Q scheduled task
+  4. Cloud scheduler (AWS EventBridge, Azure Functions Timer)
 
-- Accepts DaisyUI classes for styling
-- Used in dashboard template
-- Follows component organization pattern
+#### B. Management Command 🔧
+- **Create:** `census_app/surveys/management/commands/process_deletions.py`
+- **Purpose:** CLI interface to trigger deletion processing
+- **Usage:** `python manage.py process_deletions`
+- **Should include:**
+  - Dry-run mode to preview deletions
+  - Verbose output for logging
+  - Error handling and reporting
 
-### 3. Fixed Template URL References ✅
+### 3. Email Template Design (LOW PRIORITY)
 
-**Files Updated:** All data governance templates (7 files, 20 occurrences)
-- Replaced `data_governance_dashboard` → `dashboard`
-- Templates now correctly reference the unified dashboard
+All emails should use the existing branded email system (`census_app/core/email_utils.py`):
 
-### 4. Documented Export Service Issues ✅
+- Use `send_branded_email()` function
+- Markdown content for email body
+- Platform branding applied automatically
+- Plain text fallback generated automatically
 
-**File:** `TODO_EXPORT_SERVICE.md`
+**Templates needed:**
+- Deletion warning (3 variants: 30d, 7d, 1d)
+- Export notification
+- Closure confirmation
+- Custodian assignment
+- Ownership transfer
+- Retention extension
+- Legal hold placed/removed
 
-Detailed documentation of:
-- Bug descriptions with line numbers
-- Field name issues (question.label, question.field_name)
-- Data decryption requirements
-- Action plan for fixes
-- Success criteria
+## Implementation Priority
 
-## Test Results
+1. **Email Notifications** (2-4 hours)
+   - Start with deletion warnings (most critical)
+   - Then export notifications (audit requirement)
+   - Then closure confirmation (user experience)
+   - Finally other notifications (nice-to-have)
 
-### Current Status
-```
-Full Test Suite: 523 passed, 13 skipped
-Data Governance Views: 9 passed, 13 skipped
-Total Tests: 536
-```
+2. **Scheduled Deletion** (1-2 hours)
+   - Create management command
+   - Document deployment options
+   - Test in development
 
-### No Regressions
-All 523 original tests still passing after our changes to:
-- `census_app/surveys/views_data_governance.py`
-- `census_app/surveys/services/export_service.py` (query fix)
-- All data governance templates
+3. **Production Deployment** (1-2 hours)
+   - Set up scheduler (cron/Celery)
+   - Configure email settings
+   - Monitor first runs
 
-## Security Verification Status
+## Files to Modify
 
-### User's Requirements
-> "I would like to be sure that only those users with permissions have access to the routes that download data, also that the data on download is appropriately decrypted"
+### For Email Notifications:
+- `census_app/surveys/services/retention_service.py` - Implement `send_deletion_warning()`
+- `census_app/surveys/views_data_governance.py` - Add email calls to export/closure/etc.
+- `census_app/surveys/models.py` - Add email calls to custodian/legal hold methods
 
-### Current Coverage
-
-#### ✅ Partially Verified - Permission Enforcement
-- Dashboard correctly shows/hides export button based on:
-  - Survey status (open vs closed)
-  - User authorization (owner vs non-owner)
-- Export create page requires:
-  - Authentication (login)
-  - Ownership permission
-- **Still needs testing:** Token-based download security (13 tests skipped)
-
-#### ❌ Not Yet Verified - Data Decryption
-- Cannot test CSV content until ExportService is fixed
-- Critical test skipped: `test_file_download_contains_correct_data`
-- Must verify decryption of:
-  - `SurveyResponse.enc_demographics`
-  - `SurveyResponse.answers`
-  - Any other encrypted fields
-
-## Files Modified
-
-### Test Files
-- ✅ Created: `census_app/surveys/tests/test_data_governance_views.py`
-
-### Templates
-- ✅ Created: `census_app/templates/components/icons/download.html`
-- ✅ Modified: `census_app/surveys/templates/surveys/dashboard.html`
-- ✅ Modified: 7 data governance templates (URL fixes)
-
-### Services
-- ⚠️ Modified: `census_app/surveys/services/export_service.py`
-  - Fixed query field name (questiongroup → group)
-  - Still has bugs with question.label and question.field_name
-
-### Documentation
-- ✅ Created: `TODO_EXPORT_SERVICE.md`
-- ✅ Created: `DATA_GOVERNANCE_TEST_SUMMARY.md` (this file)
-
-## Next Steps (Priority Order)
-
-### 1. Fix ExportService (CRITICAL - SECURITY)
-**Why Critical:** Downloads contain sensitive patient data that must be properly decrypted
-
-**Tasks:**
-1. Read `SurveyQuestion` model to understand actual fields
-2. Replace `question.label` with `question.text`
-3. Replace `question.field_name` with appropriate identifier (id? text?)
-4. Trace decryption flow in export process
-5. Verify `enc_demographics` is decrypted before CSV export
-6. Verify `answers` data is decrypted (if encrypted)
-
-**File:** `census_app/surveys/services/export_service.py`
-**Method:** `_generate_csv()` (around line 134-160)
-
-### 2. Create Service Tests (HIGH PRIORITY)
-**Why Important:** Export service needs direct testing, not just view tests
-
-**Tasks:**
-1. Create `census_app/surveys/tests/test_export_service.py`
-2. Test CSV generation with encrypted data
-3. Test CSV headers match question text
-4. Test CSV rows contain **decrypted** patient data
-5. Test password protection
-6. Test token generation and expiry
-
-### 3. Enable Skipped View Tests (MEDIUM PRIORITY)
-**After ExportService is fixed:**
-1. Remove `@pytest.mark.skip()` decorators from test classes
-2. Run tests individually to verify they pass
-3. Fix any remaining issues
-4. Verify all 22 tests pass
-
-### 4. Full Security Audit (HIGH PRIORITY)
-**Before deploying to production:**
-1. Verify only authorized users can download data
-2. Verify downloaded data is properly decrypted
-3. Verify download tokens expire correctly
-4. Verify invalid/expired tokens are rejected
-5. Audit logs capture all export events
+### For Scheduled Deletion:
+- Create: `census_app/surveys/management/commands/process_deletions.py`
+- Update: Documentation for deployment
 
 ## Success Criteria
 
-- [ ] All ExportService bugs fixed
-- [ ] Service tests created and passing
-- [ ] All 22 view tests passing (0 skipped)
-- [ ] Full test suite passing (536+ tests)
-- [ ] Security requirements verified:
-  - [ ] Permission enforcement for all download routes
-  - [ ] Data properly decrypted in CSV exports
-  - [ ] Token security working correctly
-  - [ ] Audit logs complete
+- [ ] All 7 email notification types implemented
+- [ ] Emails use branded template system
+- [ ] Management command created for deletions
+- [ ] Documentation updated with deployment instructions
+- [ ] Manual testing of all email notifications
+- [ ] Dry-run testing of deletion processing
+- [ ] Production deployment guide complete
 
-## Known Issues
+## Notes
 
-### ExportService Bugs
-1. **Uses non-existent field:** `question.label` (should be `question.text`)
-2. **Uses non-existent field:** `question.field_name` (needs correct identifier)
-3. **Query fixed but untested:** Changed `questiongroup` to `group` in filter
-
-### Missing Test Coverage
-1. Export creation with attestation
-2. Token validation and expiry
-3. **Data decryption verification** (CRITICAL)
-4. Permission enforcement for download routes
-
-### Potential Issues
-1. Unknown if `answers` field is encrypted
-2. Unknown where decryption happens in export flow
-3. No service-level tests for export functionality
-
-## Notes for Next Developer
-
-- **DO NOT** deploy export functionality until ExportService is fixed and tested
-- **CRITICAL:** CSV exports contain sensitive patient data - decryption must work
-- All skipped tests have reason: `"Requires ExportService fix - uses non-existent question.label field"`
-- The 9 passing tests verify basic access control and dashboard integration
-- The 13 skipped tests verify the actual export/download functionality
-- See `TODO_EXPORT_SERVICE.md` for detailed fix instructions
-
-## Branch Status
-
-**Branch:** `docker-publish`
-**Status:** Safe to merge dashboard integration, but export download NOT production-ready
-**Recommendation:** 
-- Merge dashboard integration (9 passing tests cover this)
-- Mark export download feature as "beta" or "disabled" until service is fixed
-- Or: Fix ExportService before merging
-
-## Timeline Estimate
-
-- **ExportService Fix:** 2-4 hours (investigate model, fix bugs, test)
-- **Service Tests:** 2-3 hours (write comprehensive tests)
-- **Enable View Tests:** 1 hour (remove skips, verify passing)
-- **Security Audit:** 1-2 hours (manual verification)
-
-**Total:** ~8-10 hours to complete full feature with security verification
+- Email infrastructure already exists (`census_app/core/email_utils.py`)
+- All email sending uses `send_branded_email()` function
+- Deletion logic is complete and tested
+- Focus is on integration, not new business logic

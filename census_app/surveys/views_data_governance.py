@@ -12,6 +12,7 @@ Note: Survey closure and deletion are handled by existing views in views.py
 
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -68,6 +69,9 @@ def survey_export_create(request: HttpRequest, slug: str) -> HttpResponse:
 
         try:
             export = ExportService.create_export(survey, request.user, password)
+
+            # Send email notification to organization administrators
+            _send_export_notification(export, request.user, survey)
 
             messages.success(
                 request,
@@ -330,6 +334,9 @@ def survey_custodian_grant(request: HttpRequest, slug: str) -> HttpResponse:
             expires_at=expires_at,
         )
 
+        # Send email notification to the custodian
+        _send_custodian_assignment_notification(survey, user, request.user, reason, expires_at)
+
         messages.success(request, f"Data custodian access granted to {user.username}.")
 
         return redirect("surveys:dashboard", slug=slug)
@@ -383,3 +390,106 @@ def survey_custodian_revoke(
     }
 
     return render(request, "surveys/data_governance/custodian_revoke.html", context)
+
+
+# ============================================================================
+# Email Notification Helpers
+# ============================================================================
+
+
+def _send_export_notification(export: DataExport, user: User, survey: Survey) -> None:
+    """
+    Send email notification to organization administrators when data is exported.
+
+    Per data governance requirements, org admins must be notified of all data downloads.
+    """
+    from django.template.loader import render_to_string
+
+    from census_app.core.email_utils import get_platform_branding, send_branded_email
+
+    # Get organization administrators
+    recipients = []
+    if survey.organization:
+        # Organization owner
+        recipients.append(survey.organization.owner.email)
+
+        # Organization admins (if we have that model)
+        # TODO: Add org admins when OrganizationMember model is implemented
+
+    # If no organization, notify survey owner
+    if not recipients:
+        recipients.append(survey.owner.email)
+
+    subject = f"Data Export Alert: {survey.name}"
+
+    export_time = export.created_at.strftime("%B %d, %Y at %I:%M %p")
+    expiry_time = export.download_url_expires_at.strftime("%B %d, %Y at %I:%M %p")
+
+    branding = get_platform_branding()
+
+    # Send to all recipients
+    for recipient_email in recipients:
+        # Get recipient name if possible
+        recipient_name = recipient_email.split("@")[0]  # Fallback
+
+        markdown_content = render_to_string(
+            "emails/data_governance/export_notification.md",
+            {
+                "recipient_name": recipient_name,
+                "survey": survey,
+                "export_user": user,
+                "export_time": export_time,
+                "export": export,
+                "expiry_time": expiry_time,
+                "brand_title": branding["title"],
+                "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
+            },
+        )
+
+        send_branded_email(
+            to_email=recipient_email,
+            subject=subject,
+            markdown_content=markdown_content,
+            branding=branding,
+        )
+
+
+def _send_custodian_assignment_notification(
+    survey: Survey, custodian_user: User, granted_by: User, reason: str, expires_at
+) -> None:
+    """
+    Send email notification to user when they are assigned as data custodian.
+    """
+    from django.template.loader import render_to_string
+
+    from census_app.core.email_utils import get_platform_branding, send_branded_email
+
+    subject = f"Data Custodian Role Assigned: {survey.name}"
+
+    expiry_date = None
+    if expires_at:
+        expiry_date = expires_at.strftime("%B %d, %Y at %I:%M %p")
+
+    branding = get_platform_branding()
+
+    markdown_content = render_to_string(
+        "emails/data_governance/custodian_assigned.md",
+        {
+            "custodian_user": custodian_user,
+            "survey": survey,
+            "granted_by": granted_by,
+            "reason": reason,
+            "expires_at": expires_at,
+            "expiry_date": expiry_date,
+            "brand_title": branding["title"],
+            "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
+        },
+    )
+
+    send_branded_email(
+        to_email=custodian_user.email,
+        subject=subject,
+        markdown_content=markdown_content,
+        branding=branding,
+    )
+
