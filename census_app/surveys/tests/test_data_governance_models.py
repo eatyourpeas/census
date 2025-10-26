@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-import pytest
 from django.contrib.auth.models import User
 from django.utils import timezone
+import pytest
 
 from census_app.surveys.models import (
     DataCustodian,
@@ -494,7 +494,7 @@ class TestDataRetentionExtension:
 
         # Second extension
         new_date = ext1.new_deletion_date
-        ext2 = DataRetentionExtension.objects.create(
+        DataRetentionExtension.objects.create(
             survey=closed_survey,
             requested_by=user,
             previous_deletion_date=new_date,

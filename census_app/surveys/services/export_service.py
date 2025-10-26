@@ -11,9 +11,9 @@ Features:
 from __future__ import annotations
 
 import csv
-import secrets
 from datetime import timedelta
 from io import StringIO
+import secrets
 from typing import TYPE_CHECKING
 
 from django.conf import settings

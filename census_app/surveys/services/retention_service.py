@@ -119,10 +119,10 @@ class RetentionService:
         # TODO: Implement email sending
         # For now, this is a placeholder
 
-        owner_email = survey.owner.email
-        subject = f"Survey Data Deletion Warning: {days_remaining} days remaining"
+        _owner_email = survey.owner.email
+        _subject = f"Survey Data Deletion Warning: {days_remaining} days remaining"
 
-        message = f"""
+        _message = f"""
         Your survey "{survey.title}" will be automatically deleted in {days_remaining} days.
         
         Deletion date: {survey.deletion_date}
@@ -136,7 +136,7 @@ class RetentionService:
         """
 
         # TODO: Send email via Django's email system or Celery task
-        print(f"[PLACEHOLDER] Would send email to {owner_email}: {subject}")
+        print(f"[PLACEHOLDER] Would send email to {_owner_email}: {_subject}")
 
     @classmethod
     @transaction.atomic

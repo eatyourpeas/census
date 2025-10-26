@@ -8,10 +8,10 @@ NOTE: Some tests are skipped due to ExportService bugs that need fixing:
 TODO: Fix ExportService before enabling full test coverage
 """
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
+import pytest
 
 from census_app.surveys.models import DataExport, Survey
 from census_app.surveys.services import ExportService

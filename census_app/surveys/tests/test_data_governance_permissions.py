@@ -12,9 +12,9 @@ Tests role-based access control for:
 
 from __future__ import annotations
 
-import pytest
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
+import pytest
 
 from census_app.surveys.models import (
     DataCustodian,

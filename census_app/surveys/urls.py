@@ -1,7 +1,6 @@
 from django.urls import path
 
-from . import views
-from . import views_data_governance as gov_views
+from . import views, views_data_governance as gov_views
 
 app_name = "surveys"
 

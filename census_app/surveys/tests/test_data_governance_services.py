@@ -7,9 +7,9 @@ from __future__ import annotations
 from datetime import timedelta
 from unittest.mock import patch
 
-import pytest
 from django.contrib.auth.models import User
 from django.utils import timezone
+import pytest
 
 from census_app.surveys.models import (
     DataRetentionExtension,
