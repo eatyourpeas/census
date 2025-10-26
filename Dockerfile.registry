@@ -10,6 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
+    libpq-dev \
     nodejs \
     npm \
     gettext \
@@ -39,8 +40,9 @@ RUN poetry install --only main --no-interaction --no-ansi
 RUN npm run build:css
 
 # Create non-root user for security
-RUN groupadd -r census && useradd -r -g census census
-RUN chown -R census:census /app
+RUN groupadd -r census && useradd -r -g census census && \
+    mkdir -p /app/media /app/staticfiles && \
+    chown -R census:census /app
 USER census
 
 # Expose port

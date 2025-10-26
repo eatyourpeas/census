@@ -51,7 +51,7 @@ jobs:
           restore-keys: |
             venv-${{ runner.os }}-
       - name: Install Poetry
-        run: pip install poetry==1.8.3
+        run: pip install poetry==2.2.1
       - name: Install dependencies
         run: poetry install
       - name: Lint (Ruff)
