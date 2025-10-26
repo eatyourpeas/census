@@ -1,5 +1,5 @@
 """
-Custom OIDC Authentication Backend for Healthcare Workers
+Custom OIDC Authentication Backend for Clinicians
 
 Integrates Google and Azure OIDC authentication with the existing
 patient data encryption system. Maintains your custom user model
@@ -30,7 +30,7 @@ def generate_username(email: str) -> str:
     """
     Generate a username from email for OIDC users.
 
-    Healthcare workers may have multiple accounts (hospital + personal),
+    Clinicians may have multiple accounts (hospital + personal),
     so we use email as the primary identifier.
     """
     return email.lower()
@@ -299,7 +299,7 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         """
         Get or create user, integrating with existing custom user model.
 
-        This allows healthcare workers to:
+        This allows clinicians to:
         1. Link OIDC to existing accounts (preserves encryption keys)
         2. Create new accounts via OIDC
         3. Use multiple OIDC providers with same account
@@ -360,7 +360,7 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         """
         Link OIDC account to user for future authentication.
 
-        This allows the same healthcare worker to authenticate via:
+        This allows the same clinician to authenticate via:
         - Google account (personal)
         - Azure account (hospital)
         - Traditional password

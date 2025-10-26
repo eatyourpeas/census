@@ -1,5 +1,5 @@
 """
-Custom OIDC views for healthcare worker authentication.
+Custom OIDC views for clinician authentication.
 
 Provides Google and Azure SSO integration while maintaining
 compatibility with existing encryption and authentication systems.
@@ -116,6 +116,13 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
                     # New user was created
                     if signup_mode:
                         # User came from signup page - they already made account type choice
+                        # Mark signup as completed since they went through the signup page
+                        if hasattr(request.user, "oidc"):
+                            request.user.oidc.signup_completed = True
+                            request.user.oidc.save()
+                            logger.info(
+                                f"Marked OIDC signup as completed for user from signup page: {request.user.email}"
+                            )
                         # Check sessionStorage via JavaScript (handled in template)
                         messages.success(
                             request,
@@ -135,6 +142,17 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
                         return redirect("core:complete_signup")
                 elif user_existed is True:
                     # Existing user was found and linked
+                    # Check if OIDC user needs to complete signup
+                    if (
+                        hasattr(request.user, "oidc")
+                        and not request.user.oidc.signup_completed
+                    ):
+                        logger.info(
+                            f"Existing OIDC user has not completed signup, redirecting: {request.user.email}"
+                        )
+                        request.session["needs_signup_completion"] = True
+                        return redirect("core:complete_signup")
+
                     messages.info(
                         request,
                         _(
@@ -146,6 +164,17 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
                     )
                 else:
                     # Fallback message if flag is not set
+                    # Check if OIDC user needs to complete signup
+                    if (
+                        hasattr(request.user, "oidc")
+                        and not request.user.oidc.signup_completed
+                    ):
+                        logger.info(
+                            f"OIDC user (fallback case) has not completed signup, redirecting: {request.user.email}"
+                        )
+                        request.session["needs_signup_completion"] = True
+                        return redirect("core:complete_signup")
+
                     messages.info(
                         request,
                         _("Successfully signed in with {}.").format(provider.title()),
@@ -174,7 +203,7 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
 
 class HealthcareOIDCAuthView(OIDCAuthenticationRequestView):
     """
-    Custom OIDC authentication view for healthcare workers.
+    Custom OIDC authentication view for clinicians.
 
     Supports both Google and Azure authentication with provider selection.
     """
@@ -260,7 +289,7 @@ class HealthcareOIDCAuthView(OIDCAuthenticationRequestView):
 
 class HealthcareLoginView(View):
     """
-    Healthcare worker login page with multiple authentication options.
+    Clinician login page with multiple authentication options.
 
     Provides:
     - Traditional email/password (preserves existing encryption)

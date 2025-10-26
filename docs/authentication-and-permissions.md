@@ -14,11 +14,11 @@ Census supports multiple authentication methods for healthcare environments:
 
 ### Healthcare SSO (Single Sign-On)
 
-Census integrates with OIDC providers for seamless healthcare worker authentication:
+Census integrates with OIDC providers for seamless clinician authentication:
 
 #### Supported Providers
 
-- **Google OAuth**: For healthcare workers with personal Google accounts
+- **Google OAuth**: For clinicians with personal Google accounts
 - **Microsoft Azure AD**: For hospital staff with organizational Microsoft 365 accounts
 - **Multi-provider support**: Same user can authenticate via multiple methods
 
@@ -28,11 +28,11 @@ Census integrates with OIDC providers for seamless healthcare worker authenticat
 - **Preserved encryption**: SSO users maintain the same encryption security as traditional users
 - **Dual authentication**: Users can switch between SSO and password authentication
 - **Organization flexibility**: Supports both personal and organizational accounts
-- **External user support**: Handles Azure AD guest accounts and external healthcare workers
+- **External user support**: Handles Azure AD guest accounts and external clinicians
 
 #### User Experience
 
-Healthcare workers can choose their preferred authentication method:
+Clinicians can choose their preferred authentication method:
 
 1. **SSO Login**: Click "Sign in with Google" or "Sign in with Microsoft"
 2. **Traditional Login**: Use email and password

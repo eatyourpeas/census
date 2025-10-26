@@ -8,7 +8,7 @@ Census offers two types of accounts, each designed for different use cases:
 
 ### Individual Account 👤
 
-**Best for:** Personal research, small studies, individual healthcare workers
+**Best for:** Personal research, small studies, individual clinicians
 
 **Features:**
 - Create and manage your own surveys

@@ -432,6 +432,6 @@ OIDC_AUTHENTICATION_BACKEND = "census_app.core.auth.CustomOIDCAuthenticationBack
 # Custom user creation and linking
 # OIDC_USERNAME_ALGO = 'census_app.core.auth.generate_username'  # Temporarily disable custom username algo
 
-# Login/logout redirect URLs - use surveys page for authenticated healthcare workers
+# Login/logout redirect URLs - use surveys page for authenticated clinicians
 OIDC_LOGIN_REDIRECT_URL = "/surveys/"  # Redirect to surveys after OIDC login
 OIDC_LOGOUT_REDIRECT_URL = "/"  # Where to go after logout

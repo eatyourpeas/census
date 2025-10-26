@@ -1,5 +1,5 @@
 """
-OIDC URL patterns for healthcare worker authentication.
+OIDC URL patterns for clinician authentication.
 
 Provides:
 - Google SSO authentication for personal accounts

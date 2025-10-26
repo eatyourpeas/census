@@ -270,15 +270,20 @@ def complete_signup(request):
     if request.method == "POST":
         account_type = request.POST.get("account_type")
 
+        # Mark OIDC signup as completed
+        if hasattr(request.user, "oidc"):
+            request.user.oidc.signup_completed = True
+            request.user.oidc.save()
+            logger.info(
+                f"Marked OIDC signup as completed for user: {request.user.email}"
+            )
+
         # Send welcome email
         try:
             from .email_utils import send_welcome_email
 
             send_welcome_email(request.user)
         except Exception as e:
-            import logging
-
-            logger = logging.getLogger(__name__)
             logger.error(
                 f"Failed to send welcome email to {request.user.username}: {e}"
             )
