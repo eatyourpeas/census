@@ -1,5 +1,5 @@
-import pytest
 from django.utils import timezone
+import pytest
 from rest_framework.test import APIClient
 
 from census_app.surveys.models import (
