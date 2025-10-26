@@ -1,17 +1,16 @@
 import logging
 from pathlib import Path
 
-import markdown as mdlib
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login
-from django.contrib.auth import views as auth_views
+from django.contrib.auth import login, views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import translation
 from django.utils.translation import gettext as _
+import markdown as mdlib
 
 from census_app.surveys.models import (
     Organization,

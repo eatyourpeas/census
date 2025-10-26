@@ -7,14 +7,16 @@ where organization owners/admins can recover surveys from their members.
 
 import os
 
-import pytest
 from django.contrib.auth import get_user_model
+import pytest
 
-from census_app.surveys.models import AuditLog, Organization, OrganizationMembership, Survey
-from census_app.surveys.utils import (
-    decrypt_kek_with_org_key,
-    encrypt_kek_with_org_key,
+from census_app.surveys.models import (
+    AuditLog,
+    Organization,
+    OrganizationMembership,
+    Survey,
 )
+from census_app.surveys.utils import decrypt_kek_with_org_key, encrypt_kek_with_org_key
 
 User = get_user_model()
 
@@ -133,7 +135,9 @@ class TestSurveyOrganizationEncryption:
     def test_set_org_encryption_requires_master_key(self, member_user):
         """Test that organization must have a master key."""
         # Create organization without master key
-        owner = User.objects.create_user(username="no_key_owner", email="nokey@example.com")
+        owner = User.objects.create_user(
+            username="no_key_owner", email="nokey@example.com"
+        )
         org_no_key = Organization.objects.create(name="No Key Org", owner=owner)
 
         survey = Survey.objects.create(
@@ -185,7 +189,9 @@ class TestSurveyOrganizationEncryption:
         # Verify we got the original KEK back
         assert unlocked_kek == kek
 
-    def test_unlock_with_org_key_wrong_organization(self, org_with_master_key, member_user):
+    def test_unlock_with_org_key_wrong_organization(
+        self, org_with_master_key, member_user
+    ):
         """Test that unlock fails if survey doesn't belong to organization."""
         # Create survey in org_with_master_key
         survey = Survey.objects.create(
@@ -212,7 +218,9 @@ class TestSurveyOrganizationEncryption:
         # Should return None
         assert unlocked_kek is None
 
-    def test_unlock_without_org_encryption_returns_none(self, org_with_master_key, member_user):
+    def test_unlock_without_org_encryption_returns_none(
+        self, org_with_master_key, member_user
+    ):
         """Test that unlock returns None if survey has no org encryption."""
         survey = Survey.objects.create(
             owner=member_user,

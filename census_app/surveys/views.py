@@ -599,9 +599,14 @@ def survey_create(request: HttpRequest) -> HttpResponse:
                                 # Don't fail the entire survey creation if OIDC encryption fails
 
                         # Also set up organization encryption if user belongs to an organization
-                        if survey.organization and survey.organization.encrypted_master_key:
+                        if (
+                            survey.organization
+                            and survey.organization.encrypted_master_key
+                        ):
                             try:
-                                survey.set_org_encryption(survey_kek, survey.organization)
+                                survey.set_org_encryption(
+                                    survey_kek, survey.organization
+                                )
                                 logger.info(
                                     f"Added organization encryption for survey {survey.slug} (org: {survey.organization.name})"
                                 )

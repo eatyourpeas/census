@@ -8,9 +8,9 @@ Tests all three publication options:
 4. TOKEN - one-time use tokens via /surveys/<slug>/take/token/<token>/
 """
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+import pytest
 
 from census_app.surveys.models import (
     Organization,
