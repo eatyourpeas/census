@@ -4,6 +4,12 @@
 
 {% block content %}
 <div class="container mx-auto max-w-5xl px-4 py-6">
+  <div class="prose mb-6">
+    {% trans "Surveys" as bc_surveys %}
+    {% trans "Survey Dashboard" as bc_survey_dashboard %}
+    {% trans "Publication Settings" as bc_publish_settings %}
+    {% include 'components/breadcrumbs.html' with crumb1_label=bc_surveys crumb1_href="/surveys/" crumb2_label=bc_survey_dashboard crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb3_label=bc_publish_settings %}
+  </div>
   <div class="mb-6">
     <h1 class="text-3xl font-bold mb-2">
       {% if survey.status == 'published' %}
