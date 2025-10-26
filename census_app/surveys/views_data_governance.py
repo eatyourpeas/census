@@ -222,12 +222,15 @@ def survey_legal_hold_place(request: HttpRequest, slug: str) -> HttpResponse:
             messages.error(request, "Please provide both reason and authority.")
             return redirect("survey_legal_hold_place", slug=slug)
 
-        LegalHold.objects.create(
+        hold = LegalHold.objects.create(
             survey=survey,
             placed_by=request.user,
             reason=reason,
             authority=authority,
         )
+
+        # Send email notification
+        _send_legal_hold_placed_notification(hold, survey, request.user, reason, authority)
 
         messages.success(
             request, "Legal hold placed successfully. Survey cannot be deleted."
@@ -492,4 +495,53 @@ def _send_custodian_assignment_notification(
         markdown_content=markdown_content,
         branding=branding,
     )
+
+
+def _send_legal_hold_placed_notification(
+    hold, survey: Survey, user: User, reason: str, authority: str
+) -> None:
+    """
+    Send email notification when legal hold is placed on a survey.
+    """
+    from django.template.loader import render_to_string
+
+    from census_app.core.email_utils import get_platform_branding, send_branded_email
+
+    subject = f"⚠️ LEGAL HOLD PLACED: {survey.name}"
+
+    placed_date = hold.placed_at.strftime("%B %d, %Y at %I:%M %p")
+
+    branding = get_platform_branding()
+
+    markdown_content = render_to_string(
+        "emails/data_governance/legal_hold_placed.md",
+        {
+            "survey": survey,
+            "placed_by": user,
+            "placed_date": placed_date,
+            "reference_number": authority,
+            "case_description": authority,
+            "reason": reason,
+            "brand_title": branding["title"],
+            "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
+        },
+    )
+
+    # Send to survey owner
+    send_branded_email(
+        to_email=survey.owner.email,
+        subject=subject,
+        markdown_content=markdown_content,
+        branding=branding,
+    )
+
+    # Send to organization owner if exists
+    if survey.organization:
+        if survey.organization.owner.email != survey.owner.email:
+            send_branded_email(
+                to_email=survey.organization.owner.email,
+                subject=subject,
+                markdown_content=markdown_content,
+                branding=branding,
+            )
 

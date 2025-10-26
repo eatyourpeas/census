@@ -567,10 +567,25 @@ class Survey(models.Model):
                 f"trying to add {months} months)"
             )
 
+        # Store old values for email notification
+        old_retention_months = self.retention_months
+        old_deletion_date = self.deletion_date
+
         # Update retention period and deletion date
         self.retention_months = new_total_months
         self.deletion_date = self.closed_at + timedelta(days=self.retention_months * 30)
         self.save()
+
+        # Send email notification
+        self._send_retention_extension_notification(
+            user=user,
+            old_months=old_retention_months,
+            new_months=new_total_months,
+            months_added=months,
+            old_deletion_date=old_deletion_date,
+            new_deletion_date=self.deletion_date,
+            reason=reason,
+        )
 
         # Log extension (will create DataRetentionExtension model later)
         # DataRetentionExtension.objects.create(...)
@@ -633,6 +648,64 @@ class Survey(models.Model):
         if not self.closed_at:
             return False
         return self.retention_months < 24
+
+    def _send_retention_extension_notification(
+        self,
+        user: User,
+        old_months: int,
+        new_months: int,
+        months_added: int,
+        old_deletion_date,
+        new_deletion_date,
+        reason: str,
+    ) -> None:
+        """Send email notification when retention period is extended."""
+        from django.conf import settings
+        from django.template.loader import render_to_string
+
+        from census_app.core.email_utils import get_platform_branding, send_branded_email
+
+        subject = f"Retention Period Extended: {self.name}"
+
+        branding = get_platform_branding()
+
+        # Send to survey owner
+        markdown_content = render_to_string(
+            "emails/data_governance/retention_extended.md",
+            {
+                "survey": self,
+                "extended_by": user,
+                "old_months": old_months,
+                "new_months": new_months,
+                "months_added": months_added,
+                "old_deletion_date": old_deletion_date.strftime("%B %d, %Y"),
+                "new_deletion_date": new_deletion_date.strftime("%B %d, %Y"),
+                "reason": reason,
+                "brand_title": branding["title"],
+                "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
+            },
+        )
+
+        send_branded_email(
+            to_email=self.owner.email,
+            subject=subject,
+            markdown_content=markdown_content,
+            branding=branding,
+        )
+
+        # Also notify organization administrators
+        if self.organization:
+            org_admin_emails = [self.organization.owner.email]
+            # Filter out survey owner if they're also org owner
+            if self.owner.email not in org_admin_emails:
+                for admin_email in org_admin_emails:
+                    send_branded_email(
+                        to_email=admin_email,
+                        subject=subject,
+                        markdown_content=markdown_content,
+                        branding=branding,
+                    )
+
 
     @property
     def is_closed(self) -> bool:
@@ -1171,10 +1244,76 @@ class LegalHold(models.Model):
         """Remove the legal hold."""
         from django.utils import timezone
 
+        # Store values before updating for email notification
+        hold_placed_date = self.placed_at
+        hold_duration = timezone.now() - self.placed_at
+
         self.removed_by = user
         self.removed_at = timezone.now()
         self.removal_reason = reason
         self.save(update_fields=["removed_by", "removed_at", "removal_reason"])
+
+        # Send email notification
+        self._send_legal_hold_removed_notification(
+            user=user,
+            reason=reason,
+            hold_placed_date=hold_placed_date,
+            hold_duration=hold_duration,
+        )
+
+    def _send_legal_hold_removed_notification(
+        self, user: User, reason: str, hold_placed_date, hold_duration
+    ) -> None:
+        """Send email notification when legal hold is removed."""
+        from django.conf import settings
+        from django.template.loader import render_to_string
+
+        from census_app.core.email_utils import get_platform_branding, send_branded_email
+
+        subject = f"Legal Hold Removed: {self.survey.name}"
+
+        branding = get_platform_branding()
+
+        # Calculate hold duration in days
+        days_duration = hold_duration.days
+
+        # Format new deletion date if survey is closed
+        new_deletion_date = None
+        if self.survey.deletion_date:
+            new_deletion_date = self.survey.deletion_date.strftime("%B %d, %Y")
+
+        markdown_content = render_to_string(
+            "emails/data_governance/legal_hold_removed.md",
+            {
+                "survey": self.survey,
+                "removed_by": user,
+                "removed_date": self.removed_at.strftime("%B %d, %Y at %I:%M %p"),
+                "hold_placed_date": hold_placed_date.strftime("%B %d, %Y"),
+                "hold_duration": f"{days_duration} days",
+                "reason": reason,
+                "new_deletion_date": new_deletion_date,
+                "brand_title": branding["title"],
+                "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
+            },
+        )
+
+        # Send to survey owner
+        send_branded_email(
+            to_email=self.survey.owner.email,
+            subject=subject,
+            markdown_content=markdown_content,
+            branding=branding,
+        )
+
+        # Send to organization owner if exists
+        if self.survey.organization:
+            if self.survey.organization.owner.email != self.survey.owner.email:
+                send_branded_email(
+                    to_email=self.survey.organization.owner.email,
+                    subject=subject,
+                    markdown_content=markdown_content,
+                    branding=branding,
+                )
 
 
 class DataCustodian(models.Model):

@@ -5356,7 +5356,7 @@ def _send_survey_closure_notification(survey: Survey, user: User) -> None:
             "survey": survey,
             "closed_by": user,
             "closed_time": closed_time,
-            "response_count": survey.response_set.count(),
+            "response_count": survey.responses.count(),
             "deletion_date": deletion_date,
             "warning_schedule": "30 days, 7 days, and 1 day before deletion",
             "brand_title": branding["title"],
