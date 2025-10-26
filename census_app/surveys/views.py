@@ -4042,69 +4042,78 @@ def organization_key_recovery(request: HttpRequest, slug: str) -> HttpResponse:
                 request,
                 'Please type "recover" to confirm this administrative key recovery action.',
             )
+            # Re-render the page with the error message
+            context = {
+                "survey": survey,
+                "organization": org,
+                "is_org_owner": is_org_owner,
+                "is_org_admin": is_org_admin,
+                "survey_owner": survey.owner,
+            }
+            return render(request, "surveys/organization_key_recovery.html", context)
+        
+        # Attempt to unlock with organization key
+        kek = survey.unlock_with_org_key(org)
+
+        if kek:
+            # Create audit log entry for key recovery
+            AuditLog.objects.create(
+                actor=request.user,
+                scope=AuditLog.Scope.SURVEY,
+                action=AuditLog.Action.KEY_RECOVERY,
+                survey=survey,
+                organization=org,
+                target_user=survey.owner,
+                metadata={
+                    "recovery_method": "organization_master_key",
+                    "survey_owner": survey.owner.username,
+                    "org_role": "owner" if is_org_owner else "admin",
+                },
+            )
+
+            # Store organization key recovery credentials in session
+            import base64
+
+            from .utils import encrypt_sensitive
+
+            session_key = request.session.session_key or request.session.create()
+
+            # Store organization ID for re-derivation (don't store the master key itself)
+            encrypted_creds = encrypt_sensitive(
+                session_key.encode("utf-8"),
+                {
+                    "organization_id": org.id,
+                    "survey_slug": slug,
+                    "recovery_type": "organization",
+                },
+            )
+            request.session["unlock_credentials"] = base64.b64encode(
+                encrypted_creds
+            ).decode("ascii")
+            request.session["unlock_method"] = "organization_recovery"
+            request.session["unlock_verified_at"] = timezone.now().isoformat()
+            request.session["unlock_survey_slug"] = slug
+
+            logger.warning(
+                f"Organization key recovery performed by {request.user.username} "
+                f"for survey {slug} owned by {survey.owner.username} "
+                f"(organization: {org.name})"
+            )
+
+            messages.success(
+                request,
+                f"Survey unlocked using organization key recovery. This action has been logged. "
+                f"Survey owner: {survey.owner.username}",
+            )
+            return redirect("surveys:dashboard", slug=slug)
         else:
-            # Attempt to unlock with organization key
-            kek = survey.unlock_with_org_key(org)
-
-            if kek:
-                # Create audit log entry for key recovery
-                AuditLog.objects.create(
-                    actor=request.user,
-                    scope=AuditLog.Scope.SURVEY,
-                    action=AuditLog.Action.KEY_RECOVERY,
-                    survey=survey,
-                    organization=org,
-                    target_user=survey.owner,
-                    metadata={
-                        "recovery_method": "organization_master_key",
-                        "survey_owner": survey.owner.username,
-                        "org_role": "owner" if is_org_owner else "admin",
-                    },
-                )
-
-                # Store organization key recovery credentials in session
-                import base64
-
-                from .utils import encrypt_sensitive
-
-                session_key = request.session.session_key or request.session.create()
-
-                # Store organization ID for re-derivation (don't store the master key itself)
-                encrypted_creds = encrypt_sensitive(
-                    session_key.encode("utf-8"),
-                    {
-                        "organization_id": org.id,
-                        "survey_slug": slug,
-                        "recovery_type": "organization",
-                    },
-                )
-                request.session["unlock_credentials"] = base64.b64encode(
-                    encrypted_creds
-                ).decode("ascii")
-                request.session["unlock_method"] = "organization_recovery"
-                request.session["unlock_verified_at"] = timezone.now().isoformat()
-                request.session["unlock_survey_slug"] = slug
-
-                logger.warning(
-                    f"Organization key recovery performed by {request.user.username} "
-                    f"for survey {slug} owned by {survey.owner.username} "
-                    f"(organization: {org.name})"
-                )
-
-                messages.success(
-                    request,
-                    f"Survey unlocked using organization key recovery. This action has been logged. "
-                    f"Survey owner: {survey.owner.username}",
-                )
-                return redirect("surveys:dashboard", slug=slug)
-            else:
-                logger.error(
-                    f"Organization key recovery failed for survey {slug} by {request.user.username}"
-                )
-                messages.error(
-                    request,
-                    "Failed to unlock survey with organization key. Please contact technical support.",
-                )
+            logger.error(
+                f"Organization key recovery failed for survey {slug} by {request.user.username}"
+            )
+            messages.error(
+                request,
+                "Failed to unlock survey with organization key. Please contact technical support.",
+            )
 
     context = {
         "survey": survey,
