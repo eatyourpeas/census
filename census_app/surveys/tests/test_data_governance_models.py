@@ -105,7 +105,7 @@ class TestSurveyClosureAndRetention:
 
     def test_extend_retention_fails_for_unclosed_survey(self, survey, user):
         """Cannot extend retention for survey that hasn't been closed."""
-        with pytest.raises(ValueError, match="not closed"):
+        with pytest.raises(ValueError, match="unclosed"):
             survey.extend_retention(3, user, "Too early")
 
     def test_can_extend_retention_property(self, closed_survey):

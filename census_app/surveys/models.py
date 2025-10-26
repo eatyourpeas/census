@@ -549,18 +549,20 @@ class Survey(models.Model):
         from datetime import timedelta
 
         if not self.closed_at:
-            raise ValidationError("Cannot extend retention on unclosed survey")
+            raise ValueError("Cannot extend retention on unclosed survey")
 
-        # Calculate total retention from closure
-        months_since_closure = (timezone.now() - self.closed_at).days // 30
-        total_months = months_since_closure + months
-
-        if total_months > 24:
-            raise ValidationError(
-                f"Cannot exceed 24 months total retention (currently at {months_since_closure} months)"
+        # Check total retention doesn't exceed 24 months
+        new_total_months = self.retention_months + months
+        if new_total_months > 24:
+            raise ValueError(
+                f"Cannot exceed 24 months total retention "
+                f"(currently at {self.retention_months} months, "
+                f"trying to add {months} months)"
             )
 
-        self.deletion_date = self.closed_at + timedelta(days=total_months * 30)
+        # Update retention period and deletion date
+        self.retention_months = new_total_months
+        self.deletion_date = self.closed_at + timedelta(days=self.retention_months * 30)
         self.save()
 
         # Log extension (will create DataRetentionExtension model later)
@@ -623,8 +625,7 @@ class Survey(models.Model):
         """Check if retention can be extended."""
         if not self.closed_at:
             return False
-        months_since_closure = (timezone.now() - self.closed_at).days // 30
-        return months_since_closure < 24
+        return self.retention_months < 24
 
     @property
     def is_closed(self) -> bool:
