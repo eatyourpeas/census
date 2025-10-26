@@ -44,41 +44,39 @@ def survey(db, user, org):
 
 
 @pytest.fixture
-def survey_with_responses(db, survey):
+def survey_with_responses(db, survey, user):
     """Survey with question group, questions, and responses."""
     # Create question group
     group = QuestionGroup.objects.create(
         name="Demographics",
-        order=0,
+        owner=user,
     )
     group.surveys.add(survey)
     
     # Create questions
-    q1 = SurveyQuestion.objects.create(
-        questiongroup=group,
-        field_name="name",
-        label="Name",
-        question_type="text",
+    SurveyQuestion.objects.create(
+        survey=survey,
+        group=group,
+        text="Name",
+        type=SurveyQuestion.Types.TEXT,
         order=0,
     )
-    q2 = SurveyQuestion.objects.create(
-        questiongroup=group,
-        field_name="age",
-        label="Age",
-        question_type="number",
+    SurveyQuestion.objects.create(
+        survey=survey,
+        group=group,
+        text="Age",
+        type=SurveyQuestion.Types.TEXT,
         order=1,
     )
     
     # Create responses
     SurveyResponse.objects.create(
         survey=survey,
-        encrypted_data=b"mock_encrypted_data_1",
-        ip_address="192.168.1.1",
+        answers={"name": "John", "age": "30"},
     )
     SurveyResponse.objects.create(
         survey=survey,
-        encrypted_data=b"mock_encrypted_data_2",
-        ip_address="192.168.1.2",
+        answers={"name": "Jane", "age": "25"},
     )
     
     return survey
@@ -284,7 +282,7 @@ class TestRetentionService:
 
     def test_extend_retention_fails_for_unclosed_survey(self, survey, user):
         """Cannot extend retention for unclosed survey."""
-        with pytest.raises(ValueError, match="not closed"):
+        with pytest.raises(ValueError, match="unclosed"):
             RetentionService.extend_retention(survey, 3, user, "Too early")
 
     def test_extend_retention_fails_beyond_24_months(self, closed_survey, user):
@@ -352,14 +350,10 @@ class TestRetentionService:
         assert history[0].reason == "Second"
         assert history[1].reason == "First"
 
-    @patch('census_app.surveys.services.retention_service.timezone.now')
-    def test_process_automatic_deletions_soft_deletes(self, mock_now, closed_survey):
+    def test_process_automatic_deletions_soft_deletes(self, closed_survey):
         """Should soft delete surveys past their deletion date."""
-        now = timezone.now()
-        mock_now.return_value = now
-        
         # Set deletion date to yesterday
-        closed_survey.deletion_date = now - timedelta(days=1)
+        closed_survey.deletion_date = timezone.now() - timedelta(days=1)
         closed_survey.save()
         
         stats = RetentionService.process_automatic_deletions()
@@ -370,14 +364,10 @@ class TestRetentionService:
         closed_survey.refresh_from_db()
         assert closed_survey.deleted_at is not None
 
-    @patch('census_app.surveys.services.retention_service.timezone.now')
-    def test_process_automatic_deletions_skips_legal_hold(self, mock_now, closed_survey, user):
+    def test_process_automatic_deletions_skips_legal_hold(self, closed_survey, user):
         """Should skip surveys with active legal holds."""
-        now = timezone.now()
-        mock_now.return_value = now
-        
         # Set deletion date to yesterday
-        closed_survey.deletion_date = now - timedelta(days=1)
+        closed_survey.deletion_date = timezone.now() - timedelta(days=1)
         closed_survey.save()
         
         # Place legal hold

@@ -158,18 +158,15 @@ class RetentionService:
         }
         
         # Find surveys past their deletion_date (need soft deletion)
-        surveys_to_soft_delete = Survey.objects.filter(
+        # First, find all candidates
+        candidates_for_soft_delete = Survey.objects.filter(
             deletion_date__lte=now,
             deleted_at__isnull=True,
-            is_closed=True,
-        ).exclude(
-            # Skip surveys with active legal holds
-            legal_hold__isnull=False,
-            legal_hold__removed_at__isnull=True,
+            closed_at__isnull=False,  # Must be closed
         )
         
-        for survey in surveys_to_soft_delete:
-            # Double-check no active legal hold
+        for survey in candidates_for_soft_delete:
+            # Skip surveys with active legal holds
             if hasattr(survey, 'legal_hold') and survey.legal_hold.is_active:
                 stats['skipped_legal_hold'] += 1
                 continue
@@ -178,17 +175,13 @@ class RetentionService:
             stats['soft_deleted'] += 1
         
         # Find surveys past their hard_deletion_date (need permanent deletion)
-        surveys_to_hard_delete = Survey.objects.filter(
+        candidates_for_hard_delete = Survey.objects.filter(
             hard_deletion_date__lte=now,
             deleted_at__isnull=False,
-        ).exclude(
-            # Skip surveys with active legal holds
-            legal_hold__isnull=False,
-            legal_hold__removed_at__isnull=True,
         )
         
-        for survey in surveys_to_hard_delete:
-            # Double-check no active legal hold
+        for survey in candidates_for_hard_delete:
+            # Skip surveys with active legal holds
             if hasattr(survey, 'legal_hold') and survey.legal_hold.is_active:
                 stats['skipped_legal_hold'] += 1
                 continue
