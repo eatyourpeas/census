@@ -10,5 +10,12 @@ secret:
   # Path-level ignores. Prefer precise ignores over broad path exclusions.
   ignored_paths: []
 
+  # Show all secrets in test files to catch hardcoded test credentials
+  show_secrets: false
+
+  # Patterns to detect hardcoded passwords in test files
+  # This helps catch password="something" patterns that might slip through
+  ignored_detectors: []
+
 # Global options
 verbose: false
