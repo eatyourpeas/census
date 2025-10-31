@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Lint fixer for Census
+# Lint fixer for CheckTick
 # Runs Black, Ruff, and isort against the project root with auto-fix behavior
 
 set -euo pipefail

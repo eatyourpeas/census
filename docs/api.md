@@ -42,7 +42,7 @@ Notes:
 ## Throttling
 
 - Enabled via DRF: `AnonRateThrottle` and `UserRateThrottle`.
-- Rates configured in `census_app/settings.py` under `REST_FRAMEWORK.DEFAULT_THROTTLE_RATES`.
+- Rates configured in `checktick_app/settings.py` under `REST_FRAMEWORK.DEFAULT_THROTTLE_RATES`.
 
 ## CORS
 

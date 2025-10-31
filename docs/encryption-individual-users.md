@@ -1,6 +1,6 @@
 # Encryption for Individual Users
 
-This guide explains how encryption works for Census users who are not part of an organisation.
+This guide explains how encryption works for CheckTick users who are not part of an organisation.
 
 ## Overview
 
@@ -181,7 +181,7 @@ If you log in using Google or Microsoft Azure:
 ### How It Works
 
 1. Sign in with your Google or Microsoft account
-2. Census automatically unlocks your surveys
+2. CheckTick automatically unlocks your surveys
 3. Surveys remain unlocked for your session (30 minutes of inactivity)
 
 ### Setting Up Encryption with SSO
@@ -211,7 +211,7 @@ When you create a survey using SSO:
 ### Password Management
 
 ✅ **Do:**
-- Use a unique password for Census (don't reuse)
+- Use a unique password for CheckTick (don't reuse)
 - Use a password manager (1Password, Bitwarden, LastPass)
 - Choose passwords with 12+ characters
 - Include uppercase, lowercase, numbers, and symbols
@@ -276,11 +276,11 @@ This allows you to browse surveys and see basic information without unlocking.
 
 ### What happens if I forget both my password and recovery phrase?
 
-Unfortunately, your data **cannot be recovered**. Census uses end-to-end encryption, meaning we don't have access to your encryption keys. This ensures maximum privacy but requires you to manage your own keys.
+Unfortunately, your data **cannot be recovered**. CheckTick uses end-to-end encryption, meaning we don't have access to your encryption keys. This ensures maximum privacy but requires you to manage your own keys.
 
-### Can Census support help me recover my password?
+### Can CheckTick support help me recover my password?
 
-No. Census staff cannot access your encrypted data or reset your encryption password. This is by design to ensure your data privacy.
+No. CheckTick staff cannot access your encrypted data or reset your encryption password. This is by design to ensure your data privacy.
 
 ### How long does a session stay unlocked?
 
@@ -292,14 +292,14 @@ Currently, passwords and recovery phrases cannot be changed after survey creatio
 
 ### What encryption algorithm is used?
 
-Census uses **AES-256-GCM** (Advanced Encryption Standard with Galois/Counter Mode), which provides:
+CheckTick uses **AES-256-GCM** (Advanced Encryption Standard with Galois/Counter Mode), which provides:
 - 256-bit encryption keys (extremely secure)
 - Authenticated encryption (prevents tampering)
 - Industry-standard security used by banks and governments
 
 ### How are my keys derived from my password?
 
-Census uses **Scrypt** key derivation with these parameters:
+CheckTick uses **Scrypt** key derivation with these parameters:
 - Work factor: n=2^14 (16,384 iterations)
 - Block size: r=8
 - Parallelization: p=1
@@ -319,7 +319,7 @@ Yes. You can export survey responses while unlocked. The export will be unencryp
 
 ### What about backups?
 
-Census backups include only the encrypted data. Even our backup systems cannot decrypt your surveys without your password or recovery phrase.
+CheckTick backups include only the encrypted data. Even our backup systems cannot decrypt your surveys without your password or recovery phrase.
 
 ## Related Documentation
 

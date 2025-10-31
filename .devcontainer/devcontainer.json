@@ -1,5 +1,5 @@
 {
-  "name": "Census Development",
+  "name": "CheckTick Development",
   "dockerComposeFile": "../docker-compose.yml",
   "service": "web",
   "workspaceFolder": "/app",

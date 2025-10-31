@@ -8,7 +8,7 @@ The external datasets system allows dropdown questions to load options from exte
 
 ## Quick Start: Adding a Dataset from RCPCH API
 
-If your dataset comes from the same RCPCH NHS Organisations API (`https://api.rcpch.ac.uk/nhs-organisations/v1`), you only need to update 3 places in `census_app/surveys/external_datasets.py`:
+If your dataset comes from the same RCPCH NHS Organisations API (`https://api.rcpch.ac.uk/nhs-organisations/v1`), you only need to update 3 places in `checktick_app/surveys/external_datasets.py`:
 
 ### 1. Add to AVAILABLE_DATASETS
 
@@ -165,7 +165,7 @@ elif dataset_key == "welsh_lhbs":
 
 ### 1. Unit Tests
 
-Add tests to `census_app/api/tests/test_dataset_api.py`:
+Add tests to `checktick_app/api/tests/test_dataset_api.py`:
 
 ```python
 def get_mock_your_dataset_response():
@@ -199,7 +199,7 @@ def test_get_your_dataset_success(self):
 # In Django shell
 docker compose exec web python manage.py shell
 
-from census_app.surveys.external_datasets import fetch_dataset
+from checktick_app.surveys.external_datasets import fetch_dataset
 
 # Test your dataset
 result = fetch_dataset('your_dataset_key')

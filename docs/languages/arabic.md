@@ -183,7 +183,7 @@
 | :--- | :--- | :--- |
 | 1. | Organisation created. You are an organisation admin. | تم إنشاء المؤسسة. أنت مسؤول مؤسسة. |
 | 2. | Analyze | تحليل |
-| 3. | Census | الإحصاء |
+| 3. | CheckTick | الإحصاء |
 | 4. | Home | الرئيسية |
 | 5. | Distribute | توزيع |
 | 6. | Explore docs | استكشاف المستندات |

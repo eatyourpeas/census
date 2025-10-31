@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve our documentation! Clear docs help everyone use Census more effectively.
+        Thanks for helping improve our documentation! Clear docs help everyone use CheckTick more effectively.
 
   - type: dropdown
     id: doc-type
@@ -92,7 +92,7 @@ body:
       label: Additional Context
       description: Any other context about this documentation issue
       placeholder: |
-        - Your experience level with Census
+        - Your experience level with CheckTick
         - What you were trying to accomplish
         - Where you got stuck
         - Suggestions for better organization

@@ -1,10 +1,10 @@
 {
-  "name": "census-ui",
+  "name": "checktick-ui",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev:css": "tailwindcss -i ./census_app/static/css/daisyui_themes.css -o ./census_app/static/build/styles.css --watch",
-    "build:css": "tailwindcss -i ./census_app/static/css/daisyui_themes.css -o ./census_app/static/build/styles.css --minify"
+    "dev:css": "tailwindcss -i ./checktick_app/static/css/daisyui_themes.css -o ./checktick_app/static/build/styles.css --watch",
+    "build:css": "tailwindcss -i ./checktick_app/static/css/daisyui_themes.css -o ./checktick_app/static/build/styles.css --minify"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.18",

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Development environment startup script for Census
+# Development environment startup script for CheckTick
 # This script starts the local Docker Compose development environment
 # Usage: ./s/dev [--code] [--help]
 #   --code    Also opens VS Code after starting containers
@@ -18,7 +18,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help)
-            echo "Census Development Environment Startup"
+            echo "CheckTick Development Environment Startup"
             echo ""
             echo "Usage: $0 [OPTIONS]"
             echo ""
@@ -43,7 +43,7 @@ if [[ "${OPEN_VSCODE}" == "true" ]]; then
     OPEN_VSCODE=true
 fi
 
-echo "🚀 Starting Census development environment..."
+echo "🚀 Starting CheckTick development environment..."
 echo "📦 Using Dockerfile.dev for development setup"
 
 # Check if Docker is running

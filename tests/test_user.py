@@ -2,8 +2,8 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 import pytest
 
-from census_app.core.models import UserOIDC
-from census_app.surveys.models import Organization, OrganizationMembership, Survey
+from checktick_app.core.models import UserOIDC
+from checktick_app.surveys.models import Organization, OrganizationMembership, Survey
 
 TEST_PASSWORD = "ComplexTestPassword123!"
 

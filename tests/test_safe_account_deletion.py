@@ -12,13 +12,16 @@ from django.contrib.messages import get_messages
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from census_app.core.views import can_user_safely_delete_own_account
-from census_app.surveys.models import (
+from checktick_app.core.views import can_user_safely_delete_own_account
+from checktick_app.surveys.models import (
     Organization,
     OrganizationMembership,
     Survey,
     SurveyMembership,
 )
+
+TEST_PASSWORD = "x"
+
 
 User = get_user_model()
 
@@ -36,7 +39,7 @@ class SafeAccountDeletionTests(TestCase):
             owner=User.objects.create_user(
                 username="org_owner",
                 email="org_owner@example.com",
-                password="testpass123",
+                password=TEST_PASSWORD,
             ),
         )
 
@@ -44,23 +47,23 @@ class SafeAccountDeletionTests(TestCase):
         self.individual_user = User.objects.create_user(
             username="individual",
             email="individual@example.com",
-            password="testpass123",
+            password=TEST_PASSWORD,
         )
 
         self.org_user = User.objects.create_user(
-            username="org_user", email="org_user@example.com", password="testpass123"
+            username="org_user", email="org_user@example.com", password=TEST_PASSWORD
         )
 
         self.collaborator_user = User.objects.create_user(
             username="collaborator",
             email="collaborator@example.com",
-            password="testpass123",
+            password=TEST_PASSWORD,
         )
 
         self.survey_owner = User.objects.create_user(
             username="survey_owner",
             email="survey_owner@example.com",
-            password="testpass123",
+            password=TEST_PASSWORD,
         )
 
     def test_individual_user_can_safely_delete_account(self):

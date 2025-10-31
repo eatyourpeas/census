@@ -183,7 +183,7 @@
 | :--- | :--- | :--- |
 | 1. | Organisation created. You are an organisation admin. | Sefydliad wedi'i greu. Rydych chi'n weinyddwr sefydliad. |
 | 2. | Analyze | Dadansoddi |
-| 3. | Census | Cyfrifiad |
+| 3. | CheckTick | Cyfrifiad |
 | 4. | Home | Cartref |
 | 5. | Distribute | Dosbarthu |
 | 6. | Explore docs | Archwilio dogfennau |

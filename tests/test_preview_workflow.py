@@ -4,13 +4,15 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 import pytest
 
-from census_app.surveys.models import Organization, Survey, SurveyResponse
+from checktick_app.surveys.models import Organization, Survey, SurveyResponse
+
+TEST_PASSWORD = "x"
 
 
 @pytest.fixture
 def user(db):
     """Create a test user."""
-    return User.objects.create_user(username="testuser", password="testpass")
+    return User.objects.create_user(username="testuser", password=TEST_PASSWORD)
 
 
 @pytest.fixture

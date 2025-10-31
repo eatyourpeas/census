@@ -1,6 +1,6 @@
 # Self-Hosting Backup and Restore
 
-Protect your Census data with regular backups and disaster recovery procedures.
+Protect your CheckTick data with regular backups and disaster recovery procedures.
 
 ## Backup Strategy
 
@@ -18,28 +18,28 @@ A comprehensive backup strategy includes:
 
 ```bash
 # Create backup
-docker compose exec db pg_dump -U census census > census-backup-$(date +%Y%m%d-%H%M%S).sql
+docker compose exec db pg_dump -U checktick checktick > checktick-backup-$(date +%Y%m%d-%H%M%S).sql
 
 # Compress backup
-gzip census-backup-*.sql
+gzip checktick-backup-*.sql
 
 # Verify backup
-ls -lh census-backup-*.sql.gz
+ls -lh checktick-backup-*.sql.gz
 ```
 
 **With external database:**
 
 ```bash
 # Direct backup
-pg_dump postgresql://user:pass@external-host:5432/census > census-backup-$(date +%Y%m%d).sql
+pg_dump postgresql://user:pass@external-host:5432/checktick > checktick-backup-$(date +%Y%m%d).sql
 
 # Or using connection details
 PGPASSWORD=yourpassword pg_dump \
   -h external-host \
-  -U census \
-  -d census \
+  -U checktick \
+  -d checktick \
   -F c \
-  -f census-backup-$(date +%Y%m%d).backup
+  -f checktick-backup-$(date +%Y%m%d).backup
 ```
 
 ### Automated Backups
@@ -48,9 +48,9 @@ Create a backup script:
 
 ```bash
 #!/bin/bash
-# File: backup-census.sh
+# File: backup-checktick.sh
 
-BACKUP_DIR="/var/backups/census"
+BACKUP_DIR="/var/backups/checktick"
 DATE=$(date +%Y%m%d-%H%M%S)
 KEEP_DAYS=30
 
@@ -58,9 +58,9 @@ KEEP_DAYS=30
 mkdir -p $BACKUP_DIR
 
 # Backup database
-docker compose exec -T db pg_dump -U census census | gzip > "$BACKUP_DIR/db-$DATE.sql.gz"
+docker compose exec -T db pg_dump -U checktick checktick | gzip > "$BACKUP_DIR/db-$DATE.sql.gz"
 
-# Backup media files  
+# Backup media files
 docker compose cp web:/app/media "$BACKUP_DIR/media-$DATE"
 tar czf "$BACKUP_DIR/media-$DATE.tar.gz" "$BACKUP_DIR/media-$DATE"
 rm -rf "$BACKUP_DIR/media-$DATE"
@@ -81,10 +81,10 @@ echo "$(date): Backup completed - $BACKUP_DIR/db-$DATE.sql.gz"
 Make it executable and schedule:
 
 ```bash
-chmod +x backup-census.sh
+chmod +x backup-checktick.sh
 
 # Add to crontab (daily at 2 AM)
-(crontab -l; echo "0 2 * * * /path/to/backup-census.sh >> /var/log/census-backup.log 2>&1") | crontab -
+(crontab -l; echo "0 2 * * * /path/to/backup-checktick.sh >> /var/log/checktick-backup.log 2>&1") | crontab -
 ```
 
 ### Cloud Storage Backup
@@ -99,7 +99,7 @@ sudo apt-get install awscli
 aws configure
 
 # Add to backup script
-aws s3 cp "$BACKUP_DIR/db-$DATE.sql.gz" s3://your-bucket/census-backups/
+aws s3 cp "$BACKUP_DIR/db-$DATE.sql.gz" s3://your-bucket/checktick-backups/
 ```
 
 **Azure Blob Storage:**
@@ -114,7 +114,7 @@ az login
 # Upload backup
 az storage blob upload \
   --account-name youraccount \
-  --container-name census-backups \
+  --container-name checktick-backups \
   --name "db-$DATE.sql.gz" \
   --file "$BACKUP_DIR/db-$DATE.sql.gz"
 ```
@@ -150,14 +150,14 @@ docker compose down
 docker compose up -d db
 
 # Wait for database to be ready
-docker compose exec db pg_isready -U census
+docker compose exec db pg_isready -U checktick
 
 # Drop existing database (WARNING: destroys current data)
-docker compose exec db psql -U census -c "DROP DATABASE IF EXISTS census;"
-docker compose exec db psql -U census -c "CREATE DATABASE census;"
+docker compose exec db psql -U checktick -c "DROP DATABASE IF EXISTS checktick;"
+docker compose exec db psql -U checktick -c "CREATE DATABASE checktick;"
 
 # Restore from backup
-gunzip < census-backup-20250126.sql.gz | docker compose exec -T db psql -U census census
+gunzip < checktick-backup-20250126.sql.gz | docker compose exec -T db psql -U checktick checktick
 
 # Start application
 docker compose up -d
@@ -167,7 +167,7 @@ docker compose up -d
 
 ```bash
 # Restore only specific tables
-pg_restore -U census -d census -t specific_table backup.dump
+pg_restore -U checktick -d checktick -t specific_table backup.dump
 ```
 
 ### Media Files Restore
@@ -208,11 +208,11 @@ curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
 ```
 
-**Step 2: Download Latest Census**
+**Step 2: Download Latest CheckTick**
 
 ```bash
-mkdir census && cd census
-curl -O https://raw.githubusercontent.com/eatyourpeas/census/main/docker-compose.registry.yml
+mkdir checktick && cd checktick
+curl -O https://raw.githubusercontent.com/eatyourpeas/checktick/main/docker-compose.registry.yml
 ```
 
 **Step 3: Restore Configuration**
@@ -222,7 +222,7 @@ curl -O https://raw.githubusercontent.com/eatyourpeas/census/main/docker-compose
 scp old-server:/backups/.env .
 
 # Or download from cloud storage
-aws s3 cp s3://your-bucket/census-backups/env-latest .env
+aws s3 cp s3://your-bucket/checktick-backups/env-latest .env
 ```
 
 **Step 4: Start Database**
@@ -236,17 +236,17 @@ sleep 10  # Wait for database to initialize
 
 ```bash
 # Download backup
-aws s3 cp s3://your-bucket/census-backups/db-latest.sql.gz .
+aws s3 cp s3://your-bucket/checktick-backups/db-latest.sql.gz .
 
 # Restore
-gunzip < db-latest.sql.gz | docker compose exec -T db psql -U census census
+gunzip < db-latest.sql.gz | docker compose exec -T db psql -U checktick checktick
 ```
 
 **Step 6: Restore Media Files**
 
 ```bash
 # Download media backup
-aws s3 cp s3://your-bucket/census-backups/media-latest.tar.gz .
+aws s3 cp s3://your-bucket/checktick-backups/media-latest.tar.gz .
 
 # Restore to volume
 docker run --rm \
@@ -270,8 +270,8 @@ For external managed databases with point-in-time restore:
 
 ```bash
 aws rds restore-db-instance-to-point-in-time \
-  --source-db-instance-identifier census-db \
-  --target-db-instance-identifier census-db-restored \
+  --source-db-instance-identifier checktick-db \
+  --target-db-instance-identifier checktick-db-restored \
   --restore-time 2025-01-26T10:00:00Z
 ```
 
@@ -279,10 +279,10 @@ aws rds restore-db-instance-to-point-in-time \
 
 ```bash
 az postgres server restore \
-  --resource-group census-rg \
-  --name census-db-restored \
+  --resource-group checktick-rg \
+  --name checktick-db-restored \
   --restore-point-in-time "2025-01-26T10:00:00Z" \
-  --source-server census-db
+  --source-server checktick-db
 ```
 
 ## Backup Verification
@@ -298,20 +298,20 @@ LATEST_BACKUP=$(ls -t backups/db-*.sql.gz | head -1)
 echo "Testing backup: $LATEST_BACKUP"
 
 # Create test database
-docker compose exec db psql -U census -c "CREATE DATABASE census_test;"
+docker compose exec db psql -U checktick -c "CREATE DATABASE census_test;"
 
 # Restore to test database
-gunzip < $LATEST_BACKUP | docker compose exec -T db psql -U census census_test
+gunzip < $LATEST_BACKUP | docker compose exec -T db psql -U checktick census_test
 
 # Verify row counts
 echo "Survey count:"
-docker compose exec db psql -U census census_test -c "SELECT COUNT(*) FROM surveys_survey;"
+docker compose exec db psql -U checktick census_test -c "SELECT COUNT(*) FROM surveys_survey;"
 
 echo "User count:"
-docker compose exec db psql -U census census_test -c "SELECT COUNT(*) FROM core_user;"
+docker compose exec db psql -U checktick census_test -c "SELECT COUNT(*) FROM core_user;"
 
 # Cleanup
-docker compose exec db psql -U census -c "DROP DATABASE census_test;"
+docker compose exec db psql -U checktick -c "DROP DATABASE census_test;"
 
 echo "Backup verification complete!"
 ```
@@ -343,10 +343,10 @@ echo "Backup verification complete!"
 
 ```bash
 # Encrypt backup
-gpg --symmetric --cipher-algo AES256 census-backup.sql.gz
+gpg --symmetric --cipher-algo AES256 checktick-backup.sql.gz
 
 # Decrypt when needed
-gpg --decrypt census-backup.sql.gz.gpg > census-backup.sql.gz
+gpg --decrypt checktick-backup.sql.gz.gpg > checktick-backup.sql.gz
 ```
 
 - **Restrict access:**
@@ -364,13 +364,13 @@ Create a monitoring script:
 #!/bin/bash
 # Check if backup was created today
 
-BACKUP_DIR="/var/backups/census"
+BACKUP_DIR="/var/backups/checktick"
 TODAY=$(date +%Y%m%d)
 
 if ! ls $BACKUP_DIR/db-$TODAY-*.sql.gz 1> /dev/null 2>&1; then
     echo "ERROR: No backup found for today!"
     # Send alert email
-    echo "No Census backup created on $TODAY" | mail -s "Backup Alert" admin@example.com
+    echo "No CheckTick backup created on $TODAY" | mail -s "Backup Alert" admin@example.com
     exit 1
 fi
 
@@ -383,13 +383,13 @@ echo "Backup OK: Found backup for $TODAY"
 
 ```bash
 # Total database size
-docker compose exec db psql -U census -c "
-  SELECT pg_size_pretty(pg_database_size('census'));
+docker compose exec db psql -U checktick -c "
+  SELECT pg_size_pretty(pg_database_size('checktick'));
 "
 
 # Table sizes
-docker compose exec db psql -U census census -c "
-  SELECT 
+docker compose exec db psql -U checktick checktick -c "
+  SELECT
     schemaname,
     tablename,
     pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
@@ -406,9 +406,9 @@ For very large databases, consider archiving:
 
 ```bash
 # Export old survey responses (older than 1 year)
-docker compose exec db psql -U census census -c "
+docker compose exec db psql -U checktick checktick -c "
   COPY (
-    SELECT * FROM surveys_response 
+    SELECT * FROM surveys_response
     WHERE created_at < NOW() - INTERVAL '1 year'
   ) TO STDOUT CSV HEADER
 " > archived-responses-$(date +%Y%m%d).csv

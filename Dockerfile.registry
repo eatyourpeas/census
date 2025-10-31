@@ -30,7 +30,7 @@ COPY package.json tailwind.config.js postcss.config.js ./
 RUN npm install --no-audit --no-fund
 
 # Copy application code
-COPY census_app ./census_app
+COPY checktick_app ./checktick_app
 COPY manage.py ./
 COPY docs ./docs
 COPY CONTRIBUTING.md ./
@@ -40,10 +40,10 @@ RUN poetry install --only main --no-interaction --no-ansi
 RUN npm run build:css
 
 # Create non-root user for security
-RUN groupadd -r census && useradd -r -g census census && \
+RUN groupadd -r checktick && useradd -r -g checktick checktick && \
     mkdir -p /app/media /app/staticfiles && \
-    chown -R census:census /app
-USER census
+    chown -R checktick:checktick /app
+USER checktick
 
 # Expose port
 EXPOSE 8000
@@ -53,4 +53,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
 # Default command
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn census_app.wsgi:application --bind 0.0.0.0:8000 --workers 4"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn checktick_app.wsgi:application --bind 0.0.0.0:8000 --workers 4"]

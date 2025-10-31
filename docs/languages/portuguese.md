@@ -183,7 +183,7 @@
 | :--- | :--- | :--- |
 | 1. | Organisation created. You are an organisation admin. | Organização criada. Você é um administrador de organização. |
 | 2. | Analyze | Analisar |
-| 3. | Census | Censo/Recenseamento |
+| 3. | CheckTick | Censo/Recenseamento |
 | 4. | Home | Início |
 | 5. | Distribute | Distribuir |
 | 6. | Explore docs | Explorar documentos |

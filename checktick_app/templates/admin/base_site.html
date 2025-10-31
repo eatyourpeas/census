@@ -1,0 +1,79 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{#
+  Project-branded Django admin shell using DaisyUI/Tailwind.
+  - Injects our compiled CSS and font links
+  - Applies the selected theme via data-theme
+  - Replaces the header branding with the site icon + title
+ #}
+
+{% block title %}{{ brand.title }} admin{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  {% if brand.font_css_url %}<link href="{{ brand.font_css_url }}" rel="stylesheet">{% endif %}
+  <link rel="stylesheet" href="{% static 'build/styles.css' %}">
+  {% if brand.theme_css_light or brand.theme_css_dark %}
+  <style>
+    {% if brand.theme_css_light %}
+    [data-theme="checktick-light"] { {{ brand.theme_css_light|safe }} }
+    {% endif %}
+    {% if brand.theme_css_dark %}
+    [data-theme="checktick-dark"] { {{ brand.theme_css_dark|safe }} }
+    {% endif %}
+  </style>
+  {% endif %}
+  <meta name="checktick-theme" content="{{ brand.theme_name|default:'checktick-light' }}">
+  <style>
+    :root {
+      --font-heading: {{ brand.font_heading }};
+      --font-body: {{ brand.font_body }};
+    }
+    h1,h2,h3,h4,h5,h6,.font-heading { font-family: var(--font-heading); }
+    body, .font-body { font-family: var(--font-body); }
+  </style>
+  <script src="{% static 'js/admin-theme.js' %}"></script>
+{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/admin-overrides.css' %}">
+{% endblock %}
+
+{% block branding %}
+  <h1 id="site-name" class="m-0 p-0">
+  <a href="{% url 'admin:index' %}" class="inline-flex items-center gap-2 text-xl font-semibold text-base-content no-underline">
+      {% if brand.icon_url %}
+        <img src="{{ brand.icon_url }}" alt="{{ brand.icon_alt|default:brand.title }}" class="{{ brand.icon_size_class|default:'w-6 h-6' }}" />
+      {% else %}
+  {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-6 h-6 text-base-content' %}
+      {% endif %}
+      <span>{{ brand.title }}</span>
+      <span class="opacity-60">Admin</span>
+    </a>
+  </h1>
+{% endblock %}
+
+{# Optional: clear default global nav (breadcrumbs remain). #}
+{% block nav-global %}{% endblock %}
+
+{# Add a lightweight theme toggle to the header user links #}
+{% block userlinks %}
+  {{ block.super }}
+  <span class="px-1" aria-hidden="true">|</span>
+  <a
+    href="#"
+    id="admin-theme-toggle"
+    class="link"
+    role="button"
+    aria-label="Toggle color theme"
+    aria-pressed="false"
+    data-theme-toggle-label="Toggle theme"
+  >
+    Toggle theme
+  </a>
+  <span id="admin-theme-status" class="sr-only" aria-live="polite"></span>
+{% endblock %}

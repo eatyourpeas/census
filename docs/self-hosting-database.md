@@ -4,7 +4,7 @@ Choose between included PostgreSQL or external managed database services.
 
 ## Overview
 
-Census supports two database deployment options:
+CheckTick supports two database deployment options:
 
 1. **Included PostgreSQL** (Default) - Database runs in a Docker container
 2. **External Managed Database** - Use AWS RDS, Azure Database, Google Cloud SQL, etc.
@@ -39,12 +39,12 @@ In `.env`:
 
 ```bash
 # Database credentials (change password!)
-POSTGRES_DB=census
-POSTGRES_USER=census
+POSTGRES_DB=checktick
+POSTGRES_USER=checktick
 POSTGRES_PASSWORD=your-secure-password
 
 # Connection string (used by web container)
-DATABASE_URL=postgresql://census:your-secure-password@db:5432/census
+DATABASE_URL=postgresql://checktick:your-secure-password@db:5432/checktick
 ```
 
 ### Backups
@@ -69,7 +69,7 @@ See [Backup & Restore Guide](self-hosting-backup.md) for backup procedures.
 
 ### Supported Providers
 
-Census works with any PostgreSQL-compatible managed database service:
+CheckTick works with any PostgreSQL-compatible managed database service:
 
 - **AWS RDS** for PostgreSQL
 - **Azure Database** for PostgreSQL
@@ -95,11 +95,11 @@ Create a PostgreSQL database through your cloud provider:
 ```bash
 # Using AWS CLI
 aws rds create-db-instance \
-  --db-instance-identifier census-db \
+  --db-instance-identifier checktick-db \
   --db-instance-class db.t3.small \
   --engine postgres \
   --engine-version 16.1 \
-  --master-username census \
+  --master-username checktick \
   --master-user-password <secure-password> \
   --allocated-storage 20 \
   --backup-retention-period 7 \
@@ -111,10 +111,10 @@ aws rds create-db-instance \
 ```bash
 # Using Azure CLI
 az postgres server create \
-  --resource-group census-rg \
-  --name census-db \
+  --resource-group checktick-rg \
+  --name checktick-db \
   --location eastus \
-  --admin-user census \
+  --admin-user checktick \
   --admin-password <secure-password> \
   --sku-name GP_Gen5_2 \
   --storage-size 51200 \
@@ -123,7 +123,7 @@ az postgres server create \
 
 ### Step 2: Configure Firewall
 
-Allow connections from your Census server:
+Allow connections from your CheckTick server:
 
 **AWS RDS:**
 - Add inbound rule in security group for PostgreSQL (port 5432)
@@ -132,9 +132,9 @@ Allow connections from your Census server:
 **Azure:**
 ```bash
 az postgres server firewall-rule create \
-  --resource-group census-rg \
-  --server-name census-db \
-  --name AllowCensusServer \
+  --resource-group checktick-rg \
+  --server-name checktick-db \
+  --name AllowCheckTickServer \
   --start-ip-address <your-server-ip> \
   --end-ip-address <your-server-ip>
 ```
@@ -145,31 +145,31 @@ Your connection string format depends on the provider:
 
 **AWS RDS:**
 ```
-postgresql://census:password@census-db.abc123.us-east-1.rds.amazonaws.com:5432/census
+postgresql://checktick:password@checktick-db.abc123.us-east-1.rds.amazonaws.com:5432/checktick
 ```
 
 **Azure Database:**
 ```
-postgresql://census@census-db:password@census-db.postgres.database.azure.com:5432/census?sslmode=require
+postgresql://checktick@checktick-db:password@checktick-db.postgres.database.azure.com:5432/checktick?sslmode=require
 ```
 
 **Google Cloud SQL:**
 ```
-postgresql://census:password@/census?host=/cloudsql/project-id:region:instance-name
+postgresql://checktick:password@/checktick?host=/cloudsql/project-id:region:instance-name
 ```
 
-### Step 4: Update Census Configuration
+### Step 4: Update CheckTick Configuration
 
 Use the external database compose file:
 
 ```bash
 # Download external database compose file
-curl -O https://raw.githubusercontent.com/eatyourpeas/census/main/docker-compose.external-db.yml
+curl -O https://raw.githubusercontent.com/eatyourpeas/checktick/main/docker-compose.external-db.yml
 
 # Update .env with your connection string
-echo "DATABASE_URL=postgresql://user:pass@your-db-host:5432/census" >> .env
+echo "DATABASE_URL=postgresql://user:pass@your-db-host:5432/checktick" >> .env
 
-# Start Census (without local database)
+# Start CheckTick (without local database)
 docker compose -f docker-compose.external-db.yml up -d
 ```
 
@@ -240,7 +240,7 @@ SSL modes:
 
 ### Performance Settings
 
-Recommended PostgreSQL settings for Census:
+Recommended PostgreSQL settings for CheckTick:
 
 ```sql
 -- Connection settings
@@ -253,7 +253,7 @@ work_mem = 4MB
 wal_buffers = 16MB
 checkpoint_completion_target = 0.9
 
--- Query performance  
+-- Query performance
 random_page_cost = 1.1  # For SSD storage
 effective_io_concurrency = 200
 ```
@@ -264,12 +264,12 @@ effective_io_concurrency = 200
 
 ```bash
 # 1. Backup existing data
-docker compose exec db pg_dump -U census census > backup.sql
+docker compose exec db pg_dump -U checktick checktick > backup.sql
 
 # 2. Create external database (see above)
 
 # 3. Restore data
-psql postgresql://user:pass@external-host:5432/census < backup.sql
+psql postgresql://user:pass@external-host:5432/checktick < backup.sql
 
 # 4. Update .env with new DATABASE_URL
 
@@ -281,7 +281,7 @@ docker compose -f docker-compose.external-db.yml up -d
 
 ```bash
 # 1. Backup from external database
-pg_dump postgresql://user:pass@external-host:5432/census > backup.sql
+pg_dump postgresql://user:pass@external-host:5432/checktick > backup.sql
 
 # 2. Update .env (remove DATABASE_URL or use local connection)
 
@@ -292,7 +292,7 @@ docker compose -f docker-compose.registry.yml up -d
 docker compose exec db pg_isready
 
 # 5. Restore data
-cat backup.sql | docker compose exec -T db psql -U census census
+cat backup.sql | docker compose exec -T db psql -U checktick checktick
 ```
 
 ## Monitoring External Databases
@@ -302,7 +302,7 @@ cat backup.sql | docker compose exec -T db psql -U census census
 ```bash
 # View metrics
 aws rds describe-db-instances \
-  --db-instance-identifier census-db \
+  --db-instance-identifier checktick-db \
   --query 'DBInstances[0].[DBInstanceStatus,AllocatedStorage,Endpoint]'
 
 # Enable enhanced monitoring in AWS Console
@@ -313,7 +313,7 @@ aws rds describe-db-instances \
 ```bash
 # Check metrics
 az monitor metrics list \
-  --resource /subscriptions/<sub>/resourceGroups/census-rg/providers/Microsoft.DBforPostgreSQL/servers/census-db \
+  --resource /subscriptions/<sub>/resourceGroups/checktick-rg/providers/Microsoft.DBforPostgreSQL/servers/checktick-db \
   --metric cpu_percent \
   --interval PT1M
 ```

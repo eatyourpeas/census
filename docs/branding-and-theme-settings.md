@@ -2,13 +2,13 @@
 
 This guide lists configuration variables you can set to customize branding, themes, and behavior. Values are read from Django settings and the SiteBranding record (set via the Profile page).
 
-Note that Census is open source and designed be customisable. Themes can be applied at project or organisation level, but themes per survey can be overridden if necessary.
+Note that CheckTick is open source and designed be customisable. Themes can be applied at project or organisation level, but themes per survey can be overridden if necessary.
 
 ## Branding settings
 
-- BRAND_TITLE (str) — Default site title. Example: "Census"
+- BRAND_TITLE (str) — Default site title. Example: "CheckTick"
 - BRAND_ICON_URL (str) — URL or static path to the site icon shown in the navbar and as favicon if no uploaded icon.
-- BRAND_ICON_URL_DARK (str) — Optional dark-mode icon URL. Shown when the active theme contains `census-dark`.
+- BRAND_ICON_URL_DARK (str) — Optional dark-mode icon URL. Shown when the active theme contains `checktick-dark`.
 - BRAND_ICON_ALT (str) — Alt text for the brand icon. Defaults to BRAND_TITLE.
 - BRAND_ICON_TITLE (str) — Title/tooltip for the brand icon. Defaults to BRAND_TITLE.
 - BRAND_ICON_SIZE_CLASS (str) — Tailwind size classes for the icon. Example: "w-8 h-8".
@@ -16,7 +16,7 @@ Note that Census is open source and designed be customisable. Themes can be appl
 
 ## Theme settings
 
-- BRAND_THEME (str) — Default theme name. Example: "census-light".
+- BRAND_THEME (str) — Default theme name. Example: "checktick-light".
 - BRAND_FONT_HEADING (str) — CSS font stack for headings.
 - BRAND_FONT_BODY (str) — CSS font stack for body.
 - BRAND_FONT_CSS_URL (str) — Optional font CSS href (e.g., Google Fonts).
@@ -42,11 +42,11 @@ Notes:
 
 ## Where to look in the code
 
-- Base template: `census_app/templates/base.html`
-- Branding context: `census_app/context_processors.py` (builds the `brand` object)
-- Profile UI: `census_app/core/templates/core/profile.html`
-- Survey dashboard style form: `census_app/surveys/templates/surveys/dashboard.html`
-- Tailwind entry: `census_app/static/src/tailwind.css`
+- Base template: `checktick_app/templates/base.html`
+- Branding context: `checktick_app/context_processors.py` (builds the `brand` object)
+- Profile UI: `checktick_app/core/templates/core/profile.html`
+- Survey dashboard style form: `checktick_app/surveys/templates/surveys/dashboard.html`
+- Tailwind entry: `checktick_app/static/src/tailwind.css`
 
 ## Rebuilding the CSS
 

@@ -183,7 +183,7 @@
 | :--- | :--- | :--- |
 | 1. | Organisation created. You are an organisation admin. | تنظیم بن گئی۔ آپ تنظیمی ایڈمن ہیں۔ |
 | 2. | Analyze | تجزیہ کریں |
-| 3. | Census | مردم شماری |
+| 3. | CheckTick | مردم شماری |
 | 4. | Home | ہوم |
 | 5. | Distribute | تقسیم کریں |
 | 6. | Explore docs | دستاویزات دریافت کریں |

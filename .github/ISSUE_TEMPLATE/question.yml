@@ -1,14 +1,14 @@
 name: ❓ Question/Support
-description: Ask a question about using Census or get support
+description: Ask a question about using CheckTick or get support
 title: "[Question]: "
 labels: ["question", "support"]
 body:
   - type: markdown
     attributes:
       value: |
-        Have a question about Census? We're here to help!
+        Have a question about CheckTick? We're here to help!
 
-        **💡 Consider using [GitHub Discussions](https://github.com/eatyourpeas/census/discussions) instead!**
+        **💡 Consider using [GitHub Discussions](https://github.com/eatyourpeas/checktick/discussions) instead!**
 
         Discussions are often better for:
         - General questions and community support
@@ -16,7 +16,7 @@ body:
         - Sharing use cases and best practices
         - "How do I...?" questions
 
-        See our [Getting Help Guide](https://github.com/eatyourpeas/census/blob/main/docs/getting-help.md) for more guidance.
+        See our [Getting Help Guide](https://github.com/eatyourpeas/checktick/blob/main/docs/getting-help.md) for more guidance.
 
         **Before asking**: Please check our documentation in the `/docs` folder and search existing issues first.
 
@@ -55,7 +55,7 @@ body:
         - Developer/Technical User
         - System Administrator
         - End User/Survey Respondent
-        - Evaluating Census for adoption
+        - Evaluating CheckTick for adoption
         - Other
     validations:
       required: true
@@ -64,9 +64,9 @@ body:
     id: deployment
     attributes:
       label: Deployment Context
-      description: How are you using Census?
+      description: How are you using CheckTick?
       options:
-        - Hosted version (census.eatyourpeas.dev)
+        - Hosted version (checktick.eatyourpeas.dev)
         - Self-hosted (production)
         - Self-hosted (development/testing)
         - Local development
@@ -161,6 +161,6 @@ body:
         - 📚 **Documentation**: Check the `/docs` folder for detailed guides
         - 🔍 **Search**: Look through existing issues and discussions
         - 💬 **Community**: Engage with other users in discussions
-        - 🚀 **Hosted Service**: For hosted service support, mention you're using census.eatyourpeas.dev
+        - 🚀 **Hosted Service**: For hosted service support, mention you're using checktick.eatyourpeas.dev
 
-        We'll do our best to help you succeed with Census!
+        We'll do our best to help you succeed with CheckTick!

@@ -9,8 +9,10 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from census_app.surveys.models import Survey, SurveyResponse
-from census_app.surveys.utils import encrypt_sensitive
+from checktick_app.surveys.models import Survey, SurveyResponse
+from checktick_app.surveys.utils import encrypt_sensitive
+
+TEST_PASSWORD = "x"
 
 User = get_user_model()
 
@@ -21,10 +23,10 @@ class EncryptionIntegrationTest(TestCase):
     def setUp(self):
         """Set up test user and client."""
         self.user = User.objects.create_user(
-            username="testuser", email="test@example.com", password="testpass123"
+            username="testuser", email="test@example.com", password=TEST_PASSWORD
         )
         self.client = Client()
-        self.client.login(username="testuser", password="testpass123")
+        self.client.login(username="testuser", password=TEST_PASSWORD)
 
     def test_complete_encryption_workflow_password_unlock(self):
         """Test complete workflow: create survey → unlock with password → verify access."""
@@ -290,7 +292,7 @@ class EncryptionIntegrationTest(TestCase):
         # Create survey with legacy key hash/salt (use simple string like unit test)
         mock_legacy_key = b"test_key"
 
-        from census_app.surveys.utils import make_key_hash
+        from checktick_app.surveys.utils import make_key_hash
 
         key_hash, key_salt = make_key_hash(mock_legacy_key)
 

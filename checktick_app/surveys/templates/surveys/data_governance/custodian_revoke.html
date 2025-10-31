@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Revoke Custodian" %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h1 class="card-title">{% trans "Revoke Data Custodian Access" %}</h1>
+
+            <div class="alert alert-warning mb-4">
+                <span>{% trans "Revoke access for" %} <strong>{{ custodian.user.username }}</strong>?</span>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="card-actions justify-end gap-2">
+                    <a href="{% url 'surveys:dashboard' survey.slug %}" class="btn btn-ghost">{% trans "Cancel" %}</a>
+                    <button type="submit" class="btn btn-error">{% trans "Revoke Access" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,399 @@
+{% extends is_preview|default:False|yesno:'base.html,base_minimal.html' %}
+{% block head_theme_overrides %}
+  {% if survey.style.theme_css_light or survey.style.theme_css_dark %}
+  <style>
+    {% if survey.style.theme_css_light %}
+    [data-theme="checktick-light"] {
+      {{ survey.style.theme_css_light|safe }}
+    }
+    {% endif %}
+    {% if survey.style.theme_css_dark %}
+    [data-theme="checktick-dark"] {
+      {{ survey.style.theme_css_dark|safe }}
+    }
+    {% endif %}
+  </style>
+  {% endif %}
+  {% if survey.style.font_css_url %}
+    <link href="{{ survey.style.font_css_url }}" rel="stylesheet" />
+  {% endif %}
+{% endblock %}
+{% load survey_extras %}
+{% load static %}
+{% load i18n %}
+{% block title %}{{ survey.name }} - CheckTick{% endblock %}
+{% block content %}
+
+{% if is_preview %}
+<div role="alert" class="alert alert-warning mb-4">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+  </svg>
+  <div>
+    <h3 class="font-bold">{% trans "Preview Mode" %}</h3>
+    <div class="text-sm">{% trans "This is a read-only preview. You can complete the survey, but no data will be saved or stored." %}</div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card bg-primary image-full min-w-full shadow-sm">
+    <div class="card-body">
+        <h2 class="card-title inline-flex items-center gap-2">
+          {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
+          <span>{{ survey.name }}</span>
+        </h2>
+        <p class="opacity-70">{{ survey.description }}</p>
+    {% if user.is_authenticated and user == survey.owner %}
+      <div class="card-actions justify-end">
+        {% include 'components/breadcrumbs.html' with crumb1_label="Surveys" crumb1_href="/surveys/" crumb2_label="Survey Dashboard" crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb3_label=survey.name %}
+      </div>
+    {% endif %}
+        </div>
+</div>
+
+{% if survey.captcha_required and settings.HCAPTCHA_SITEKEY %}
+<div role="alert" class="alert alert-info mb-4">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-6 w-6 shrink-0 stroke-current">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+  </svg>
+  <span>{% trans "This survey requires CAPTCHA verification to prevent spam. You'll need to complete the CAPTCHA challenge before submitting." %}</span>
+</div>
+{% endif %}
+
+{# Template dropdown moved below with HR and label per UX #}
+
+<form method="post" class="space-y-4 mt-6">
+  {% csrf_token %}
+
+  {% for q in questions %}
+    {# Open a group card when this is the first item of the group #}
+    {% if q.group_start %}
+      <div class="card bg-base-100 shadow-sm mt-8">
+        <div class="card-body py-3">
+          <h3 class="card-title text-base inline-flex items-center gap-2">
+            {% include "components/icons/documents.html" with classes="w-5 h-5" %}
+            <span>{{ q.group.name }}</span>
+          </h3>
+          {% if q.group.description %}
+            <p class="text-sm opacity-70">{{ q.group.description }}</p>
+          {% endif %}
+        </div>
+        <div class="card-body pt-0">
+    {% endif %}
+
+    {# Render question inside the group card #}
+    <div class="mb-4">
+      <h2 class="font-semibold inline-flex items-center gap-2">
+        {% include "components/icons/document.html" with classes="w-4 h-4 opacity-70" %}
+        <span><span class="text-sm opacity-70 mr-2 select-none">{{ q.idx }}.</span> {{ q.text }} {% if q.required %}<span class="text-error">*</span>{% endif %}</span>
+      </h2>
+        {% if q.type == 'text' %}
+          {% with q.options|options_meta as meta %}
+            {% if meta and meta.format == 'number' %}
+              <input class="input input-bordered w-full" type="number" name="q_{{ q.id }}" />
+            {% else %}
+              <input class="input input-bordered w-full" type="text" name="q_{{ q.id }}" />
+            {% endif %}
+          {% endwith %}
+        {% elif q.type == 'mc_single' %}
+          {% for opt in q.options|as_list %}
+            {% with opt|option_value as opt_value %}
+            {% with opt|option_label as opt_label %}
+            <div class="space-y-2">
+              <label class="label cursor-pointer justify-start gap-2">
+                <input type="radio" class="radio" name="q_{{ q.id }}" value="{{ opt_value }}" data-followup-trigger="q_{{ q.id }}_{{ forloop.counter0 }}" />
+                <span>{{ opt_label }}</span>
+              </label>
+              {% if opt.followup_text and opt.followup_text.enabled %}
+                <div class="ml-7 hidden" data-followup-field="q_{{ q.id }}_{{ forloop.counter0 }}">
+                  <input type="text" class="input input-sm input-bordered w-full" name="q_{{ q.id }}_followup_{{ forloop.counter0 }}" placeholder="{{ opt.followup_text.label|default:'Please elaborate' }}" />
+                </div>
+              {% endif %}
+            </div>
+            {% endwith %}
+            {% endwith %}
+          {% endfor %}
+        {% elif q.type == 'mc_multi' %}
+          {% for opt in q.options|as_list %}
+            {% with opt|option_value as opt_value %}
+            {% with opt|option_label as opt_label %}
+            <div class="space-y-2">
+              <label class="label cursor-pointer justify-start gap-2">
+                <input type="checkbox" class="checkbox" name="q_{{ q.id }}" value="{{ opt_value }}" data-followup-trigger="q_{{ q.id }}_{{ forloop.counter0 }}" />
+                <span>{{ opt_label }}</span>
+              </label>
+              {% if opt.followup_text and opt.followup_text.enabled %}
+                <div class="ml-7 hidden" data-followup-field="q_{{ q.id }}_{{ forloop.counter0 }}">
+                  <input type="text" class="input input-sm input-bordered w-full" name="q_{{ q.id }}_followup_{{ forloop.counter0 }}" placeholder="{{ opt.followup_text.label|default:'Please elaborate' }}" />
+                </div>
+              {% endif %}
+            </div>
+            {% endwith %}
+            {% endwith %}
+          {% endfor %}
+        {% elif q.type == 'dropdown' %}
+          <select class="select select-bordered" name="q_{{ q.id }}" data-followup-select="q_{{ q.id }}">
+            <option value="">{% trans "-- Select --" %}</option>
+            {% for opt in q.options|as_list %}
+              <option value="{{ opt|option_value }}" data-followup-target="q_{{ q.id }}_{{ forloop.counter0 }}">{{ opt|option_label }}</option>
+            {% endfor %}
+          </select>
+          {% for opt in q.options|as_list %}
+            {% if opt.followup_text and opt.followup_text.enabled %}
+              <div class="mt-2 hidden" data-followup-field="q_{{ q.id }}_{{ forloop.counter0 }}">
+                <input type="text" class="input input-sm input-bordered w-full" name="q_{{ q.id }}_followup_{{ forloop.counter0 }}" placeholder="{{ opt.followup_text.label|default:'Please elaborate' }}" />
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% elif q.type == 'yesno' %}
+          <div class="space-y-2">
+            <select class="select select-bordered" name="q_{{ q.id }}" data-yesno-select="q_{{ q.id }}">
+              <option value="">{% trans "-- Select --" %}</option>
+              <option value="yes" data-followup-target="q_{{ q.id }}_yes">{% trans "Yes" %}</option>
+              <option value="no" data-followup-target="q_{{ q.id }}_no">{% trans "No" %}</option>
+            </select>
+            {% with q.options|as_list as yesno_opts %}
+              {% for opt in yesno_opts %}
+                {% if opt.value == "yes" and opt.followup_text and opt.followup_text.enabled %}
+                  <div class="mt-2 hidden" data-followup-field="q_{{ q.id }}_yes">
+                    <input type="text" class="input input-sm input-bordered w-full" name="q_{{ q.id }}_followup_yes" placeholder="{{ opt.followup_text.label|default:'Please elaborate' }}" />
+                  </div>
+                {% elif opt.value == "no" and opt.followup_text and opt.followup_text.enabled %}
+                  <div class="mt-2 hidden" data-followup-field="q_{{ q.id }}_no">
+                    <input type="text" class="input input-sm input-bordered w-full" name="q_{{ q.id }}_followup_no" placeholder="{{ opt.followup_text.label|default:'Please elaborate' }}" />
+                  </div>
+                {% endif %}
+              {% endfor %}
+            {% endwith %}
+          </div>
+        {% elif q.type == 'likert' %}
+          {% with q.options.0 as meta %}
+            {% if meta and meta.type == 'number-scale' %}
+              <div class="flex items-center gap-4">
+                {% if meta.left %}<span class="text-sm opacity-70 min-w-16 text-right">{{ meta.left }}</span>{% endif %}
+                <div class="flex-1">
+                  {% with min_val=meta.min|default:1 max_val=meta.max|default:5 %}
+                    {% widthratio min_val|add:max_val 2 1 as mid_val %}
+                    <input type="range" class="range range-primary w-full" min="{{ min_val }}" max="{{ max_val }}" step="1" value="{{ mid_val }}" name="q_{{ q.id }}" id="range_q_{{ q.id }}" />
+                    <div class="flex justify-between text-[11px] opacity-70 mt-1">
+                      <span>{{ min_val }}</span>
+                      <span id="range_value_q_{{ q.id }}" class="font-semibold text-primary">{{ mid_val }}</span>
+                      <span>{{ max_val }}</span>
+                    </div>
+                  {% endwith %}
+                </div>
+                {% if meta.right %}<span class="text-sm opacity-70 min-w-16">{{ meta.right }}</span>{% endif %}
+              </div>
+            {% else %}
+              {% if meta.labels %}
+                <div class="flex flex-wrap items-center gap-4">
+                  {% for opt in meta.labels %}
+                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                      <input type="radio" class="radio" name="q_{{ q.id }}" value="{{ opt }}" />
+                      <span class="text-sm">{{ opt }}</span>
+                    </label>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="flex flex-wrap items-center gap-4">
+                  {% for opt in q.options|as_list %}
+                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                      <input type="radio" class="radio" name="q_{{ q.id }}" value="{{ opt|option_value }}" />
+                      <span class="text-sm">{{ opt|option_label }}</span>
+                    </label>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endif %}
+          {% endwith %}
+        {% elif q.type == 'orderable' %}
+          <ol class="orderable-list list-decimal pl-5" data-name="q_{{ q.id }}">
+            {% for opt in q.options|as_list %}
+              <li class="flex items-center gap-2 py-1">
+                <button type="button" class="drag-handle inline-flex items-center justify-center w-7 h-7 mr-1 rounded-md text-primary border border-primary/30 hover:bg-primary/20 shrink-0 cursor-move" style="background-color: color-mix(in oklch, var(--p) 12%, transparent);" aria-label="Drag to reorder" title="Drag to reorder">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 48 48" fill="currentColor" aria-hidden="true" focusable="false">
+                    <title>drag-arrow</title>
+                    <g id="Layer_2" data-name="Layer 2">
+                      <g id="invisible_box" data-name="invisible box">
+                        <rect width="48" height="48" fill="none"/>
+                      </g>
+                      <g id="icons_Q2" data-name="icons Q2">
+                        <path d="M45.4,22.6l-5.9-6a2.1,2.1,0,0,0-2.7-.2,1.9,1.9,0,0,0-.2,3L39.2,22H26V8.8l2.6,2.6a1.9,1.9,0,0,0,3-.2,2.1,2.1,0,0,0-.2-2.7l-6-5.9a1.9,1.9,0,0,0-2.8,0l-6,5.9a2.1,2.1,0,0,0-.2,2.7,1.9,1.9,0,0,0,3,.2L22,8.8V22H8.8l2.6-2.6a1.9,1.9,0,0,0-.2-3,2.1,2.1,0,0,0-2.7.2l-5.9,6a1.9,1.9,0,0,0,0,2.8l5.9,6a2.1,2.1,0,0,0,2.7.2,1.9,1.9,0,0,0,.2-3L8.8,26H22V39.2l-2.6-2.6a1.9,1.9,0,0,0-3,.2,2.1,2.1,0,0,0,.2,2.7l6,5.9a1.9,1.9,0,0,0,2.8,0l6-5.9a2.1,2.1,0,0,0,.2-2.7,1.9,1.9,0,0,0-3-.2L26,39.2V26H39.2l-2.6,2.6a1.9,1.9,0,0,0,.2,3,2.1,2.1,0,0,0,2.7-.2l5.9-6A1.9,1.9,0,0,0,45.4,22.6Z"/>
+                      </g>
+                    </g>
+                  </svg>
+                </button>
+                <span class="flex-1">{{ opt|option_label }}</span>
+                <input type="hidden" name="q_{{ q.id }}" value="{{ opt|option_value }}" />
+              </li>
+            {% endfor %}
+          </ol>
+        {% elif q.type == 'template_patient' %}
+          <div class="space-y-2">
+            <p class="text-sm opacity-70 -mb-1">These responses are encrypted and only visible to the person entering them.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {% for field in q.options.fields %}
+                {% if field.selected %}
+                  <label class="input input-bordered input-sm flex items-center gap-1.5">
+                    <input class="grow min-w-0 bg-transparent outline-none border-0" name="q_{{ q.id }}_{{ field.key }}" placeholder="{{ field.label }}" />
+                    <svg class="!w-4 !h-4 opacity-50 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                      <g stroke-linejoin="round" stroke-linecap="round" stroke-width="2.5" fill="none" stroke="currentColor">
+                        <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path>
+                        <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                      </g>
+                    </svg>
+                  </label>
+                {% endif %}
+              {% endfor %}
+              {% if q.options.include_imd %}
+                <label class="input input-bordered input-sm flex items-center gap-1.5">
+                  <input class="grow min-w-0 bg-transparent outline-none border-0" placeholder="Index of Multiple Deprivation" disabled />
+                  <svg class="!w-4 !h-4 opacity-50 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <g stroke-linejoin="round" stroke-linecap="round" stroke-width="2.5" fill="none" stroke="currentColor">
+                      <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path>
+                      <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                    </g>
+                  </svg>
+                </label>
+              {% endif %}
+            </div>
+          </div>
+        {% elif q.type == 'template_professional' %}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for field in q.options.fields %}
+              {% if field.selected %}
+                <div class="space-y-1" data-professional-field="{{ field.key }}">
+                  {% if professional_field_datasets|dict_get:field.key %}
+                    {# Field has a dataset mapping - use dropdown #}
+                    <label class="label">
+                      <span class="label-text">{{ field.label }}</span>
+                    </label>
+                    <select
+                      class="select select-bordered select-sm w-full"
+                      name="q_{{ q.id }}_{{ field.key }}"
+                      data-dataset-field="{{ field.key }}"
+                      data-dataset-key="{{ professional_field_datasets|dict_get:field.key }}">
+                      <option value="">-- Select {{ field.label }} --</option>
+                      <option value="__loading__" disabled>Loading options...</option>
+                    </select>
+                  {% else %}
+                    {# Regular text input #}
+                    <label class="input input-bordered input-sm flex items-center gap-1.5">
+                      <input class="grow min-w-0 bg-transparent outline-none border-0" name="q_{{ q.id }}_{{ field.key }}" placeholder="{{ field.label }}" />
+                    </label>
+                  {% endif %}
+                  {% if field.allow_ods and field.ods_enabled %}
+                    <label class="input input-bordered input-sm flex items-center gap-1.5">
+                      <input class="grow min-w-0 bg-transparent outline-none border-0" name="q_{{ q.id }}_{{ field.key }}_ods" placeholder="{{ field.label }} ODS code" />
+                    </label>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <input class="input input-bordered w-full" type="text" name="q_{{ q.id }}" />
+        {% endif %}
+    </div>
+    {# Close the group card if this is the last question of the group #}
+    {% if q.group_end %}
+      </div></div>
+    {% endif %}
+  {% endfor %}
+
+  {% if show_patient_details %}
+    <div class="divider">Patient Demographics (encrypted)</div>
+    <p class="text-sm opacity-70 -mt-3 mb-2">These fields are encrypted at rest and never exported with identifiers.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for key,label in demographics_fields_with_labels %}
+        <label class="input input-bordered input-sm flex items-center gap-1.5">
+          <input class="grow min-w-0 bg-transparent outline-none border-0" name="{{ key }}" placeholder="{{ label }}" />
+          <svg class="h-1 w-1 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8">
+            <g stroke-linejoin="round" stroke-linecap="round" stroke-width="2.5" fill="none" stroke="currentColor">
+              <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path>
+              <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
+            </g>
+          </svg>
+        </label>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if show_professional_details %}
+    <div class="divider">{% trans "Professional details" %}</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for key in professional_fields %}
+        <div class="space-y-1" data-professional-field="{{ key }}">
+          {% if professional_field_datasets|dict_get:key %}
+            {# Field has a dataset mapping - use dropdown #}
+            <label class="label">
+              <span class="label-text">{{ professional_defs|dict_get:key }}</span>
+            </label>
+            <select
+              class="select select-bordered select-sm w-full"
+              name="prof_{{ key }}"
+              data-dataset-field="{{ key }}"
+              data-dataset-key="{{ professional_field_datasets|dict_get:key }}">
+              <option value="">-- Select {{ professional_defs|dict_get:key }} --</option>
+              <option value="__loading__" disabled>Loading options...</option>
+            </select>
+          {% else %}
+            {# Regular text input #}
+            <label class="input input-bordered input-sm flex items-center gap-1.5">
+              <input class="grow min-w-0 bg-transparent outline-none border-0" name="prof_{{ key }}" placeholder="{{ professional_defs|dict_get:key }}" />
+            </label>
+          {% endif %}
+          {% if professional_ods|dict_get:key %}
+          <label class="input input-bordered input-sm flex items-center gap-1.5">
+            <input class="grow min-w-0 bg-transparent outline-none border-0" name="prof_{{ key }}_ods" placeholder="{{ professional_defs|dict_get:key }} ODS code" />
+          </label>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if survey.captcha_required and settings.HCAPTCHA_SITEKEY %}
+    <div class="mt-4">
+      <div class="h-captcha" data-sitekey="{{ settings.HCAPTCHA_SITEKEY }}"></div>
+    </div>
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+  {% endif %}
+
+  {% if is_preview %}
+    <button class="btn btn-primary" type="submit">{% trans "Complete Preview" %}</button>
+  {% else %}
+    <button class="btn btn-primary" type="submit">{% trans "Submit" %}</button>
+  {% endif %}
+</form>
+
+<!-- DEBUG: Total questions = {{ questions|length }} -->
+{% for q in questions %}
+  <!-- DEBUG: Question {{ forloop.counter }}: type={{ q.type }}, text={{ q.text|truncatechars:50 }} -->
+{% endfor %}
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="{% static 'js/orderable.js' %}"></script>
+{# Load professional fields script if we have group-level OR question-level professional details #}
+<script src="{% static 'js/professional-fields.js' %}"></script>
+<script src="{% static 'js/followup-fields.js' %}"></script>
+
+<script nonce="{{ request.csp_nonce }}">
+  // Update displayed value for Likert scale range sliders
+  document.addEventListener('DOMContentLoaded', function() {
+    const rangeInputs = document.querySelectorAll('input[type="range"]');
+    rangeInputs.forEach(function(input) {
+      const questionId = input.id.replace('range_q_', '');
+      const valueDisplay = document.getElementById('range_value_q_' + questionId);
+
+      if (valueDisplay) {
+        // Update on input (real-time as user drags)
+        input.addEventListener('input', function() {
+          valueDisplay.textContent = this.value;
+        });
+      }
+    });
+  });
+</script>
+
+{% endblock %}

@@ -3,7 +3,7 @@
 **Total Strings:** 320 unique English strings
 **Last Updated:** January 2025
 
-This document contains every string that needs translation in the Census application, organized by category. Use this as a reference when creating translations for any language.
+This document contains every string that needs translation in the CheckTick application, organized by category. Use this as a reference when creating translations for any language.
 
 ---
 
@@ -242,7 +242,7 @@ Buttons, links, navigation elements, and UI controls.
 
 1. Organisation created. You are an organisation admin.
 2. Analyze
-3. Census
+3. CheckTick
 4. Home
 5. Distribute
 6. Explore docs

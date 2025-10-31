@@ -1,0 +1,582 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Profile" %} - CheckTick{% endblock %}
+{% block head_theme_overrides %}
+  <style>
+    /* Improve badge text visibility within typography (.prose) on this page */
+    .prose .badge { color: var(--bc); }
+    .prose .badge.badge-primary { color: var(--pc); }
+    .prose .badge.badge-secondary { color: var(--sc); }
+    .prose .badge.badge-accent { color: var(--ac); }
+    .prose .badge.badge-outline { color: var(--bc); }
+  </style>
+{% endblock %}
+{% block content %}
+<div class="prose">
+  <h1 class="inline-flex items-center gap-2 text-base-content">
+    {% include "components/icons/users.html" with classes="w-6 h-6 text-base-content" %}
+    <span>{% trans "Your Profile" %}</span>
+  </h1>
+  <p>{% blocktrans with username=request.user.username %}Signed in as <strong>{{ username }}</strong>{% endblocktrans %}</p>
+  {% if org %}
+  <h2 class="inline-flex items-center gap-2 text-base-content mt-2">
+    {% include "components/icons/building.html" with classes="w-5 h-5 text-base-content" %}
+    <span>{% blocktrans with org_name=org.name %}Your organisation: {{ org_name }}{% endblocktrans %}</span>
+  </h2>
+  {% endif %}
+</div>
+
+<div class="mt-6 max-w-2xl">
+  <div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+      <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+        {% include "components/icons/users.html" with classes="w-5 h-5 text-base-content" %}
+        <span>{% trans "Your badges" %}</span>
+      </h2>
+      <div class="flex flex-wrap gap-3 items-center mt-3">
+        {% if stats.is_superuser %}
+          {% trans "You have full administrative access to the platform" as tooltip_superuser %}
+          <div class="tooltip" data-tip="{{ tooltip_superuser }}">
+            <div class="indicator">
+              <div class="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/bolt.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.is_staff and not stats.is_superuser %}
+          {% trans "You have staff-level access to the platform" as tooltip_staff %}
+          <div class="tooltip" data-tip="{{ tooltip_staff }}">
+            <div class="indicator">
+              <div class="bg-secondary text-secondary-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/users.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.orgs_owned %}
+          <div class="tooltip" data-tip="{% blocktrans count orgs=stats.orgs_owned %}You own {{ orgs }} organization{% plural %}You own {{ orgs }} organizations{% endblocktrans %}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-primary text-xs">{{ stats.orgs_owned }}</span>
+              <div class="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/building.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.org_admin_count %}
+          <div class="tooltip" data-tip="{% blocktrans count orgs=stats.org_admin_count %}You are an administrator in {{ orgs }} organization{% plural %}You are an administrator in {{ orgs }} organizations{% endblocktrans %}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-accent text-xs">{{ stats.org_admin_count }}</span>
+              <div class="bg-accent text-accent-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/building.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.org_memberships %}
+          <div class="tooltip" data-tip="{% blocktrans count orgs=stats.org_memberships %}You are a member of {{ orgs }} organization{% plural %}You are a member of {{ orgs }} organizations{% endblocktrans %}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-neutral text-xs">{{ stats.org_memberships }}</span>
+              <div class="bg-neutral text-neutral-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/building.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.surveys_owned %}
+          <div class="tooltip" data-tip="{% blocktrans count surveys=stats.surveys_owned %}You own {{ surveys }} survey{% plural %}You own {{ surveys }} surveys{% endblocktrans %}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-primary text-xs">{{ stats.surveys_owned }}</span>
+              <div class="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.survey_creator_count %}
+          <div class="tooltip" data-tip="{% blocktrans count surveys=stats.survey_creator_count %}You are a creator on {{ surveys }} survey{% plural %}You are a creator on {{ surveys }} surveys{% endblocktrans %}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-info text-xs">{{ stats.survey_creator_count }}</span>
+              <div class="bg-info text-info-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.survey_viewer_count %}
+          <div class="tooltip" data-tip="{% blocktrans count surveys=stats.survey_viewer_count %}You can view {{ surveys }} survey{% plural %}You can view {{ surveys }} surveys{% endblocktrans %}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-neutral text-xs">{{ stats.survey_viewer_count }}</span>
+              <div class="bg-neutral text-neutral-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.groups_owned %}
+          <div class="tooltip" data-tip="{% blocktrans count groups=stats.groups_owned %}You have authored {{ groups }} question group{% plural %}You have authored {{ groups }} question groups{% endblocktrans %}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-success text-xs">{{ stats.groups_owned }}</span>
+              <div class="bg-success text-success-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/documents.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.responses_submitted %}
+          <div class="tooltip" data-tip="{% blocktrans count responses=stats.responses_submitted %}You have submitted {{ responses }} response to surveys{% plural %}You have submitted {{ responses }} responses to surveys{% endblocktrans %}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-warning text-xs">{{ stats.responses_submitted }}</span>
+              <div class="bg-warning text-warning-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/clipboard.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.tokens_created %}
+          <div class="tooltip" data-tip="{% blocktrans count tokens=stats.tokens_created %}You have created {{ tokens }} invitation token{% plural %}You have created {{ tokens }} invitation tokens{% endblocktrans %}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-error text-xs">{{ stats.tokens_created }}</span>
+              <div class="bg-error text-error-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/envelope.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.has_encryption_setup %}
+          {% trans "You have encryption enabled on your surveys with a user key for secure data collection" as tooltip_encryption %}
+          <div class="tooltip" data-tip="{{ tooltip_encryption }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-success text-xs">{% trans "Encrypted with User key" %}</span>
+              <div class="bg-success text-success-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/lock.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if stats.has_oidc_encryption %}
+          {% trans "Your surveys are automatically encrypted using your SSO identity" as tooltip_oidc_encryption %}
+          <div class="tooltip" data-tip="{{ tooltip_oidc_encryption }}">
+            <div class="indicator">
+              <span class="indicator-item badge badge-success text-xs">{% trans "Automatically encrypted" %}</span>
+              <div class="bg-success text-success-content rounded-full w-12 h-12 flex items-center justify-center">
+                {% include "components/icons/lock.html" with classes="w-6 h-6" %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+      <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+        {% include "components/icons/language.html" with classes="w-5 h-5 text-base-content" %}
+        <span>{% trans "Language" %}</span>
+      </h2>
+      <p class="opacity-80">{% trans "Choose your preferred language. This affects all text in the application." %}</p>
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_language" />
+        <div class="form-control max-w-xs">
+          {{ language_form.language }}
+        </div>
+        <button type="submit" class="btn btn-primary mt-4">{% trans "Save Language Preference" %}</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+      <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+        {% include "components/icons/bolt.html" with classes="w-5 h-5 text-base-content" %}
+        <span>{% trans "Appearance" %}</span>
+      </h2>
+      <p class="opacity-80">{% trans "Choose your theme. This only affects your view and is saved in your browser." %}</p>
+      <div class="form-control">
+        <span class="label"><span class="label-text">{% trans "Theme" %}</span></span>
+        <div class="dropdown">
+          <div id="theme-dropdown-btn" tabindex="0" role="button" class="btn w-48 justify-between">
+            <span id="theme-current-label">{% trans "System" %}</span>
+            <!-- caret handled by button styles -->
+          </div>
+          <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-10 w-48 p-2 shadow">
+            <li><button type="button" data-theme-choice="system">{% trans "System" %}</button></li>
+            <li><button type="button" data-theme-choice="checktick-light">{% trans "Light" %}</button></li>
+            <li><button type="button" data-theme-choice="checktick-dark">{% trans "Dark" %}</button></li>
+          </ul>
+        </div>
+        <noscript>
+          <div class="alert alert-warning mt-3">{% trans "Enable JavaScript to change theme." %}</div>
+        </noscript>
+      </div>
+    </div>
+  </div>
+
+  {% if email_prefs_form %}
+  <div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+      <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+        {% include "components/icons/envelope.html" with classes="w-5 h-5 text-base-content" %}
+        <span>Email Notification Preferences</span>
+      </h2>
+      <p class="opacity-80">Control which email notifications you receive. Note: Security-related emails (like password changes) are always sent for your account protection.</p>
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_email_prefs" />
+        <div class="space-y-4">
+          <div class="divider text-sm opacity-70">Account Notifications</div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_welcome_email }}
+              <span class="label-text">
+                <strong>Welcome emails</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_welcome_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_password_change_email }}
+              <span class="label-text">
+                <strong>Password change notifications</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_password_change_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+
+          <div class="divider text-sm opacity-70">Survey Notifications</div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_survey_created_email }}
+              <span class="label-text">
+                <strong>Survey created confirmations</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_survey_created_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_survey_deleted_email }}
+              <span class="label-text">
+                <strong>Survey deletion confirmations</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_survey_deleted_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_survey_published_email }}
+              <span class="label-text">
+                <strong>Survey published notifications</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_survey_published_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+
+          <div class="divider text-sm opacity-70">Team & Collaboration</div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_team_invitation_email }}
+              <span class="label-text">
+                <strong>Team invitations</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_team_invitation_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.send_survey_invitation_email }}
+              <span class="label-text">
+                <strong>Survey invitations</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.send_survey_invitation_email.help_text }}</span>
+              </span>
+            </label>
+          </div>
+
+          <div class="divider text-sm opacity-70">System Notifications (Future)</div>
+          <div class="alert alert-info text-sm">
+            <span>These settings will be used when logging and error notification features are implemented.</span>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.notify_on_error }}
+              <span class="label-text">
+                <strong>Error notifications</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.notify_on_error.help_text }}</span>
+              </span>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3">
+              {{ email_prefs_form.notify_on_critical }}
+              <span class="label-text">
+                <strong>Critical alerts</strong><br/>
+                <span class="text-sm opacity-70">{{ email_prefs_form.notify_on_critical.help_text }}</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="mt-6">
+          <button type="submit" class="btn btn-primary">Save Email Preferences</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if request.user.is_superuser %}
+  <div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+      <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+        {% include "components/icons/hammer_wrench.html" with classes="w-5 h-5 text-base-content" %}
+        <span>Project theme and brand (admins)</span>
+      </h2>
+      <p class="opacity-80">Paste DaisyUI Builder output (light and dark) to reskin the whole app. Fonts and icon apply globally.</p>
+      <div class="flex items-center gap-3 mb-3 flex-wrap">
+        <div class="flex items-center gap-2">
+          <span class="opacity-70">Current icon (light/default):</span>
+          {% if brand.icon_url %}
+            <img src="{{ brand.icon_url }}" alt="Current light icon" class="w-8 h-8 rounded" />
+          {% else %}
+            <span class="opacity-60">(fallback icon in use)</span>
+          {% endif %}
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="opacity-70">Current icon (dark):</span>
+          {% if brand.icon_url_dark %}
+            <img src="{{ brand.icon_url_dark }}" alt="Current dark icon" class="w-8 h-8 rounded" />
+          {% else %}
+            <span class="opacity-60">(using light/fallback)</span>
+          {% endif %}
+        </div>
+      </div>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_branding" />
+        <div class="grid md:grid-cols-2 gap-3">
+          <label class="form-control">
+            <span class="label"><span class="label-text">Default theme</span></span>
+            <select class="select select-bordered" name="default_theme">
+              <option value="checktick-light" {% if brand.theme_name == 'checktick-light' %}selected{% endif %}>CheckTick Light</option>
+              <option value="checktick-dark" {% if brand.theme_name == 'checktick-dark' %}selected{% endif %}>CheckTick Dark</option>
+            </select>
+          </label>
+          <label class="form-control">
+            <span class="label"><span class="label-text">Icon URL (optional)</span></span>
+            <input class="input input-bordered" name="icon_url" value="{{ sb.icon_url|default:'' }}" placeholder="https://... (overrides uploaded icon)" />
+          </label>
+          <label class="form-control">
+            <span class="label"><span class="label-text">Upload icon (SVG or PNG, optional)</span></span>
+            <input type="file" class="file-input file-input-bordered" name="icon_file" accept="image/svg+xml,image/png" />
+          </label>
+          <label class="form-control">
+            <span class="label"><span class="label-text">Dark icon URL (optional)</span></span>
+            <input class="input input-bordered" name="icon_url_dark" value="{{ sb.icon_url_dark|default:'' }}" placeholder="https://... (shown when dark theme active)" />
+          </label>
+          <label class="form-control">
+            <span class="label"><span class="label-text">Upload dark icon (SVG or PNG, optional)</span></span>
+            <input type="file" class="file-input file-input-bordered" name="icon_file_dark" accept="image/svg+xml,image/png" />
+          </label>
+          <label class="form-control">
+            <span class="label"><span class="label-text">Heading font (CSS stack)</span></span>
+            <input class="input input-bordered" name="font_heading" value="{{ brand.font_heading }}" placeholder="'Inter', ui-sans-serif, system-ui, ..." />
+          </label>
+          <label class="form-control">
+            <span class="label"><span class="label-text">Body font (CSS stack)</span></span>
+            <input class="input input-bordered" name="font_body" value="{{ brand.font_body }}" placeholder="Merriweather, ui-serif, Georgia, ..." />
+          </label>
+          <label class="form-control md:col-span-2">
+            <span class="label"><span class="label-text">Font CSS URL (e.g. Google Fonts)</span></span>
+            <input class="input input-bordered w-full" name="font_css_url" value="{{ brand.font_css_url }}" placeholder="https://fonts.googleapis.com/css2?..." />
+          </label>
+          <label class="form-control md:col-span-2">
+            <span class="label"><span class="label-text">Theme CSS (light) — paste variables from DaisyUI Builder</span></span>
+            <textarea class="textarea textarea-bordered h-36" name="theme_light_css" placeholder="--color-base-100: ...;\n--color-primary: ...;">{{ brand.theme_css_light }}</textarea>
+          </label>
+          <label class="form-control md:col-span-1">
+            <span class="label"><span class="label-text">Theme CSS (dark) — optional</span></span>
+            <textarea class="textarea textarea-bordered h-36" name="theme_dark_css" placeholder="--color-base-100: ...;\n--color-primary: ...;">{{ brand.theme_css_dark }}</textarea>
+          </label>
+        </div>
+        <div class="mt-3"><button type="submit" class="btn btn-primary">Save project theme</button></div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+  {% if not can_manage_any_users %}
+    <div class="card bg-base-100 shadow">
+      <div class="card-body">
+        <h2 class="card-title inline-flex items-center gap-2 text-base-content">
+          {% include "components/icons/building.html" with classes="w-5 h-5 text-base-content" %}
+          <span>Upgrade to organisation</span>
+        </h2>
+        <p class="opacity-80">Upgrading creates an organisation that you administer. You’ll be able to host surveys and build a team. Simple users cannot gain permissions inside someone else’s organisation, but you can create your own organisation at any time.</p>
+        <form method="post" class="space-y-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="upgrade_to_org" />
+          <label class="form-control">
+            <span class="label"><span class="label-text">Organisation name (optional)</span></span>
+            <input type="text" name="org_name" class="input input-bordered w-full" placeholder="e.g. Acme Health" />
+          </label>
+          <button type="submit" class="btn btn-primary">Create organisation</button>
+        </form>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info">You already have user management permissions.</div>
+  {% endif %}
+</div>
+
+<!-- Account Management Information -->
+<div class="mt-8 max-w-2xl">
+  {% if request.user.is_superuser %}
+    <!-- Superuser Administration Section -->
+    <div class="card bg-warning/10 border border-warning/20 shadow">
+      <div class="card-body">
+        <h2 class="card-title inline-flex items-center gap-2 text-warning">
+          {% include "components/icons/shield-exclamation.html" with classes="w-3 h-3 text-warning flex-shrink-0" %}
+          <span>{% trans "Superuser Administration" %}</span>
+        </h2>
+
+        <div class="alert alert-warning text-sm mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w- h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.962-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+          </svg>
+          <div>
+            <strong>{% trans "Administrator Access:" %}</strong>
+            {% trans "As a superuser, you can manage users and organizations through the Django Admin interface." %}
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="border border-warning/20 rounded-lg p-4">
+            <h3 class="font-semibold text-warning mb-2">{% trans "User Management" %}</h3>
+            <p class="text-sm opacity-80 mb-3">
+              {% trans "User accounts can only be deleted by superusers through the admin interface to maintain security and audit trails. Regular users cannot delete their own accounts to prevent accidental data loss." %}
+            </p>
+            <a href="/admin/auth/user/" class="btn btn-warning btn-outline btn-sm">
+              {% trans "Manage Users" %}
+            </a>
+          </div>
+
+          <div class="border border-warning/20 rounded-lg p-4">
+            <h3 class="font-semibold text-warning mb-2">{% trans "Organization Management" %}</h3>
+            <p class="text-sm opacity-80 mb-3">
+              {% trans "Organization deletion cascades to all associated surveys and data. This operation should only be performed by administrators after careful consideration." %}
+            </p>
+            <a href="/admin/surveys/organization/" class="btn btn-warning btn-outline btn-sm">
+              {% trans "Manage Organizations" %}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <!-- Regular User Information Section -->
+    <div class="card bg-info/10 border border-info/20 shadow">
+      <div class="card-body">
+        <h2 class="card-title inline-flex items-center gap-2 text-info">
+          <span style="width: 16px; height: 16px; flex-shrink: 0;">
+            {% include "components/icons/information-circle.html" with classes="w-4 h-4 text-info" %}
+          </span>
+          <span>{% trans "Account Information" %}</span>
+        </h2>
+
+        <div class="space-y-4">
+          <div class="border border-info/20 rounded-lg p-4">
+            <h3 class="font-semibold text-info mb-2">{% trans "Account Security" %}</h3>
+            <p class="text-sm opacity-80">
+              {% trans "Your account and data are protected. Only system administrators can perform account deletions to ensure data integrity and prevent accidental loss." %}
+            </p>
+          </div>
+
+          <div class="border border-info/20 rounded-lg p-4">
+            <h3 class="font-semibold text-info mb-2">{% trans "Data Management" %}</h3>
+            <p class="text-sm opacity-80 mb-3">
+              {% trans "You can manage your surveys and survey access through the appropriate sections above. For account-level changes, please contact your system administrator." %}
+            </p>
+            {% if stats.surveys_owned > 0 %}
+              <div class="text-sm opacity-70">
+                {% blocktrans with count=stats.surveys_owned %}
+                You currently own {{ count }} survey(s) that would be affected by account changes.
+                {% endblocktrans %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="border border-info/20 rounded-lg p-4">
+            <h3 class="font-semibold text-info mb-2">{% trans "Need Help?" %}</h3>
+            <p class="text-sm opacity-80">
+              {% trans "If you need to delete your account or have questions about data management, please contact your system administrator." %}
+            </p>
+          </div>
+
+          {% if can_safely_delete_account %}
+          <div class="border border-warning/20 rounded-lg p-4">
+            <h3 class="font-semibold text-warning mb-2">{% trans "Delete Account" %}</h3>
+            <p class="text-sm opacity-80 mb-3">
+              {% trans "As an individual user with no collaborators or organization memberships, you can safely delete your own account." %}
+            </p>
+            {% if stats.surveys_owned > 0 %}
+              <div class="alert alert-warning text-sm mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.962-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+                <div>
+                  <strong>{% trans "Warning:" %}</strong>
+                  {% blocktrans with count=stats.surveys_owned %}
+                  This will permanently delete your account and {{ count }} survey(s). This action cannot be undone.
+                  {% endblocktrans %}
+                </div>
+              </div>
+            {% endif %}
+            <button id="delete-account-btn" class="btn btn-warning btn-sm">
+              {% trans "Delete My Account" %}
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<script nonce="{{ request.csp_nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+  const deleteBtn = document.getElementById('delete-account-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', confirmAccountDeletion);
+  }
+});
+
+function confirmAccountDeletion() {
+  const surveysCount = {{ stats.surveys_owned|default:0 }};
+
+  let message = '{% trans "Are you sure you want to permanently delete your account?" %}\n\n{% trans "This will:" %}\n• {% trans "Permanently delete your account and profile" %}';
+
+  if (surveysCount > 0) {
+    message += `\n• {% trans "PERMANENTLY DELETE" %} ${surveysCount} {% trans "survey(s) you own" %}`;
+  }
+
+  message += '\n• {% trans "Remove all your data from the system" %}\n\n{% trans "This action cannot be undone." %}\n\n{% trans "Type" %} "DELETE MY ACCOUNT" {% trans "to confirm" %}:';
+
+  const confirmation = prompt(message);
+  if (confirmation === 'DELETE MY ACCOUNT') {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "core:delete_account" %}';
+
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrfmiddlewaretoken';
+    csrfToken.value = '{{ csrf_token }}';
+
+    form.appendChild(csrfToken);
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+</script>
+{% endblock %}

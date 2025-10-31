@@ -1,0 +1,33 @@
+{% extends is_preview|default:False|yesno:'base.html,base_minimal.html' %}
+{% load i18n %}
+{% load static %}
+{% block title %}{% trans "Thank you" %} - CheckTick{% endblock %}
+{% block content %}
+<div class="hero min-h-[40vh] bg-base-100 rounded-box">
+  <div class="hero-content text-center">
+    <div class="max-w-xl">
+      {% if not is_preview %}
+        {# Show brand icon/logo for public submissions #}
+        <div class="mb-6 flex justify-center">
+          {% if brand.icon_url %}
+            <a href="{% url 'core:home' %}">
+              <img src="{{ brand.icon_url }}" alt="{{ brand.icon_alt|default:brand.title }}" class="{{ brand.icon_size_class|default:'w-16 h-16' }}" />
+            </a>
+          {% else %}
+            <a href="{% url 'core:home' %}">
+              {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-16 h-16' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
+            </a>
+          {% endif %}
+        </div>
+      {% endif %}
+      <h1 class="text-3xl font-bold">{% trans "Thank you" %}</h1>
+      <p class="py-4 opacity-80">{% trans "Your response has been recorded." %}</p>
+      {% if is_preview and survey %}
+        <a href="/surveys/{{ survey.slug }}/take/" class="btn btn-primary">{% trans "Back to survey" %}</a>
+      {% elif not is_preview %}
+        <p class="text-sm opacity-60 mt-4">{% trans "You may now close this page" %}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

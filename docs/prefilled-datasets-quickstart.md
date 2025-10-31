@@ -2,7 +2,7 @@
 
 ## What's Already Done ✅
 
-1. **Service Layer**: `census_app/surveys/external_datasets.py`
+1. **Service Layer**: `checktick_app/surveys/external_datasets.py`
    - Fetches data from RCPCH API
    - Transforms responses to formatted options
    - 24-hour caching
@@ -30,7 +30,7 @@ EXTERNAL_DATASET_API_KEY=  # Leave empty
 
 ## Try It Out
 
-1. Log in to your Census app
+1. Log in to your CheckTick app
 2. Create or edit a survey
 3. Add a new question
 4. Set type to **"Dropdown (single choice)"**

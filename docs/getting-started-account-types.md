@@ -1,10 +1,10 @@
 # Account Types and Organization Setup
 
-This guide explains the differences between individual and organization accounts in Census, helping you choose the right option for your needs.
+This guide explains the differences between individual and organization accounts in CheckTick, helping you choose the right option for your needs.
 
 ## Account Types Overview
 
-Census offers two types of accounts, each designed for different use cases:
+CheckTick offers two types of accounts, each designed for different use cases:
 
 ### Individual Account 👤
 
@@ -55,7 +55,7 @@ Census offers two types of accounts, each designed for different use cases:
 **Example use cases:**
 - Personal health tracking
 - Small-scale research projects
-- Learning to use Census
+- Learning to use CheckTick
 - Independent consultants
 
 ### Choose Organization Account If:
@@ -170,7 +170,7 @@ If you start with an individual account, you can upgrade to an organization acco
 ### For Individual Accounts
 - Use the in-app help system
 - Check the [User Documentation](./getting-started.md)
-- Join the [Community Discussions](https://github.com/eatyourpeas/census/discussions)
+- Join the [Community Discussions](https://github.com/eatyourpeas/checktick/discussions)
 
 ### For Organization Accounts
 - All individual account resources, plus:
@@ -211,4 +211,4 @@ If you start with an individual account, you can upgrade to an organization acco
 
 ### Questions?
 
-Visit our [Community Discussions](https://github.com/eatyourpeas/census/discussions) or check the [FAQ section](./getting-started.md#frequently-asked-questions) for common questions about account types.
+Visit our [Community Discussions](https://github.com/eatyourpeas/checktick/discussions) or check the [FAQ section](./getting-started.md#frequently-asked-questions) for common questions about account types.

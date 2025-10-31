@@ -1,6 +1,6 @@
 # Data Export Guide
 
-This guide explains how to download survey data from Census, including who can download, when downloads are available, and what security measures are in place.
+This guide explains how to download survey data from CheckTick, including who can download, when downloads are available, and what security measures are in place.
 
 ## Prerequisites
 
@@ -328,7 +328,7 @@ You may **only** share downloaded data:
 
 **For questions about:**
 - **Permissions:** Contact your organization owner
-- **Technical issues:** [GitHub Issues](https://github.com/eatyourpeas/census/issues)
+- **Technical issues:** [GitHub Issues](https://github.com/eatyourpeas/checktick/issues)
 - **Data policy:** See [Data Policy](/docs/data-governance-policy/)
 - **Security concerns:** Contact your Data Protection Officer immediately
 

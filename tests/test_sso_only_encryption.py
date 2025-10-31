@@ -13,8 +13,8 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from census_app.core.models import UserOIDC
-from census_app.surveys.models import (
+from checktick_app.core.models import UserOIDC
+from checktick_app.surveys.models import (
     Organization,
     OrganizationMembership,
     QuestionGroup,
@@ -23,6 +23,7 @@ from census_app.surveys.models import (
 )
 
 User = get_user_model()
+TEST_PASSWORD = "x"
 
 
 def add_patient_data_group(survey):
@@ -46,7 +47,7 @@ class TestOrganizationSSORAutoEncryption(TestCase):
         """Set up test data."""
         # Create organization owner
         self.owner = User.objects.create_user(
-            username="owner", email="owner@example.com", password="testpass"
+            username="owner", email="owner@example.com", password=TEST_PASSWORD
         )
 
         # Create organization with master key
@@ -60,7 +61,7 @@ class TestOrganizationSSORAutoEncryption(TestCase):
 
         # Create SSO user who is org member
         self.sso_user = User.objects.create_user(
-            username="ssouser", email="sso@example.com", password="testpass"
+            username="ssouser", email="sso@example.com", password=TEST_PASSWORD
         )
         OrganizationMembership.objects.create(
             organization=self.org,
@@ -81,7 +82,7 @@ class TestOrganizationSSORAutoEncryption(TestCase):
     def test_org_sso_user_auto_encrypts_on_first_publish(self):
         """Organization SSO users should auto-encrypt without setup page."""
         # Login as SSO user
-        self.client.login(username="ssouser", password="testpass")
+        self.client.login(username="ssouser", password=TEST_PASSWORD)
 
         # Create draft survey in organization
         survey = Survey.objects.create(
@@ -135,7 +136,7 @@ class TestOrganizationSSORAutoEncryption(TestCase):
 
     def test_org_sso_user_sees_success_message(self):
         """Should see success message indicating auto-encryption."""
-        self.client.login(username="ssouser", password="testpass")
+        self.client.login(username="ssouser", password=TEST_PASSWORD)
 
         survey = Survey.objects.create(
             name="Org SSO Survey",
@@ -181,7 +182,7 @@ class TestIndividualSSOEncryptionChoice(TestCase):
         """Set up test data."""
         # Create individual SSO user (no organization)
         self.user = User.objects.create_user(
-            username="ssouser", email="sso@example.com", password="testpass"
+            username="ssouser", email="sso@example.com", password=TEST_PASSWORD
         )
 
         # Add OIDC record
@@ -193,7 +194,7 @@ class TestIndividualSSOEncryptionChoice(TestCase):
         )
 
         self.client = Client()
-        self.client.login(username="ssouser", password="testpass")
+        self.client.login(username="ssouser", password=TEST_PASSWORD)
 
     def test_individual_sso_user_redirected_to_encryption_setup(self):
         """Individual SSO users should see encryption setup page with choices."""
@@ -395,11 +396,11 @@ class TestPasswordUserEncryptionUnchanged(TestCase):
         """Set up test data."""
         # Create password user (no OIDC)
         self.user = User.objects.create_user(
-            username="passuser", email="pass@example.com", password="testpass"
+            username="passuser", email="pass@example.com", password=TEST_PASSWORD
         )
 
         self.client = Client()
-        self.client.login(username="passuser", password="testpass")
+        self.client.login(username="passuser", password=TEST_PASSWORD)
 
     def test_password_user_sees_password_form(self):
         """Password users should see traditional password form."""
@@ -501,7 +502,7 @@ class TestOrganizationPasswordUserEncryption(TestCase):
         """Set up test data."""
         # Create organization owner
         self.owner = User.objects.create_user(
-            username="owner", email="owner@example.com", password="testpass"
+            username="owner", email="owner@example.com", password=TEST_PASSWORD
         )
 
         # Create organization with master key
@@ -514,7 +515,7 @@ class TestOrganizationPasswordUserEncryption(TestCase):
 
         # Create password user (no OIDC) who is org member
         self.password_user = User.objects.create_user(
-            username="passuser", email="pass@example.com", password="testpass"
+            username="passuser", email="pass@example.com", password=TEST_PASSWORD
         )
         OrganizationMembership.objects.create(
             organization=self.org,
@@ -523,7 +524,7 @@ class TestOrganizationPasswordUserEncryption(TestCase):
         )
 
         self.client = Client()
-        self.client.login(username="passuser", password="testpass")
+        self.client.login(username="passuser", password=TEST_PASSWORD)
 
     def test_org_password_user_creates_all_encryption_paths(self):
         """Org password users should get password + recovery + org encryption."""
@@ -582,7 +583,7 @@ class TestSurveyHasAnyEncryption(TestCase):
     def setUp(self):
         """Set up test data."""
         self.user = User.objects.create_user(
-            username="testuser", email="test@example.com", password="testpass"
+            username="testuser", email="test@example.com", password=TEST_PASSWORD
         )
 
     def test_has_any_encryption_password_only(self):
@@ -595,7 +596,7 @@ class TestSurveyHasAnyEncryption(TestCase):
 
         kek = os.urandom(32)
         password = "TestPassword123"
-        from census_app.surveys.utils import generate_bip39_phrase
+        from checktick_app.surveys.utils import generate_bip39_phrase
 
         recovery_words = generate_bip39_phrase(12)
 

@@ -1,6 +1,6 @@
 # Self-Hosting Production Setup
 
-Complete guide for deploying Census in production with SSL, nginx, and security hardening.
+Complete guide for deploying CheckTick in production with SSL, nginx, and security hardening.
 
 ## Production Checklist
 
@@ -21,14 +21,14 @@ For production deployments, use nginx as a reverse proxy for SSL termination and
 
 ```bash
 # Download nginx compose overlay
-curl -O https://raw.githubusercontent.com/eatyourpeas/census/main/docker-compose.nginx.yml
+curl -O https://raw.githubusercontent.com/eatyourpeas/checktick/main/docker-compose.nginx.yml
 
 # Create nginx directory
 mkdir -p nginx
 cd nginx
 
 # Download nginx configuration
-curl -O https://raw.githubusercontent.com/eatyourpeas/census/main/nginx/nginx.conf
+curl -O https://raw.githubusercontent.com/eatyourpeas/checktick/main/nginx/nginx.conf
 
 cd ..
 ```
@@ -118,7 +118,7 @@ For Let's Encrypt certificates:
 sudo certbot renew --dry-run
 
 # Add to crontab
-(crontab -l 2>/dev/null; echo "0 0 1 * * certbot renew --quiet && cp /etc/letsencrypt/live/yourdomain.com/*.pem /path/to/census/nginx/ssl/ && docker compose restart nginx") | crontab -
+(crontab -l 2>/dev/null; echo "0 0 1 * * certbot renew --quiet && cp /etc/letsencrypt/live/yourdomain.com/*.pem /path/to/checktick/nginx/ssl/ && docker compose restart nginx") | crontab -
 ```
 
 ## Security Hardening
@@ -133,7 +133,7 @@ openssl rand -base64 32
 
 # Update in .env
 POSTGRES_PASSWORD=your-generated-password
-DATABASE_URL=postgresql://census:your-generated-password@db:5432/census
+DATABASE_URL=postgresql://checktick:your-generated-password@db:5432/checktick
 ```
 
 ### Enable CAPTCHA
@@ -156,7 +156,7 @@ In `nginx/nginx.conf`, rate limits are already configured:
 # Signup/login: 5 requests per minute
 limit_req_zone $binary_remote_addr zone=auth:10m rate=5r/m;
 
-# General API: 10 requests per second  
+# General API: 10 requests per second
 limit_req_zone $binary_remote_addr zone=general:10m rate=10r/s;
 ```
 
@@ -182,7 +182,7 @@ sudo ufw status
 ### Regular Updates
 
 ```bash
-# Update Census
+# Update CheckTick
 docker compose pull
 docker compose up -d
 
@@ -205,7 +205,7 @@ services:
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
-             gunicorn census_app.wsgi:application
+             gunicorn checktick_app.wsgi:application
              --bind 0.0.0.0:8000
              --workers 8
              --timeout 120"
@@ -219,7 +219,7 @@ For high-traffic deployments, add to `.env`:
 
 ```bash
 # Connection pooling (requires pgbouncer)
-DATABASE_URL=postgresql://census:password@pgbouncer:6432/census
+DATABASE_URL=postgresql://checktick:password@pgbouncer:6432/checktick
 ```
 
 ### Static File Caching
@@ -237,7 +237,7 @@ location /static/ {
 
 ### Health Checks
 
-Census includes a health check endpoint:
+CheckTick includes a health check endpoint:
 
 ```bash
 # Check application health
@@ -263,10 +263,10 @@ docker compose logs nginx | grep -v health
 
 ```bash
 # Check database size
-docker compose exec db psql -U census -c "SELECT pg_size_pretty(pg_database_size('census'));"
+docker compose exec db psql -U checktick -c "SELECT pg_size_pretty(pg_database_size('checktick'));"
 
 # Active connections
-docker compose exec db psql -U census -c "SELECT count(*) FROM pg_stat_activity;"
+docker compose exec db psql -U checktick -c "SELECT count(*) FROM pg_stat_activity;"
 ```
 
 ## Scaling Considerations

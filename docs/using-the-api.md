@@ -4,7 +4,7 @@ This guide provides comprehensive documentation for creating and managing survey
 
 ## Question Types
 
-Census supports the following question types when creating surveys via the API:
+CheckTick supports the following question types when creating surveys via the API:
 
 ### Text (`text`)
 

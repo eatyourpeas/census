@@ -1,0 +1,65 @@
+{% extends 'base_minimal.html' %}
+{% load i18n %}
+{% load static %}
+{% block title %}{% trans "Survey Closed" %} - CheckTick{% endblock %}
+{% block content %}
+<div class="hero min-h-[60vh] bg-base-100 rounded-box">
+  <div class="hero-content text-center">
+    <div class="max-w-xl">
+      {# Show brand icon/logo #}
+      <div class="mb-6 flex justify-center">
+        {% if brand.icon_url %}
+          <a href="{% url 'core:home' %}">
+            <img src="{{ brand.icon_url }}" alt="{{ brand.icon_alt|default:brand.title }}" class="{{ brand.icon_size_class|default:'w-16 h-16' }}" />
+          </a>
+        {% else %}
+          <a href="{% url 'core:home' %}">
+            {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-16 h-16' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
+          </a>
+        {% endif %}
+      </div>
+
+      <div class="alert alert-warning mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-6 w-6 shrink-0 stroke-current">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+        <span class="font-semibold">{% trans "Survey Closed" %}</span>
+      </div>
+
+      <h1 class="text-3xl font-bold mb-4">{% trans "Thank you for your interest" %}</h1>
+
+      {% if reason == 'ended' %}
+        <p class="py-4 opacity-80">
+          {% trans "This survey has ended and is no longer accepting responses." %}
+        </p>
+      {% elif reason == 'not_started' %}
+        <p class="py-4 opacity-80">
+          {% trans "This survey has not yet started accepting responses." %}
+        </p>
+      {% elif reason == 'max_responses' %}
+        <p class="py-4 opacity-80">
+          {% trans "This survey has reached its maximum number of responses and is no longer accepting new submissions." %}
+        </p>
+      {% elif reason == 'token_expired' %}
+        <p class="py-4 opacity-80">
+          {% trans "This invite link has expired or has already been used." %}
+        </p>
+      {% elif reason == 'token_used' %}
+        <p class="py-4 opacity-80">
+          {% trans "This invite link has already been used to submit a response." %}
+        </p>
+      {% else %}
+        <p class="py-4 opacity-80">
+          {% trans "This survey is currently closed and not accepting responses." %}
+        </p>
+      {% endif %}
+
+      <p class="text-sm opacity-60 mt-6">
+        {% trans "If you believe this is an error, please contact the survey organizer." %}
+      </p>
+
+      <p class="text-sm opacity-60 mt-4">{% trans "You may now close this page" %}</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -183,7 +183,7 @@
 | :--- | :--- | :--- |
 | 1. | Organisation created. You are an organisation admin. | 组织机构已创建。您是组织机构管理员。 |
 | 2. | Analyze | 分析 |
-| 3. | Census | 人口普查/调查 |
+| 3. | CheckTick | 人口普查/调查 |
 | 4. | Home | 首页 |
 | 5. | Distribute | 分发 |
 | 6. | Explore docs | 探索文档 |

@@ -4,7 +4,7 @@ This document explains how users authenticate and what they can access in the sy
 
 ## Authentication
 
-Census supports multiple authentication methods for healthcare environments:
+CheckTick supports multiple authentication methods for healthcare environments:
 
 ### Traditional Authentication
 - Web UI uses Django session authentication with CSRF protection.
@@ -14,7 +14,7 @@ Census supports multiple authentication methods for healthcare environments:
 
 ### Healthcare SSO (Single Sign-On)
 
-Census integrates with OIDC providers for seamless clinician authentication:
+CheckTick integrates with OIDC providers for seamless clinician authentication:
 
 #### Supported Providers
 
@@ -54,7 +54,7 @@ This comprehensive guide covers:
 
 ## Identity and roles
 
-There are four key models in `census_app.surveys.models`:
+There are four key models in `checktick_app.surveys.models`:
 
 - Organization: a container for users and surveys.
 - OrganizationMembership: links a user to an organization with a role.
@@ -103,7 +103,7 @@ This enables teams to collaborate on survey design while maintaining clear bound
 
 ## Enforcement in server-side views (SSR)
 
-The central authorization checks live in `census_app/surveys/permissions.py`:
+The central authorization checks live in `checktick_app/surveys/permissions.py`:
 
 - `can_view_survey(user, survey)` — True if user is the survey owner, an ADMIN of the survey's organization, or has survey membership (CREATOR, EDITOR, or VIEWER)
 - `can_edit_survey(user, survey)` — True if user is the survey owner, an ADMIN of the survey's organization, or has survey membership as CREATOR or EDITOR
@@ -185,7 +185,7 @@ curl -s -X POST -H "Content-Type: application/json" \
 
 ## Error Pages and User Experience
 
-Census provides styled error pages for common authentication and permission failures, ensuring users receive helpful feedback when access is denied or issues occur:
+CheckTick provides styled error pages for common authentication and permission failures, ensuring users receive helpful feedback when access is denied or issues occur:
 
 ### Custom Error Templates
 

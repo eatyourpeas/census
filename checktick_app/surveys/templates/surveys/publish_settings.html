@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto max-w-5xl px-4 py-6">
+  <div class="prose mb-6">
+    {% trans "Surveys" as bc_surveys %}
+    {% trans "Survey Dashboard" as bc_survey_dashboard %}
+    {% trans "Publication Settings" as bc_publish_settings %}
+    {% include 'components/breadcrumbs.html' with crumb1_label=bc_surveys crumb1_href="/surveys/" crumb2_label=bc_survey_dashboard crumb2_href="/surveys/"|add:survey.slug|add:"/dashboard/" crumb3_label=bc_publish_settings %}
+  </div>
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold mb-2">
+      {% if survey.status == 'published' %}
+        {% trans "Edit Publication Settings" %}
+      {% else %}
+        {% trans "Publish Survey" %}
+      {% endif %}
+    </h1>
+    <p class="text-lg opacity-70">{{ survey.name }}</p>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} mb-4">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <form method="post" id="publish-form">
+        {% csrf_token %}
+
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label class="label flex items-center gap-2">
+              <span class="label-text font-semibold">{% trans "Visibility" %}</span>
+              <a class="tooltip tooltip-right" data-tip="{% trans 'Authenticated: login required · Public: open link · Unlisted: secret link · Invite token: one-time codes' %}" href="{% url 'core:docs_page' slug='publish-and-collection' %}">
+                <span class="link link-hover text-sm">{% trans "What's this?" %}</span>
+              </a>
+            </label>
+            <select class="select select-bordered w-full" name="visibility" required>
+              <option value="authenticated" {% if survey.visibility == 'authenticated' %}selected{% endif %}>{% trans "Authenticated" %}</option>
+              <option value="public" {% if survey.visibility == 'public' %}selected{% endif %}>{% trans "Public" %}</option>
+              <option value="unlisted" {% if survey.visibility == 'unlisted' %}selected{% endif %}>{% trans "Unlisted" %}</option>
+              <option value="token" {% if survey.visibility == 'token' %}selected{% endif %}>{% trans "Invite token" %}</option>
+            </select>
+            <label class="label">
+              <span class="label-text-alt opacity-70">{% trans "Who can access this survey" %}</span>
+            </label>
+          </div>
+
+          <div>
+            <label class="label">
+              <span class="label-text font-semibold">{% trans "Max responses" %}</span>
+            </label>
+            <input class="input input-bordered w-full" name="max_responses" type="number" min="1" value="{{ survey.max_responses }}" placeholder="{% trans 'Unlimited' %}" />
+            <label class="label">
+              <span class="label-text-alt opacity-70">{% trans "Leave blank for unlimited" %}</span>
+            </label>
+          </div>
+
+          <div>
+            <label class="label">
+              <span class="label-text font-semibold">{% trans "Start at" %}</span>
+            </label>
+            <input class="input input-bordered w-full" name="start_at" type="datetime-local" value="{% if survey.start_at %}{{ survey.start_at|date:'Y-m-d\\TH:i' }}{% endif %}" />
+            <label class="label">
+              <span class="label-text-alt opacity-70">{% trans "Leave blank to start immediately" %}</span>
+            </label>
+          </div>
+
+          <div>
+            <label class="label">
+              <span class="label-text font-semibold">{% trans "End at" %}</span>
+            </label>
+            <input class="input input-bordered w-full" name="end_at" type="datetime-local" value="{% if survey.end_at %}{{ survey.end_at|date:'Y-m-d\\TH:i' }}{% endif %}" />
+            <label class="label">
+              <span class="label-text-alt opacity-70">{% trans "Leave blank for no end date" %}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-control mb-6" id="invite-emails-section" style="display: none;">
+          <label class="label">
+            <span class="label-text font-semibold">{% trans "Send invite emails" %}</span>
+          </label>
+          <textarea
+            class="textarea textarea-bordered w-full h-32"
+            name="invite_emails"
+            placeholder="{% trans 'Enter email addresses, one per line' %}&#10;example1@email.com&#10;example2@email.com"
+          ></textarea>
+          <label class="label">
+            <span class="label-text-alt opacity-70">{% trans "Enter one email address per line. A unique one-time invitation link will be sent to each address." %}</span>
+          </label>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="space-y-4 mb-6">
+          <div class="form-control">
+            <label class="cursor-pointer flex items-start gap-3">
+              <input type="checkbox" class="checkbox mt-0.5" name="captcha_required" {% if survey.captcha_required %}checked{% endif %} />
+              <div>
+                <span class="label-text font-medium">{% trans "Require CAPTCHA for anonymous submissions" %}</span>
+                <p class="text-sm opacity-70 mt-1">{% trans "Helps prevent automated spam submissions" %}</p>
+              </div>
+            </label>
+          </div>
+
+          <div class="form-control" id="patient-data-warning">
+            <div class="alert alert-warning">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div class="flex-1">
+                <label class="cursor-pointer flex items-start gap-3">
+                  <input type="checkbox" class="checkbox checkbox-warning border-white mt-0.5" name="no_patient_data_ack" id="no_patient_data" {% if survey.no_patient_data_ack %}checked{% endif %} required />
+                  <span class="text-sm">{% blocktrans %}I confirm no <strong>patient-identifiable data</strong> is collected in this survey. This is required when using Public, Unlisted, or Token visibility to prevent unauthorised access.{% endblocktrans %}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="flex items-center justify-between gap-4">
+          <a href="{% url 'surveys:dashboard' slug=survey.slug %}" class="btn btn-ghost">{% trans "Cancel" %}</a>
+          <div class="flex gap-2">
+            {% if survey.status == 'published' %}
+              <button type="submit" name="action" value="save" class="btn btn-primary">
+                {% trans "Save Changes" %}
+              </button>
+              <button type="submit" name="action" value="close" class="btn btn-error btn-outline">
+                {% trans "Close Survey" %}
+              </button>
+            {% else %}
+              <button type="submit" name="action" value="publish" class="btn btn-primary btn-lg" id="publish-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                {% trans "Publish Survey" %}
+              </button>
+            {% endif %}
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="mt-6">
+    <div class="alert alert-info">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div>
+        <h3 class="font-bold">{% trans "Publication Tips" %}</h3>
+        <ul class="list-disc list-inside text-sm mt-2 space-y-1">
+          <li>{% trans "Set a start date for scheduled surveys, or leave blank to start immediately" %}</li>
+          <li>{% trans "Use 'Unlisted' for semi-private surveys shared via link" %}</li>
+          <li>{% trans "Use 'Invite token' to control exactly who can submit" %}</li>
+          <li>{% trans "Consider enabling CAPTCHA for public surveys to prevent spam" %}</li>
+        </ul>
+        <a href="{% url 'core:docs_page' slug='publish-and-collection' %}" class="link link-primary text-sm mt-2 inline-block">{% trans "Learn more about publication settings" %}</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script nonce="{{ request.csp_nonce }}">
+(function() {
+  const visibilitySelect = document.querySelector('select[name="visibility"]');
+  const patientDataWarning = document.getElementById('patient-data-warning');
+  const noPatientDataCheckbox = document.getElementById('no_patient_data');
+  const inviteEmailsSection = document.getElementById('invite-emails-section');
+  const publishForm = document.getElementById('publish-form');
+
+  function updatePatientDataWarning() {
+    const requiresAck = ['public', 'unlisted', 'token'].includes(visibilitySelect.value);
+    if (requiresAck) {
+      patientDataWarning.style.display = 'block';
+      noPatientDataCheckbox.required = true;
+    } else {
+      patientDataWarning.style.display = 'none';
+      noPatientDataCheckbox.required = false;
+    }
+  }
+
+  function updateInviteEmailsSection() {
+    if (visibilitySelect.value === 'token') {
+      inviteEmailsSection.style.display = 'block';
+    } else {
+      inviteEmailsSection.style.display = 'none';
+    }
+  }
+
+  function updateVisibility() {
+    updatePatientDataWarning();
+    updateInviteEmailsSection();
+  }
+
+  visibilitySelect.addEventListener('change', updateVisibility);
+  updateVisibility();
+
+  // Handle close survey confirmation
+  publishForm.addEventListener('submit', function(e) {
+    const actionButton = document.activeElement;
+    if (actionButton && actionButton.name === 'action' && actionButton.value === 'close') {
+      e.preventDefault();
+
+      const retentionMonths = {{ survey.retention_months|default:12 }};
+      const message = `{% trans "Are you sure you want to close this survey?" %}\n\n` +
+                      `{% trans "This action will:" %}\n` +
+                      `• {% trans "Stop accepting new responses immediately" %}\n` +
+                      `• {% trans "Start the retention period countdown" %}\n` +
+                      `• {% trans "Schedule automatic deletion after" %} ${retentionMonths} {% trans "months" %}\n\n` +
+                      `{% trans "You can still download survey data during the retention period." %}`;
+
+      if (confirm(message)) {
+        publishForm.submit();
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}

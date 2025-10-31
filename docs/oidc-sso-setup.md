@@ -4,7 +4,7 @@ This guide provides step-by-step instructions for setting up Single Sign-On (SSO
 
 ## Overview
 
-Census supports healthcare SSO through:
+CheckTick supports healthcare SSO through:
 - **Google OAuth**: For clinicians with personal Google accounts
 - **Microsoft Azure AD**: For hospital staff with organizational Microsoft 365 accounts
 - **Multi-provider support**: Users can authenticate via either method
@@ -15,8 +15,8 @@ Before starting, ensure you have:
 
 - Administrator access to your Azure AD tenant (for Azure setup)
 - Owner/Editor access to a Google Cloud Project (for Google setup)
-- Census deployment with HTTPS enabled (required for production)
-- Access to your Census environment variables
+- CheckTick deployment with HTTPS enabled (required for production)
+- Access to your CheckTick environment variables
 
 ## Environment Variables
 
@@ -46,25 +46,25 @@ OIDC_OP_JWKS_ENDPOINT_AZURE=https://login.microsoftonline.com/common/discovery/v
 2. Go to **Azure Active Directory** > **App registrations**
 3. Click **New registration**
 4. Configure:
-   - **Name**: `Census Healthcare Platform`
+   - **Name**: `CheckTick Healthcare Platform`
    - **Supported account types**:
      - **Multitenant**: "Accounts in any organizational directory" (for multiple hospitals)
      - **Single tenant**: "Accounts in this organizational directory only" (for single organization)
    - **Redirect URI**:
      - **Type**: Web
-     - **URL**: `https://your-census-domain.com/oidc/callback/`
+     - **URL**: `https://your-checktick-domain.com/oidc/callback/`
      - **Development**: Also add `http://localhost:8000/oidc/callback/`
 
 ### Step 2: Configure Application Settings
 
 1. **Authentication** tab:
    - Under **Redirect URIs**, ensure your callback URLs are listed
-   - **Front-channel logout URL**: `https://your-census-domain.com/accounts/logout/`
-   - **Implicit grant and hybrid flows**: Leave unchecked (Census uses authorization code flow)
+   - **Front-channel logout URL**: `https://your-checktick-domain.com/accounts/logout/`
+   - **Implicit grant and hybrid flows**: Leave unchecked (CheckTick uses authorization code flow)
 
 2. **Certificates & secrets** tab:
    - Click **New client secret**
-   - **Description**: `Census OIDC Secret`
+   - **Description**: `CheckTick OIDC Secret`
    - **Expires**: Choose appropriate duration (24 months recommended)
    - **Copy the secret value** (this is your `OIDC_RP_CLIENT_SECRET_AZURE`)
 
@@ -97,7 +97,7 @@ For guest users (external clinicians):
 
 1. Navigate to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select existing:
-   - **Project name**: `Census Healthcare SSO`
+   - **Project name**: `CheckTick Healthcare SSO`
    - **Organization**: Your healthcare organization (if applicable)
 
 ### Step 2: Enable APIs
@@ -112,10 +112,10 @@ For guest users (external clinicians):
 1. Go to **APIs & Services** > **OAuth consent screen**
 2. Choose **External** (unless using Google Workspace)
 3. Configure:
-   - **App name**: `Census Healthcare Platform`
+   - **App name**: `CheckTick Healthcare Platform`
    - **User support email**: Your healthcare IT support email
-   - **App domain**: Your Census domain
-   - **Authorized domains**: Add your Census domain
+   - **App domain**: Your CheckTick domain
+   - **Authorized domains**: Add your CheckTick domain
    - **Developer contact**: Your IT contact email
 4. **Scopes**: Add `openid`, `email`, `profile`
 5. **Test users**: Add clinician emails for testing
@@ -126,9 +126,9 @@ For guest users (external clinicians):
 2. Click **Create Credentials** > **OAuth 2.0 Client IDs**
 3. Configure:
    - **Application type**: Web application
-   - **Name**: `Census Healthcare SSO`
+   - **Name**: `CheckTick Healthcare SSO`
    - **Authorized redirect URIs**:
-     - Production: `https://your-census-domain.com/oidc/callback/`
+     - Production: `https://your-checktick-domain.com/oidc/callback/`
      - Development: `http://localhost:8000/oidc/callback/`
 
 ### Step 5: Note Configuration Values
@@ -143,7 +143,7 @@ Copy the generated:
 ### Update Environment Variables
 
 1. Add all OIDC variables to your production `.env` file
-2. Restart your Census application:
+2. Restart your CheckTick application:
 
    ```bash
    docker compose restart web
@@ -151,7 +151,7 @@ Copy the generated:
 
 ### Verify Configuration
 
-1. Navigate to your Census login page
+1. Navigate to your CheckTick login page
 2. You should see:
    - "Sign in with Google" button
    - "Sign in with Microsoft" button
@@ -173,7 +173,7 @@ Copy the generated:
 
 ### Automatic Survey Unlocking
 
-Census now supports **automatic survey unlocking** for OIDC users. This feature:
+CheckTick now supports **automatic survey unlocking** for OIDC users. This feature:
 
 - **Eliminates manual key entry** for SSO users
 - **Seamlessly integrates** with existing password/recovery phrase encryption
@@ -271,7 +271,7 @@ OIDC Key = PBKDF2(
 
 - **HTTPS Required**: SSO only works with HTTPS in production
 - **Secure Cookies**: Ensure `SECURE_SSL_REDIRECT=True`
-- **CSRF Protection**: Census automatically handles CSRF for SSO flows
+- **CSRF Protection**: CheckTick automatically handles CSRF for SSO flows
 
 ### Redirect URI Security
 
@@ -340,19 +340,19 @@ ngrok http 8000
 
 For additional help:
 
-- Check Census logs: `docker compose logs web`
+- Check CheckTick logs: `docker compose logs web`
 - Review Azure AD sign-in logs in Azure Portal
 - Check Google Cloud audit logs
-- Contact your Census administrator
+- Contact your CheckTick administrator
 
 ## Example Production Configuration
 
 ```bash
 # Production .env example
 DEBUG=False
-ALLOWED_HOSTS=census.hospital.org
+ALLOWED_HOSTS=checktick.hospital.org
 SECURE_SSL_REDIRECT=True
-CSRF_TRUSTED_ORIGINS=https://census.hospital.org
+CSRF_TRUSTED_ORIGINS=https://checktick.hospital.org
 
 # Azure AD for hospital staff
 OIDC_RP_CLIENT_ID_AZURE=a1b2c3d4-e5f6-7890-abcd-ef1234567890

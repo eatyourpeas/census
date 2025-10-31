@@ -12,13 +12,16 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 import pytest
 
-from census_app.surveys.models import (
+from checktick_app.surveys.models import (
     Organization,
     QuestionGroup,
     Survey,
     SurveyAccessToken,
     SurveyQuestion,
 )
+
+TEST_PASSWORD = "x"
+
 
 User = get_user_model()
 
@@ -33,7 +36,7 @@ def disable_rate_limiting(settings):
 def survey_owner(django_user_model):
     """Create a survey owner user."""
     return django_user_model.objects.create_user(
-        username="owner@example.com", password="testpass123"
+        username="owner@example.com", password=TEST_PASSWORD
     )
 
 
@@ -50,7 +53,7 @@ def test_organization(survey_owner):
 def participant(django_user_model):
     """Create a participant user (not the owner)."""
     return django_user_model.objects.create_user(
-        username="participant@example.com", password="testpass123"
+        username="participant@example.com", password=TEST_PASSWORD
     )
 
 
@@ -111,7 +114,7 @@ class TestAuthenticatedPublication:
         basic_survey.visibility = Survey.Visibility.AUTHENTICATED
         basic_survey.save()
 
-        client.login(username="participant@example.com", password="testpass123")
+        client.login(username="participant@example.com", password=TEST_PASSWORD)
         url = reverse("surveys:take", kwargs={"slug": basic_survey.slug})
         response = client.get(url)
 
@@ -126,7 +129,7 @@ class TestAuthenticatedPublication:
         basic_survey.visibility = Survey.Visibility.AUTHENTICATED
         basic_survey.save()
 
-        client.login(username="participant@example.com", password="testpass123")
+        client.login(username="participant@example.com", password=TEST_PASSWORD)
         url = reverse("surveys:take", kwargs={"slug": basic_survey.slug})
         response = client.get(url)
 
@@ -142,7 +145,7 @@ class TestAuthenticatedPublication:
         basic_survey.visibility = Survey.Visibility.AUTHENTICATED
         basic_survey.save()
 
-        client.login(username="participant@example.com", password="testpass123")
+        client.login(username="participant@example.com", password=TEST_PASSWORD)
         url = reverse("surveys:take", kwargs={"slug": basic_survey.slug})
         response = client.get(url)
 
@@ -158,7 +161,7 @@ class TestAuthenticatedPublication:
         basic_survey.visibility = Survey.Visibility.AUTHENTICATED
         basic_survey.save()
 
-        client.login(username="owner@example.com", password="testpass123")
+        client.login(username="owner@example.com", password=TEST_PASSWORD)
         url = reverse("surveys:take", kwargs={"slug": basic_survey.slug})
         response = client.get(url)
 
@@ -334,7 +337,7 @@ class TestUnlistedPublication:
         self, client, survey_owner, basic_survey
     ):
         """Unlisted key should be auto-generated when publishing with UNLISTED visibility."""
-        client.login(username="owner@example.com", password="testpass123")
+        client.login(username="owner@example.com", password=TEST_PASSWORD)
 
         # Survey starts without unlisted_key
         assert basic_survey.unlisted_key is None
@@ -502,7 +505,7 @@ class TestPublishUpdate:
         self, client, basic_survey, participant
     ):
         """Non-owners should not be able to update publish settings."""
-        client.login(username="participant@example.com", password="testpass123")
+        client.login(username="participant@example.com", password=TEST_PASSWORD)
 
         url = reverse("surveys:publish_update", kwargs={"slug": basic_survey.slug})
         response = client.post(url, {"status": "published"})
@@ -512,7 +515,7 @@ class TestPublishUpdate:
 
     def test_owner_can_publish_survey(self, client, survey_owner, basic_survey):
         """Survey owner should be able to publish survey."""
-        client.login(username="owner@example.com", password="testpass123")
+        client.login(username="owner@example.com", password=TEST_PASSWORD)
 
         assert basic_survey.status == Survey.Status.DRAFT
 
@@ -536,7 +539,7 @@ class TestPublishUpdate:
         self, client, survey_owner, basic_survey
     ):
         """First publish should set published_at timestamp."""
-        client.login(username="owner@example.com", password="testpass123")
+        client.login(username="owner@example.com", password=TEST_PASSWORD)
 
         assert basic_survey.published_at is None
 
@@ -554,7 +557,7 @@ class TestPublishUpdate:
 
     def test_close_survey_workflow(self, client, survey_owner, basic_survey):
         """Owner should be able to close a published survey."""
-        client.login(username="owner@example.com", password="testpass123")
+        client.login(username="owner@example.com", password=TEST_PASSWORD)
 
         # First publish
         basic_survey.status = Survey.Status.PUBLISHED
@@ -581,7 +584,7 @@ class TestPublishUpdate:
         """First publish should set start_at to now if not provided."""
         from django.utils import timezone
 
-        client.login(username="owner@example.com", password="testpass123")
+        client.login(username="owner@example.com", password=TEST_PASSWORD)
 
         assert basic_survey.start_at is None
 
@@ -613,7 +616,7 @@ class TestPublishUpdate:
 
         from django.utils import timezone
 
-        client.login(username="owner@example.com", password="testpass123")
+        client.login(username="owner@example.com", password=TEST_PASSWORD)
 
         # Set start date to tomorrow
         tomorrow = timezone.now() + timedelta(days=1)

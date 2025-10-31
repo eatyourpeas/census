@@ -1,10 +1,10 @@
 # Data Retention Policy
 
-This guide explains how long survey data is kept in Census, when it will be deleted, how to extend retention periods, and what happens during deletion.
+This guide explains how long survey data is kept in CheckTick, when it will be deleted, how to extend retention periods, and what happens during deletion.
 
 ## Overview
 
-Census follows a **time-limited storage** principle:
+CheckTick follows a **time-limited storage** principle:
 - Survey data is **not kept indefinitely**
 - Retention periods are **clearly defined** and **enforced automatically**
 - Users receive **multiple warnings** before deletion
@@ -152,8 +152,8 @@ You must explain why you need more time:
 You receive automatic warnings at:
 
 #### 1 Month Warning
-**Sent:** 30 days before deletion  
-**Subject:** "Survey data will be deleted in 1 month"  
+**Sent:** 30 days before deletion
+**Subject:** "Survey data will be deleted in 1 month"
 **Contains:**
 - Survey name and ID
 - Current expiry date
@@ -163,8 +163,8 @@ You receive automatic warnings at:
 **Action:** Consider if you still need the data. Download now if unsure.
 
 #### 1 Week Warning
-**Sent:** 7 days before deletion  
-**Subject:** "Survey data will be deleted in 1 week"  
+**Sent:** 7 days before deletion
+**Subject:** "Survey data will be deleted in 1 week"
 **Contains:**
 - Survey name and ID
 - Exact deletion date and time
@@ -174,8 +174,8 @@ You receive automatic warnings at:
 **Action:** Make final decision. Download data if needed. Extend if necessary.
 
 #### 1 Day Warning
-**Sent:** 24 hours before deletion  
-**Subject:** "URGENT: Survey data will be deleted tomorrow"  
+**Sent:** 24 hours before deletion
+**Subject:** "URGENT: Survey data will be deleted tomorrow"
 **Contains:**
 - Survey name and ID
 - Deletion happens in 24 hours

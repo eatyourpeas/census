@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Extend Retention" %} - {{ survey.name }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <nav class="text-sm breadcrumbs mb-4">
+        <ul>
+            <li><a href="{% url 'surveys:list' %}">{% trans "Surveys" %}</a></li>
+            <li><a href="{% url 'surveys:detail' survey.slug %}">{{ survey.name }}</a></li>
+            <li><a href="{% url 'surveys:dashboard' survey.slug %}">{% trans "Data Governance" %}</a></li>
+            <li>{% trans "Extend Retention" %}</li>
+        </ul>
+    </nav>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h1 class="card-title text-2xl">{% trans "Extend Retention Period" %}</h1>
+
+            <div class="alert alert-info mt-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div>
+                    <p class="text-sm">
+                        {% trans "Extensions must be justified and documented. Maximum total retention is 24 months." %}
+                    </p>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="stats shadow w-full">
+                <div class="stat">
+                    <div class="stat-title">{% trans "Current Retention" %}</div>
+                    <div class="stat-value">{{ current_retention }} {% trans "months" %}</div>
+                    <div class="stat-desc">{% trans "Deletion date" %}: {{ deletion_date|date:"Y-m-d" }}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">{% trans "Maximum Extension" %}</div>
+                    <div class="stat-value">{{ max_extension }} {% trans "months" %}</div>
+                    <div class="stat-desc">{% trans "Up to 24 months total" %}</div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-bold">{% trans "Extension Period (months)" %}</span>
+                        <span class="label-text-alt">{% trans "Required" %}</span>
+                    </label>
+                    <input
+                        type="number"
+                        name="months"
+                        min="1"
+                        max="{{ max_extension }}"
+                        class="input input-bordered w-full"
+                        required
+                        placeholder="{% trans 'Number of months to extend' %}"
+                    />
+                    <label class="label">
+                        <span class="label-text-alt text-gray-500">
+                            {% trans "Maximum" %}: {{ max_extension }} {% trans "months" %}
+                        </span>
+                    </label>
+                </div>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-bold">{% trans "Justification" %}</span>
+                        <span class="label-text-alt">{% trans "Required" %}</span>
+                    </label>
+                    <textarea
+                        name="reason"
+                        class="textarea textarea-bordered h-32"
+                        required
+                        placeholder="{% trans 'Provide a detailed justification for extending the retention period...' %}"
+                    ></textarea>
+                    <label class="label">
+                        <span class="label-text-alt text-gray-500">
+                            {% trans "This will be recorded in the audit log and may be reviewed by data protection officers." %}
+                        </span>
+                    </label>
+                </div>
+
+                <div class="alert alert-warning">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                        <h4 class="font-bold">{% trans "Important" %}</h4>
+                        <ul class="list-disc ml-5 text-sm">
+                            <li>{% trans "Extensions must comply with data protection regulations (e.g., GDPR Article 5(1)(e))" %}</li>
+                            <li>{% trans "Valid reasons include: ongoing research, legal requirements, or active use" %}</li>
+                            <li>{% trans "Extensions are audited and may require approval from data protection officers" %}</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card-actions justify-end gap-2 mt-6">
+                    <a href="{% url 'surveys:dashboard' survey.slug %}" class="btn btn-ghost">
+                        {% trans "Cancel" %}
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        {% trans "Extend Retention" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

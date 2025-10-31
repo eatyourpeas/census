@@ -1,15 +1,15 @@
 # Getting Help and Contributing
 
-This guide helps you choose the right channel for getting help or contributing to Census.
+This guide helps you choose the right channel for getting help or contributing to CheckTick.
 
 ## Quick Decision Guide
 
 ### 🤔 I have a question or need help
 
-**Use [GitHub Discussions](https://github.com/eatyourpeas/census/discussions)**
+**Use [GitHub Discussions](https://github.com/eatyourpeas/checktick/discussions)**
 
 Discussions are perfect for:
-- Questions about using Census
+- Questions about using CheckTick
 - Getting help with setup or configuration
 - Seeking advice on healthcare survey design
 - Troubleshooting deployment issues
@@ -18,7 +18,7 @@ Discussions are perfect for:
 
 ### 🐛 I found a bug or want a specific feature
 
-**Use [GitHub Issues](https://github.com/eatyourpeas/census/issues)**
+**Use [GitHub Issues](https://github.com/eatyourpeas/checktick/issues)**
 
 Issues are for:
 - Bug reports with clear reproduction steps
@@ -28,7 +28,7 @@ Issues are for:
 
 ### 🔒 I found a security vulnerability
 
-**Use [GitHub Security Advisories](https://github.com/eatyourpeas/census/security/advisories/new)**
+**Use [GitHub Security Advisories](https://github.com/eatyourpeas/checktick/security/advisories/new)**
 
 For sensitive security issues that could be exploited.
 
@@ -46,14 +46,14 @@ GitHub Discussions is our community forum for:
 - "What question types work best for clinical audits?"
 
 #### Sharing and Community
-- Showcasing your Census implementation
+- Showcasing your CheckTick implementation
 - Sharing healthcare use cases and success stories
 - Discussing best practices for survey design
 - Getting feedback on your survey structure
 - Announcing community events or resources
 
 #### Ideas and Brainstorming
-- "It would be cool if Census could..."
+- "It would be cool if CheckTick could..."
 - Early-stage feature ideas that need refinement
 - Discussing potential integrations
 - Exploring new healthcare use cases
@@ -112,8 +112,8 @@ Use the documentation template when:
 **Good Discussion Topics:**
 - "Best practices for creating patient satisfaction surveys"
 - "How to handle multilingual surveys in a diverse patient population"
-- "Sharing my experience deploying Census for a clinical audit"
-- "Ideas for integrating Census with our hospital's EMR system"
+- "Sharing my experience deploying CheckTick for a clinical audit"
+- "Ideas for integrating CheckTick with our hospital's EMR system"
 - "Help with Docker deployment on AWS"
 
 #### Issue Examples ✅
@@ -140,7 +140,7 @@ Maintainers can help with this conversion process.
 
 1. **Search first**: Check existing discussions, issues, and documentation
 2. **Check the docs**: Browse `/docs` folder and the live documentation
-3. **Try the demo**: Test functionality at https://census.eatyourpeas.dev
+3. **Try the demo**: Test functionality at https://checktick.eatyourpeas.dev
 4. **Gather information**: Have your environment details ready
 
 ### When Posting
@@ -159,7 +159,7 @@ When asking questions or reporting issues:
 - **Clinical Context**: Explain the healthcare setting (audit, research, PROM, etc.)
 - **Compliance**: Mention relevant regulations (GDPR, local health laws)
 - **Scale**: Describe your expected survey volume and user base
-- **Environment**: Specify if you're using hosted or self-hosted Census
+- **Environment**: Specify if you're using hosted or self-hosted CheckTick
 
 ## Community Guidelines
 
@@ -173,10 +173,10 @@ When asking questions or reporting issues:
 
 ## Need More Help?
 
-- **Documentation**: https://census.eatyourpeas.dev/docs/
-- **Demo Environment**: https://census.eatyourpeas.dev
-- **Discussions**: https://github.com/eatyourpeas/census/discussions
-- **Issues**: https://github.com/eatyourpeas/census/issues
-- **Security**: https://github.com/eatyourpeas/census/security/advisories/new
+- **Documentation**: https://checktick.eatyourpeas.dev/docs/
+- **Demo Environment**: https://checktick.eatyourpeas.dev
+- **Discussions**: https://github.com/eatyourpeas/checktick/discussions
+- **Issues**: https://github.com/eatyourpeas/checktick/issues
+- **Security**: https://github.com/eatyourpeas/checktick/security/advisories/new
 
 Remember: When in doubt, start with Discussions! The community and maintainers are here to help.

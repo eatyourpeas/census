@@ -1,12 +1,12 @@
 name: 🚀 Pull Request
-description: Contribute code, documentation, or other improvements to Census
+description: Contribute code, documentation, or other improvements to CheckTick
 title: "[PR]: "
 labels: ["contribution"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for contributing to Census! Please ensure you've read our [CONTRIBUTING.md](../CONTRIBUTING.md) guide first.
+        Thanks for contributing to CheckTick! Please ensure you've read our [CONTRIBUTING.md](../CONTRIBUTING.md) guide first.
 
         **Note**: This template is for planning PRs. Actual pull requests should be submitted via GitHub's standard PR interface.
 

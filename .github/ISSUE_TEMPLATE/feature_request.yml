@@ -1,5 +1,5 @@
 name: ✨ Feature Request
-description: Suggest a new feature or enhancement for Census
+description: Suggest a new feature or enhancement for CheckTick
 title: "[Feature]: "
 labels: ["enhancement", "needs-triage"]
 body:
@@ -8,7 +8,7 @@ body:
       value: |
         Thanks for suggesting a new feature! Please search existing issues and discussions first to avoid duplicates.
 
-        **Remember**: Census is open source (GPL-3.0) but also offered as a hosted service. Consider whether your feature request would benefit the broader healthcare survey community.
+        **Remember**: CheckTick is open source (GPL-3.0) but also offered as a hosted service. Consider whether your feature request would benefit the broader healthcare survey community.
 
   - type: dropdown
     id: feature-type

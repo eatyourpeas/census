@@ -1,6 +1,6 @@
 # Email Notifications
 
-Census includes a comprehensive email notification system with customizable templates, granular user preferences, and two-level theming support.
+CheckTick includes a comprehensive email notification system with customizable templates, granular user preferences, and two-level theming support.
 
 ## Overview
 
@@ -30,7 +30,7 @@ You can override this behavior by explicitly setting `EMAIL_BACKEND` in your `.e
 ```bash
 # DEBUG=True automatically uses console backend
 DEBUG=True
-DEFAULT_FROM_EMAIL=noreply@census.local
+DEFAULT_FROM_EMAIL=noreply@checktick.local
 ```
 
 **Production setup (.env):**
@@ -68,7 +68,7 @@ EMAIL_FILE_PATH=/tmp/app-emails
 
 ### 2. Set Up SMTP Provider (Production)
 
-Census supports **any SMTP email service**. Below are configuration examples for popular providers.
+CheckTick supports **any SMTP email service**. Below are configuration examples for popular providers.
 
 #### Mailgun (Recommended)
 
@@ -160,17 +160,17 @@ Start your development server and create a new user account. With the console ba
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Subject: Welcome to Census!
-From: noreply@census.local
+Subject: Welcome to CheckTick!
+From: noreply@checktick.local
 To: newuser@example.com
 Date: Sat, 04 Oct 2025 10:30:00 -0000
 Message-ID: <...>
 
-Welcome to Census!
+Welcome to CheckTick!
 
 Hi newuser@example.com,
 
-Thank you for signing up for Census! We're excited to have you on board.
+Thank you for signing up for CheckTick! We're excited to have you on board.
 ...
 ```
 
@@ -194,7 +194,7 @@ Users have granular control over which emails they receive. Preferences are mana
 
 ### Managing Preferences
 
-1. Log in to Census
+1. Log in to CheckTick
 2. Navigate to your **Profile** page (click your avatar → Profile)
 3. Scroll to **Email Notification Preferences** section
 4. Toggle checkboxes for desired notifications
@@ -204,7 +204,7 @@ Changes take effect immediately.
 
 ## Email Templates
 
-All email content is stored as Markdown templates in `census_app/templates/emails/`. This makes them easy to customize and maintain.
+All email content is stored as Markdown templates in `checktick_app/templates/emails/`. This makes them easy to customize and maintain.
 
 ### Template Structure
 
@@ -226,7 +226,7 @@ Each email has two components:
 
 To customize an email template:
 
-1. Open the `.md` file in `census_app/templates/emails/`
+1. Open the `.md` file in `checktick_app/templates/emails/`
 2. Edit the content using Markdown syntax
 3. Use template variables (e.g., `{{ user.username }}`) for personalization
 4. Restart your web server to apply changes
@@ -263,7 +263,7 @@ The base HTML template (`base_email.html`) applies:
 
 ## Two-Level Theming
 
-Census supports theming at both platform and survey levels.
+CheckTick supports theming at both platform and survey levels.
 
 ### Platform-Level Theming
 
@@ -295,7 +295,7 @@ The email utility module provides functions for all email types.
 #### Import the functions
 
 ```python
-from census_app.core.email_utils import (
+from checktick_app.core.email_utils import (
     send_welcome_email,
     send_password_change_email,
     send_survey_created_email,
@@ -323,7 +323,7 @@ send_password_change_email(user)
 #### Send survey created email
 
 ```python
-from census_app.surveys.models import Survey
+from checktick_app.surveys.models import Survey
 
 survey = Survey.objects.get(slug='my-survey')
 send_survey_created_email(user, survey)
@@ -346,7 +346,7 @@ All email functions automatically check `UserEmailPreferences` before sending:
 ```python
 def send_welcome_email(user):
     """Send a welcome email to a new user."""
-    from census_app.core.models import UserEmailPreferences
+    from checktick_app.core.models import UserEmailPreferences
 
     prefs = UserEmailPreferences.get_or_create_for_user(user)
     if not prefs.send_welcome_email:
@@ -393,7 +393,7 @@ def send_survey_deleted_email(user, survey_name: str, survey_slug: str) -> bool:
 1. **Create Markdown template:**
 
 ```bash
-touch census_app/templates/emails/my_new_email.md
+touch checktick_app/templates/emails/my_new_email.md
 ```
 
 2. **Write content with variables:**
@@ -414,7 +414,7 @@ The {{ brand_title }} Team
 ```python
 def send_my_custom_email(user, custom_data):
     """Send a custom email."""
-    from census_app.core.models import UserEmailPreferences
+    from checktick_app.core.models import UserEmailPreferences
 
     # Check user preferences (create new preference field if needed)
     prefs = UserEmailPreferences.get_or_create_for_user(user)
@@ -465,7 +465,7 @@ Then create and run a migration.
 
 Welcome emails are sent when a user signs up. To integrate:
 
-**In `census_app/core/views.py` (or your signup view):**
+**In `checktick_app/core/views.py` (or your signup view):**
 
 ```python
 from .email_utils import send_welcome_email
@@ -490,7 +490,7 @@ For password changes, use Django signals or override the password change view:
 
 **Option 1: Using signals (recommended)**
 
-Create `census_app/core/signals.py`:
+Create `checktick_app/core/signals.py`:
 
 ```python
 from django.contrib.auth.signals import user_logged_in
@@ -516,10 +516,10 @@ class CustomPasswordChangeView(PasswordChangeView):
 
 ### Survey CRUD Operations
 
-**Survey creation (in `census_app/surveys/views.py`):**
+**Survey creation (in `checktick_app/surveys/views.py`):**
 
 ```python
-from census_app.core.email_utils import send_survey_created_email
+from checktick_app.core.email_utils import send_survey_created_email
 
 def create_survey(request):
     # ... survey creation logic ...
@@ -533,7 +533,7 @@ def create_survey(request):
 **Survey deletion:**
 
 ```python
-from census_app.core.email_utils import send_survey_deleted_email
+from checktick_app.core.email_utils import send_survey_deleted_email
 
 def delete_survey(request, slug):
     survey = get_object_or_404(Survey, slug=slug)
@@ -606,7 +606,7 @@ Make sure you're watching the correct terminal where `runserver` or `docker comp
 
 ### Branding not applied
 
-1. Check `SiteBranding` model exists: `python manage.py shell` → `from census_app.core.models import SiteBranding`
+1. Check `SiteBranding` model exists: `python manage.py shell` → `from checktick_app.core.models import SiteBranding`
 2. Verify branding configured in profile (superuser only)
 3. Check `settings.SITE_NAME` and `settings.PRIMARY_COLOR` fallbacks
 
@@ -652,6 +652,6 @@ Planned template improvements:
 For issues or questions:
 
 1. Check troubleshooting section above
-2. Review [GitHub issues](https://github.com/eatyourpeas/census/issues)
+2. Review [GitHub issues](https://github.com/eatyourpeas/checktick/issues)
 3. Consult [Mailgun documentation](https://documentation.mailgun.com/)
 4. Open a new issue with email logs and configuration (redact credentials!)

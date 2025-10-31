@@ -1,6 +1,6 @@
 # Nginx Configuration
 
-This directory contains nginx configuration for production Census deployments.
+This directory contains nginx configuration for production CheckTick deployments.
 
 ## Documentation
 

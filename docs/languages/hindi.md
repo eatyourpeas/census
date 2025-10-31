@@ -183,7 +183,7 @@
 | :--- | :--- | :--- |
 | 1. | Organisation created. You are an organisation admin. | संगठन बनाया गया। आप एक संगठन व्यवस्थापक हैं। |
 | 2. | Analyze | विश्लेषण करें |
-| 3. | Census | जनगणना |
+| 3. | CheckTick | जनगणना |
 | 4. | Home | होम |
 | 5. | Distribute | वितरित करें |
 | 6. | Explore docs | दस्तावेज़ एक्सप्लोर करें |
