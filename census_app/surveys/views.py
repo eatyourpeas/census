@@ -848,11 +848,11 @@ def survey_detail(request: HttpRequest, slug: str) -> HttpResponse:
         # Only override if any per-survey style is set; otherwise use context processor defaults
         ctx["brand"] = {
             "title": brand_overrides.get("title")
-            or getattr(settings, "BRAND_TITLE", "Census"),
+            or getattr(settings, "BRAND_TITLE", "CheckTick"),
             "icon_url": brand_overrides.get("icon_url")
             or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
             "theme_name": brand_overrides.get("theme_name")
-            or getattr(settings, "BRAND_THEME", "census"),
+            or getattr(settings, "BRAND_THEME", "checktick"),
             "font_heading": brand_overrides.get("font_heading")
             or getattr(
                 settings,
@@ -937,11 +937,11 @@ def survey_preview(request: HttpRequest, slug: str) -> HttpResponse:
     ) or brand_overrides.get("primary_hex"):
         ctx["brand"] = {
             "title": brand_overrides.get("title")
-            or getattr(settings, "BRAND_TITLE", "Census"),
+            or getattr(settings, "BRAND_TITLE", "CheckTick"),
             "icon_url": brand_overrides.get("icon_url")
             or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
             "theme_name": brand_overrides.get("theme_name")
-            or getattr(settings, "BRAND_THEME", "census"),
+            or getattr(settings, "BRAND_THEME", "checktick"),
             "font_heading": brand_overrides.get("font_heading")
             or getattr(
                 settings,
@@ -1747,11 +1747,11 @@ def survey_dashboard(request: HttpRequest, slug: str) -> HttpResponse:
     ) or brand_overrides.get("primary_hex"):
         ctx["brand"] = {
             "title": brand_overrides.get("title")
-            or getattr(settings, "BRAND_TITLE", "Census"),
+            or getattr(settings, "BRAND_TITLE", "CheckTick"),
             "icon_url": brand_overrides.get("icon_url")
             or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
             "theme_name": brand_overrides.get("theme_name")
-            or getattr(settings, "BRAND_THEME", "census"),
+            or getattr(settings, "BRAND_THEME", "checktick"),
             "font_heading": brand_overrides.get("font_heading")
             or getattr(
                 settings,
@@ -3154,11 +3154,11 @@ def survey_groups(request: HttpRequest, slug: str) -> HttpResponse:
     ) or brand_overrides.get("primary_hex"):
         ctx["brand"] = {
             "title": brand_overrides.get("title")
-            or getattr(settings, "BRAND_TITLE", "Census"),
+            or getattr(settings, "BRAND_TITLE", "CheckTick"),
             "icon_url": brand_overrides.get("icon_url")
             or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
             "theme_name": brand_overrides.get("theme_name")
-            or getattr(settings, "BRAND_THEME", "census"),
+            or getattr(settings, "BRAND_THEME", "checktick"),
             "font_heading": brand_overrides.get("font_heading")
             or getattr(
                 settings,
@@ -4239,11 +4239,11 @@ def group_builder(request: HttpRequest, slug: str, gid: int) -> HttpResponse:
     if any(brand_overrides.values()):
         ctx["brand"] = {
             "title": brand_overrides.get("title")
-            or getattr(settings, "BRAND_TITLE", "Census"),
+            or getattr(settings, "BRAND_TITLE", "CheckTick"),
             "icon_url": brand_overrides.get("icon_url")
             or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
             "theme_name": brand_overrides.get("theme_name")
-            or getattr(settings, "BRAND_THEME", "census"),
+            or getattr(settings, "BRAND_THEME", "checktick"),
             "font_heading": brand_overrides.get("font_heading")
             or getattr(
                 settings,

@@ -1,6 +1,6 @@
 # Data Governance Implementation Guide
 
-This guide is for **developers** implementing or modifying data governance features in Census. It covers models, APIs, services, commands, and testing.
+This guide is for **developers** implementing or modifying data governance features in CheckTick. It covers models, APIs, services, commands, and testing.
 
 ---
 
@@ -93,25 +93,25 @@ from datetime import timedelta
 
 class Survey(models.Model):
     # ... existing fields ...
-    
+
     # Survey Closure
     is_closed = models.BooleanField(default=False)
     closed_at = models.DateTimeField(null=True, blank=True)
     closed_by = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
         related_name='closed_surveys'
     )
-    
+
     # Retention
     retention_months = models.IntegerField(default=6)  # 6-24
     deletion_date = models.DateTimeField(null=True, blank=True)
-    
+
     # Soft Deletion
     deleted_at = models.DateTimeField(null=True, blank=True)
     hard_deletion_date = models.DateTimeField(null=True, blank=True)
-    
+
     # Ownership
     transferred_from = models.ForeignKey(
         User,
@@ -121,7 +121,7 @@ class Survey(models.Model):
         related_name='transferred_surveys'
     )
     transferred_at = models.DateTimeField(null=True, blank=True)
-    
+
     def close_survey(self, user):
         """Close survey and start retention period."""
         self.is_closed = True
@@ -129,25 +129,25 @@ class Survey(models.Model):
         self.closed_by = user
         self.deletion_date = self.closed_at + timedelta(days=self.retention_months * 30)
         self.save()
-        
+
         # Schedule warnings
         from .tasks import schedule_deletion_warnings
         schedule_deletion_warnings.delay(self.id)
-    
+
     def extend_retention(self, months, user, reason):
         """Extend retention period (max 24 months total)."""
         from django.core.exceptions import ValidationError
-        
+
         # Calculate total retention
         months_since_closure = (timezone.now() - self.closed_at).days // 30
         total_months = months_since_closure + months
-        
+
         if total_months > 24:
             raise ValidationError("Cannot exceed 24 months total retention")
-        
+
         self.deletion_date = self.closed_at + timedelta(days=total_months * 30)
         self.save()
-        
+
         # Log extension
         DataRetentionExtension.objects.create(
             survey=self,
@@ -156,36 +156,36 @@ class Survey(models.Model):
             reason=reason,
             new_deletion_date=self.deletion_date
         )
-        
+
         # Reschedule warnings
         from .tasks import schedule_deletion_warnings
         schedule_deletion_warnings.delay(self.id)
-    
+
     def soft_delete(self):
         """Soft delete survey (30-day grace period)."""
         self.deleted_at = timezone.now()
         self.hard_deletion_date = self.deleted_at + timedelta(days=30)
         self.save()
-        
+
         # Schedule hard deletion
         from .tasks import schedule_hard_deletion
         schedule_hard_deletion.apply_async(
             args=[self.id],
             eta=self.hard_deletion_date
         )
-    
+
     def hard_delete(self):
         """Permanently delete survey data."""
         # Delete responses
         self.responses.all().delete()
-        
+
         # Delete exports
         self.data_exports.all().delete()
-        
+
         # Purge backups (external API call)
         from .services import BackupService
         BackupService.purge_survey_backups(self.id)
-        
+
         # Keep audit trail summary
         AuditLog.objects.create(
             action='HARD_DELETE',
@@ -193,10 +193,10 @@ class Survey(models.Model):
             survey_name=self.name,
             timestamp=timezone.now()
         )
-        
+
         # Delete survey
         self.delete()
-    
+
     @property
     def days_until_deletion(self):
         """Days remaining until automatic deletion."""
@@ -204,7 +204,7 @@ class Survey(models.Model):
             return None
         delta = self.deletion_date - timezone.now()
         return max(0, delta.days)
-    
+
     @property
     def can_extend_retention(self):
         """Check if retention can be extended."""
@@ -224,33 +224,33 @@ from django.core.signing import Signer
 
 class DataExport(models.Model):
     """Track data exports for audit trail."""
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name='data_exports')
-    
+
     # User who downloaded
     exported_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     exported_at = models.DateTimeField(auto_now_add=True)
-    
+
     # Attestation
     full_name = models.CharField(max_length=255)
     purpose = models.TextField()
     ip_address = models.GenericIPAddressField()
-    
+
     # File details
     file_path = models.CharField(max_length=512)  # S3 path or local path
     file_size = models.BigIntegerField()  # bytes
     password = models.CharField(max_length=128)  # hashed
-    
+
     # Download link
     download_token = models.CharField(max_length=64, unique=True)
     download_expires_at = models.DateTimeField()
     download_completed_at = models.DateTimeField(null=True, blank=True)
-    
+
     # Metadata
     response_count = models.IntegerField()
     encrypted_fields = models.JSONField(default=list)  # List of encrypted field names
-    
+
     class Meta:
         ordering = ['-exported_at']
         indexes = [
@@ -258,7 +258,7 @@ class DataExport(models.Model):
             models.Index(fields=['exported_by', '-exported_at']),
             models.Index(fields=['download_token']),
         ]
-    
+
     def generate_download_token(self):
         """Generate single-use download token."""
         signer = Signer()
@@ -267,7 +267,7 @@ class DataExport(models.Model):
         self.download_expires_at = timezone.now() + timedelta(minutes=15)
         self.save()
         return token
-    
+
     def is_download_valid(self):
         """Check if download link is still valid."""
         if self.download_completed_at:
@@ -275,7 +275,7 @@ class DataExport(models.Model):
         if timezone.now() > self.download_expires_at:
             return False  # Expired
         return True
-    
+
     def mark_downloaded(self):
         """Mark download as completed."""
         self.download_completed_at = timezone.now()
@@ -289,18 +289,18 @@ class DataExport(models.Model):
 
 class LegalHold(models.Model):
     """Legal holds prevent automatic deletion."""
-    
+
     survey = models.OneToOneField(Survey, on_delete=models.CASCADE, related_name='legal_hold')
-    
+
     # Hold details
     applied_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='applied_holds')
     applied_at = models.DateTimeField(auto_now_add=True)
-    
+
     reason = models.TextField()
     reference = models.CharField(max_length=255)  # Case number, investigation ID
     requesting_party = models.CharField(max_length=255)  # Who requested
     expected_duration_months = models.IntegerField()
-    
+
     # Review
     review_date = models.DateField()
     last_reviewed_at = models.DateTimeField(null=True, blank=True)
@@ -310,7 +310,7 @@ class LegalHold(models.Model):
         null=True,
         related_name='reviewed_holds'
     )
-    
+
     # Removal
     removed_at = models.DateTimeField(null=True, blank=True)
     removed_by = models.ForeignKey(
@@ -320,25 +320,25 @@ class LegalHold(models.Model):
         related_name='removed_holds'
     )
     removal_reason = models.TextField(blank=True)
-    
+
     # Retention freeze tracking
     retention_frozen_at = models.DateTimeField(auto_now_add=True)
     remaining_retention_days = models.IntegerField()  # Days left when frozen
-    
+
     class Meta:
         ordering = ['-applied_at']
-    
+
     def remove_hold(self, user, reason):
         """Remove legal hold and resume retention."""
         self.removed_at = timezone.now()
         self.removed_by = user
         self.removal_reason = reason
         self.save()
-        
+
         # Resume retention period
         self.survey.deletion_date = timezone.now() + timedelta(days=self.remaining_retention_days)
         self.survey.save()
-        
+
         # Reschedule warnings
         from .tasks import schedule_deletion_warnings
         schedule_deletion_warnings.delay(self.survey.id)
@@ -351,10 +351,10 @@ class LegalHold(models.Model):
 
 class DataCustodian(models.Model):
     """Users with download-only access to specific surveys."""
-    
+
     survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name='data_custodians')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='custodian_surveys')
-    
+
     # Assignment
     assigned_by = models.ForeignKey(
         User,
@@ -364,10 +364,10 @@ class DataCustodian(models.Model):
     )
     assigned_at = models.DateTimeField(auto_now_add=True)
     justification = models.TextField()
-    
+
     # Acknowledgment
     acknowledged_at = models.DateTimeField(null=True, blank=True)
-    
+
     # Removal
     removed_at = models.DateTimeField(null=True, blank=True)
     removed_by = models.ForeignKey(
@@ -376,11 +376,11 @@ class DataCustodian(models.Model):
         null=True,
         related_name='removed_custodians'
     )
-    
+
     class Meta:
         unique_together = [['survey', 'user']]
         ordering = ['-assigned_at']
-    
+
     def is_active(self):
         """Check if custodian assignment is active."""
         return self.acknowledged_at is not None and self.removed_at is None
@@ -393,17 +393,17 @@ class DataCustodian(models.Model):
 
 class DataRetentionExtension(models.Model):
     """Audit trail for retention extensions."""
-    
+
     survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name='retention_extensions')
     extended_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     extended_at = models.DateTimeField(auto_now_add=True)
-    
+
     months_added = models.IntegerField()
     reason = models.TextField()
-    
+
     previous_deletion_date = models.DateTimeField()
     new_deletion_date = models.DateTimeField()
-    
+
     class Meta:
         ordering = ['-extended_at']
 ```
@@ -433,30 +433,30 @@ class UserRole(models.TextChoices):
 
 class DataGovernancePermissions:
     """Check data governance permissions."""
-    
+
     @staticmethod
     def can_download_data(user, survey):
         """Check if user can download survey data."""
         # Survey must be closed
         if not survey.is_closed:
             return False
-        
+
         # Survey must not be deleted
         if survey.deleted_at:
             return False
-        
+
         # System admins can always download
         if user.is_superuser:
             return True
-        
+
         # Survey creator can download
         if survey.created_by == user:
             return True
-        
+
         # Organization owner can download
         if survey.organization and survey.organization.owner == user:
             return True
-        
+
         # Data custodian can download (if active)
         custodian = DataCustodian.objects.filter(
             survey=survey,
@@ -465,54 +465,54 @@ class DataGovernancePermissions:
         ).first()
         if custodian and custodian.is_active():
             return True
-        
+
         return False
-    
+
     @staticmethod
     def can_extend_retention(user, survey):
         """Check if user can extend retention period."""
         # Survey must be closed
         if not survey.is_closed:
             return False
-        
+
         # Must be within 24-month limit
         if not survey.can_extend_retention:
             return False
-        
+
         # Survey creator can extend
         if survey.created_by == user:
             return True
-        
+
         # Organization owner can extend
         if survey.organization and survey.organization.owner == user:
             return True
-        
+
         return False
-    
+
     @staticmethod
     def can_apply_legal_hold(user, survey):
         """Check if user can apply legal hold."""
         # Only organization owners
         if survey.organization and survey.organization.owner == user:
             return True
-        
+
         # Or system admins
         if user.is_superuser:
             return True
-        
+
         return False
-    
+
     @staticmethod
     def can_assign_data_custodian(user, survey):
         """Check if user can assign data custodians."""
         # Survey creator can assign
         if survey.created_by == user:
             return True
-        
+
         # Organization owner can assign
         if survey.organization and survey.organization.owner == user:
             return True
-        
+
         return False
 ```
 
@@ -535,7 +535,7 @@ from django.utils import timezone
 
 class ExportService:
     """Handle data export generation."""
-    
+
     @staticmethod
     def generate_export(survey, user, full_name, purpose, ip_address):
         """Generate encrypted export file."""
@@ -548,62 +548,62 @@ class ExportService:
             ip_address=ip_address,
             response_count=survey.responses.count()
         )
-        
+
         # Generate password
         password = secrets.token_urlsafe(16)
         export.password = make_password(password)  # Hash for storage
-        
+
         # Create CSV
         csv_data = ExportService._create_csv(survey)
-        
+
         # Encrypt CSV
         encrypted_csv = ExportService._encrypt_data(csv_data, survey.encryption_key)
-        
+
         # Create metadata
         metadata = ExportService._create_metadata(survey, export, user)
-        
+
         # Create README
         readme = ExportService._create_readme(survey)
-        
+
         # Create ZIP
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             zip_file.writestr('survey_data.csv', encrypted_csv)
             zip_file.writestr('metadata.json', metadata)
             zip_file.writestr('README.txt', readme)
-        
+
         # Encrypt ZIP with password
         encrypted_zip = ExportService._password_protect_zip(zip_buffer.getvalue(), password)
-        
+
         # Save to storage
         file_path = f"exports/{survey.id}/{export.id}.zip"
         default_storage.save(file_path, io.BytesIO(encrypted_zip))
-        
+
         export.file_path = file_path
         export.file_size = len(encrypted_zip)
         export.save()
-        
+
         # Generate download token
         token = export.generate_download_token()
-        
+
         # Send audit email
         from .tasks import send_download_notification
         send_download_notification.delay(export.id)
-        
+
         return export, password
-    
+
     @staticmethod
     def _create_csv(survey):
         """Generate CSV from survey responses."""
         output = io.StringIO()
         writer = csv.writer(output)
-        
+
         # Header row
         headers = ['response_id', 'submitted_at', 'user_id', 'status']
         for question in survey.questions.all():
             headers.append(question.slug)
         writer.writerow(headers)
-        
+
         # Data rows
         for response in survey.responses.all():
             row = [
@@ -616,22 +616,22 @@ class ExportService:
                 answer = response.answers.filter(question=question).first()
                 row.append(answer.value if answer else '')
             writer.writerow(row)
-        
+
         return output.getvalue()
-    
+
     @staticmethod
     def _encrypt_data(data, key):
         """Encrypt data with Fernet."""
         fernet = Fernet(key.encode())
         return fernet.encrypt(data.encode())
-    
+
     @staticmethod
     def _password_protect_zip(zip_data, password):
         """Password-protect ZIP file."""
         # Use pyminizip or similar library
         # Implementation depends on chosen library
         pass
-    
+
     @staticmethod
     def _create_metadata(survey, export, user):
         """Create metadata JSON."""
@@ -646,12 +646,12 @@ class ExportService:
             'census_version': '1.0.0',  # From settings
         }
         return json.dumps(metadata, indent=2)
-    
+
     @staticmethod
     def _create_readme(survey):
         """Create README.txt."""
         return f"""
-Census Data Export
+CheckTick Data Export
 ==================
 
 Survey: {survey.name}
@@ -679,7 +679,7 @@ SECURITY
 3. Do not share without authorization
 4. Report any data breaches immediately
 
-For more information, see the Census Data Security Guide.
+For more information, see the CheckTick Data Security Guide.
 """
 ```
 
@@ -694,7 +694,7 @@ from django.db.models import Q
 
 class RetentionService:
     """Handle retention and deletion operations."""
-    
+
     @staticmethod
     def check_expired_surveys():
         """Find and soft-delete expired surveys (runs daily)."""
@@ -704,15 +704,15 @@ class RetentionService:
             deleted_at__isnull=True,
             legal_hold__isnull=True  # Exclude surveys with legal holds
         )
-        
+
         for survey in expired:
             RetentionService.soft_delete_survey(survey)
-    
+
     @staticmethod
     def soft_delete_survey(survey):
         """Soft delete a survey."""
         survey.soft_delete()
-        
+
         # Log deletion
         AuditLog.objects.create(
             action='SOFT_DELETE',
@@ -720,21 +720,21 @@ class RetentionService:
             timestamp=timezone.now(),
             details={'retention_expired': True}
         )
-        
+
         # Notify organization owner
         from .tasks import send_deletion_notification
         send_deletion_notification.delay(survey.id, 'soft')
-    
+
     @staticmethod
     def hard_delete_survey(survey):
         """Hard delete a survey (runs after 30-day grace period)."""
         survey.hard_delete()
-    
+
     @staticmethod
     def send_deletion_warnings():
         """Send warnings for upcoming deletions (runs daily)."""
         now = timezone.now()
-        
+
         # 1-month warning
         one_month = Survey.objects.filter(
             is_closed=True,
@@ -745,7 +745,7 @@ class RetentionService:
         )
         for survey in one_month:
             RetentionService._send_warning(survey, '1_month')
-        
+
         # 1-week warning
         one_week = Survey.objects.filter(
             is_closed=True,
@@ -756,7 +756,7 @@ class RetentionService:
         )
         for survey in one_week:
             RetentionService._send_warning(survey, '1_week')
-        
+
         # 1-day warning
         one_day = Survey.objects.filter(
             is_closed=True,
@@ -767,7 +767,7 @@ class RetentionService:
         )
         for survey in one_day:
             RetentionService._send_warning(survey, '1_day')
-    
+
     @staticmethod
     def _send_warning(survey, warning_type):
         """Send deletion warning email."""
@@ -794,31 +794,31 @@ from rest_framework.response import Response
 def export_survey_data(request, survey_id):
     """Generate and download survey data export."""
     survey = get_object_or_404(Survey, id=survey_id)
-    
+
     # Check permissions
     if not DataGovernancePermissions.can_download_data(request.user, survey):
         return Response(
             {'error': 'You do not have permission to download this survey data'},
             status=status.HTTP_403_FORBIDDEN
         )
-    
+
     # Validate attestation
     full_name = request.data.get('full_name')
     purpose = request.data.get('purpose')
     attestation_accepted = request.data.get('attestation_accepted')
-    
+
     if not all([full_name, purpose, attestation_accepted]):
         return Response(
             {'error': 'Full name, purpose, and attestation required'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
     # Generate export
     ip_address = request.META.get('REMOTE_ADDR')
     export, password = ExportService.generate_export(
         survey, request.user, full_name, purpose, ip_address
     )
-    
+
     # Return download link and password
     download_url = reverse('download_export', args=[export.download_token])
     return Response({
@@ -832,17 +832,17 @@ def export_survey_data(request, survey_id):
 def download_export(request, token):
     """Download export file using single-use token."""
     export = get_object_or_404(DataExport, download_token=token)
-    
+
     # Validate token
     if not export.is_download_valid():
         return Response(
             {'error': 'Download link has expired or been used'},
             status=status.HTTP_410_GONE
         )
-    
+
     # Mark as downloaded
     export.mark_downloaded()
-    
+
     # Stream file
     file_path = export.file_path
     response = FileResponse(default_storage.open(file_path, 'rb'))
@@ -858,37 +858,37 @@ def download_export(request, token):
 def extend_retention(request, survey_id):
     """Extend survey retention period."""
     survey = get_object_or_404(Survey, id=survey_id)
-    
+
     # Check permissions
     if not DataGovernancePermissions.can_extend_retention(request.user, survey):
         return Response(
             {'error': 'You do not have permission to extend retention'},
             status=status.HTTP_403_FORBIDDEN
         )
-    
+
     # Validate input
     months = request.data.get('months')
     reason = request.data.get('reason')
-    
+
     if not months or not reason:
         return Response(
             {'error': 'Months and reason required'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
     try:
         months = int(months)
         if months < 1 or months > 12:
             raise ValueError("Months must be between 1 and 12")
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     # Extend retention
     try:
         survey.extend_retention(months, request.user, reason)
     except ValidationError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     return Response({
         'new_deletion_date': survey.deletion_date.isoformat(),
         'days_remaining': survey.days_until_deletion
@@ -915,12 +915,12 @@ def schedule_deletion_warnings(survey_id):
 def send_retention_warning(survey_id, warning_type):
     """Send retention warning email."""
     survey = Survey.objects.get(id=survey_id)
-    
+
     # Determine recipients
     recipients = [survey.created_by.email]
     if survey.organization:
         recipients.append(survey.organization.owner.email)
-    
+
     # Render email
     subject = f"Survey data will be deleted in {warning_type.replace('_', ' ')}"
     message = render_to_string('emails/retention_warning.html', {
@@ -928,7 +928,7 @@ def send_retention_warning(survey_id, warning_type):
         'warning_type': warning_type,
         'days_remaining': survey.days_until_deletion
     })
-    
+
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipients)
 
 @shared_task
@@ -936,7 +936,7 @@ def send_download_notification(export_id):
     """Notify org admins of data download."""
     export = DataExport.objects.get(id=export_id)
     survey = export.survey
-    
+
     if survey.organization:
         recipients = [survey.organization.owner.email]
         subject = f"Data downloaded from survey: {survey.name}"
@@ -990,47 +990,47 @@ class SurveyRetentionTests(TestCase):
     def setUp(self):
         self.survey = Survey.objects.create(name="Test Survey")
         self.user = User.objects.create_user('test@example.com')
-    
+
     def test_close_survey_sets_deletion_date(self):
         """Closing survey should set deletion date to 6 months."""
         self.survey.close_survey(self.user)
-        
+
         expected_date = timezone.now() + timedelta(days=180)
         self.assertAlmostEqual(
             self.survey.deletion_date.timestamp(),
             expected_date.timestamp(),
             delta=60  # Allow 1 minute difference
         )
-    
+
     def test_extend_retention_updates_deletion_date(self):
         """Extending retention should update deletion date."""
         self.survey.close_survey(self.user)
         original_date = self.survey.deletion_date
-        
+
         self.survey.extend_retention(3, self.user, "Need more time")
-        
+
         expected_date = original_date + timedelta(days=90)
         self.assertAlmostEqual(
             self.survey.deletion_date.timestamp(),
             expected_date.timestamp(),
             delta=60
         )
-    
+
     def test_cannot_extend_beyond_24_months(self):
         """Extending retention beyond 24 months should raise error."""
         self.survey.close_survey(self.user)
         self.survey.closed_at = timezone.now() - timedelta(days=365 * 2)  # 2 years ago
         self.survey.save()
-        
+
         with self.assertRaises(ValidationError):
             self.survey.extend_retention(6, self.user, "Too late")
-    
+
     def test_legal_hold_prevents_deletion(self):
         """Survey with legal hold should not be soft deleted."""
         self.survey.close_survey(self.user)
         self.survey.deletion_date = timezone.now() - timedelta(days=1)  # Expired
         self.survey.save()
-        
+
         # Apply legal hold
         LegalHold.objects.create(
             survey=self.survey,
@@ -1042,7 +1042,7 @@ class SurveyRetentionTests(TestCase):
             review_date=timezone.now().date() + timedelta(days=180),
             remaining_retention_days=0
         )
-        
+
         # Should not be in expired list
         expired = RetentionService.check_expired_surveys()
         self.assertNotIn(self.survey, expired)
@@ -1057,7 +1057,7 @@ class DataGovernancePermissionTests(TestCase):
         self.org_owner = User.objects.create_user('owner@example.com')
         self.custodian = User.objects.create_user('custodian@example.com')
         self.viewer = User.objects.create_user('viewer@example.com')
-        
+
         self.organization = Organization.objects.create(owner=self.org_owner)
         self.survey = Survey.objects.create(
             name="Test",
@@ -1065,7 +1065,7 @@ class DataGovernancePermissionTests(TestCase):
             organization=self.organization
         )
         self.survey.close_survey(self.creator)
-        
+
         DataCustodian.objects.create(
             survey=self.survey,
             user=self.custodian,
@@ -1073,32 +1073,32 @@ class DataGovernancePermissionTests(TestCase):
             justification="Test",
             acknowledged_at=timezone.now()
         )
-    
+
     def test_creator_can_download(self):
         self.assertTrue(
             DataGovernancePermissions.can_download_data(self.creator, self.survey)
         )
-    
+
     def test_org_owner_can_download(self):
         self.assertTrue(
             DataGovernancePermissions.can_download_data(self.org_owner, self.survey)
         )
-    
+
     def test_custodian_can_download(self):
         self.assertTrue(
             DataGovernancePermissions.can_download_data(self.custodian, self.survey)
         )
-    
+
     def test_viewer_cannot_download(self):
         self.assertFalse(
             DataGovernancePermissions.can_download_data(self.viewer, self.survey)
         )
-    
+
     def test_custodian_cannot_extend_retention(self):
         self.assertFalse(
             DataGovernancePermissions.can_extend_retention(self.custodian, self.survey)
         )
-    
+
     def test_only_org_owner_can_apply_legal_hold(self):
         self.assertTrue(
             DataGovernancePermissions.can_apply_legal_hold(self.org_owner, self.survey)
@@ -1120,14 +1120,14 @@ from census_app.surveys.services import RetentionService
 
 class Command(BaseCommand):
     help = 'Check for expired surveys and send warnings'
-    
+
     def handle(self, *args, **options):
         self.stdout.write('Checking for expired surveys...')
         RetentionService.check_expired_surveys()
-        
+
         self.stdout.write('Sending deletion warnings...')
         RetentionService.send_deletion_warnings()
-        
+
         self.stdout.write(self.style.SUCCESS('Retention check complete'))
 ```
 
@@ -1161,7 +1161,7 @@ export const DownloadDisclaimerModal: React.FC<Props> = ({ surveyId, surveyName,
 
   const handleSubmit = async () => {
     setLoading(true);
-    
+
     const response = await fetch(`/api/surveys/${surveyId}/export/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1171,20 +1171,20 @@ export const DownloadDisclaimerModal: React.FC<Props> = ({ surveyId, surveyName,
         attestation_accepted: accepted
       })
     });
-    
+
     if (response.ok) {
       const data = await response.json();
       // Show download link and password
       showDownloadInfo(data.download_url, data.password);
     }
-    
+
     setLoading(false);
   };
 
   return (
     <div className="modal">
       <h2>Download Survey Data: {surveyName}</h2>
-      
+
       <div className="disclaimer">
         <p>By downloading this data, you confirm that you will:</p>
         <ul>
@@ -1195,20 +1195,20 @@ export const DownloadDisclaimerModal: React.FC<Props> = ({ surveyId, surveyName,
           <li>✓ Report any data breaches immediately</li>
         </ul>
       </div>
-      
+
       <input
         type="text"
         placeholder="Your full name"
         value={fullName}
         onChange={(e) => setFullName(e.target.value)}
       />
-      
+
       <textarea
         placeholder="Purpose of download (required)"
         value={purpose}
         onChange={(e) => setPurpose(e.target.value)}
       />
-      
+
       <label>
         <input
           type="checkbox"
@@ -1217,7 +1217,7 @@ export const DownloadDisclaimerModal: React.FC<Props> = ({ surveyId, surveyName,
         />
         I understand and accept these responsibilities
       </label>
-      
+
       <button onClick={handleSubmit} disabled={!accepted || loading}>
         {loading ? 'Generating...' : 'Download Data'}
       </button>
@@ -1276,7 +1276,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('surveys', '0XXX_previous_migration'),
     ]
-    
+
     operations = [
         migrations.AddField(
             model_name='survey',
@@ -1289,21 +1289,21 @@ class Migration(migrations.Migration):
             field=models.DateTimeField(null=True, blank=True),
         ),
         # ... (add all other fields from models above)
-        
+
         migrations.CreateModel(
             name='DataExport',
             fields=[
                 # ... (fields from DataExport model)
             ],
         ),
-        
+
         migrations.CreateModel(
             name='LegalHold',
             fields=[
                 # ... (fields from LegalHold model)
             ],
         ),
-        
+
         migrations.CreateModel(
             name='DataCustodian',
             fields=[
@@ -1361,7 +1361,7 @@ Set up alerts for:
 - [Celery Best Practices](https://docs.celeryproject.org/en/stable/userguide/tasks.html)
 - [Cryptography Library (Fernet)](https://cryptography.io/en/latest/fernet/)
 - [GDPR Compliance Guide](https://ico.org.uk/for-organisations/)
-- [Census API Documentation](/docs/api/)
+- [CheckTick API Documentation](/docs/api/)
 
 ---
 

@@ -2,9 +2,9 @@
 
 This guide gives you a quick tour of the project, how to run it with Docker, and where to go next.
 
-## What is Census?
+## What is CheckTick?
 
-Census is a secure, server-rendered survey platform built with Django and DRF. It focuses on:
+CheckTick is a secure, server-rendered survey platform built with Django and DRF. It focuses on:
 
 - Strong security by default (CSP, CSRF, HSTS, rate limits, audit logs)
 - Simple SSR UI with Tailwind + DaisyUI
@@ -21,7 +21,7 @@ Census is a secure, server-rendered survey platform built with Django and DRF. I
 
 ```bash
 git clone <your-repo-url>
-cd census
+cd checktick
 docker compose up --build
 ```
 
@@ -43,7 +43,7 @@ This enhanced script will:
 
 ## Environment Variables
 
-Census uses environment variables for configuration. For local development with Docker Compose, most variables are pre-configured in `docker-compose.yml` with sensible defaults.
+CheckTick uses environment variables for configuration. For local development with Docker Compose, most variables are pre-configured in `docker-compose.yml` with sensible defaults.
 
 ### External Dataset API (Optional)
 
@@ -373,7 +373,7 @@ If you're using the Docker Python integration and encounter issues:
 1. **Python interpreter not found**: Ensure containers are running:
 
    ```bash
-   docker ps  # Should show census-web-1 and census-db-1 running
+   docker ps  # Should show checktick-web-1 and checktick-db-1 running
    ./s/dev    # Restart if needed
    ```
 

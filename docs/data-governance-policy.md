@@ -1,10 +1,10 @@
 # Data Protection Policy
 
-**Version:** 1.0  
-**Last Updated:** {{ site.updated_date | default: "Please update in admin settings" }}  
+**Version:** 1.0
+**Last Updated:** {{ site.updated_date | default: "Please update in admin settings" }}
 **Review Date:** {{ site.policy_review_date | default: "Annual review required" }}
 
-This policy explains how {{ site.organization_name | default: "your organization" }} handles personal and sensitive data collected through Census surveys, in compliance with data protection laws.
+This policy explains how {{ site.organization_name | default: "your organization" }} handles personal and sensitive data collected through CheckTick surveys, in compliance with data protection laws.
 
 ---
 
@@ -21,8 +21,8 @@ This policy sets out how we:
 ### 1.2 Scope
 
 This policy applies to:
-- All survey data collected through Census
-- All users with access to Census (survey creators, editors, viewers, organization administrators)
+- All survey data collected through CheckTick
+- All users with access to CheckTick (survey creators, editors, viewers, organization administrators)
 - Personal data, sensitive personal data, and anonymous data
 - Data throughout its lifecycle (collection, storage, use, deletion)
 
@@ -43,17 +43,17 @@ This policy complies with:
 
 The data controller for survey data is:
 
-**Organization:** {{ site.organization_name | default: "Your Organization Name" }}  
-**Address:** {{ site.organization_address | default: "Your Organization Address" }}  
-**Email:** {{ site.data_controller_email | default: site.admin_email | default: "dpo@example.org" }}  
+**Organization:** {{ site.organization_name | default: "Your Organization Name" }}
+**Address:** {{ site.organization_address | default: "Your Organization Address" }}
+**Email:** {{ site.data_controller_email | default: site.admin_email | default: "dpo@example.org" }}
 **Phone:** {{ site.organization_phone | default: "Your Organization Phone" }}
 
 ### 2.2 Data Protection Officer (DPO)
 
 If your organization is required to appoint a DPO:
 
-**Name:** {{ site.dpo_name | default: "To be appointed" }}  
-**Email:** {{ site.dpo_email | default: site.data_controller_email | default: "dpo@example.org" }}  
+**Name:** {{ site.dpo_name | default: "To be appointed" }}
+**Email:** {{ site.dpo_email | default: site.data_controller_email | default: "dpo@example.org" }}
 **Phone:** {{ site.dpo_phone | default: "Contact via email" }}
 
 **When to contact the DPO:**
@@ -67,8 +67,8 @@ If your organization is required to appoint a DPO:
 
 For operational data governance questions:
 
-**Name:** {{ site.ig_lead_name | default: "Contact organization administrator" }}  
-**Email:** {{ site.ig_lead_email | default: site.admin_email | default: "admin@example.org" }}  
+**Name:** {{ site.ig_lead_name | default: "Contact organization administrator" }}
+**Email:** {{ site.ig_lead_email | default: site.admin_email | default: "admin@example.org" }}
 **Phone:** {{ site.ig_lead_phone | default: "Contact via email" }}
 
 ---
@@ -117,8 +117,8 @@ We will:
 - Provide warnings before deletion
 - Securely delete data when no longer needed
 
-**Default retention period:** 6 months after survey closure  
-**Maximum retention period:** 24 months after survey closure  
+**Default retention period:** 6 months after survey closure
+**Maximum retention period:** 24 months after survey closure
 **See:** [Data Retention Policy](/docs/data-governance-retention/)
 
 ### 3.6 Integrity and Confidentiality
@@ -208,8 +208,8 @@ Participants can request:
 - Copy of their data
 - Information about processing
 
-**How to request:** Contact organization administrator  
-**Response time:** Within 30 days  
+**How to request:** Contact organization administrator
+**Response time:** Within 30 days
 **Cost:** Free (unless excessive/repeated requests)
 
 ### 5.3 Right to Rectification
@@ -218,7 +218,7 @@ Participants can request:
 - Correction of inaccurate data
 - Completion of incomplete data
 
-**Implementation:** Contact organization administrator  
+**Implementation:** Contact organization administrator
 **Response time:** Within 30 days
 
 ### 5.4 Right to Erasure ("Right to be Forgotten")
@@ -234,7 +234,7 @@ Participants can request deletion if:
 - Public interest in health
 - Research in public interest (with safeguards)
 
-**Implementation:** Contact organization administrator  
+**Implementation:** Contact organization administrator
 **Response time:** Within 30 days
 
 ### 5.5 Right to Restrict Processing
@@ -245,7 +245,7 @@ Participants can request restriction if:
 - We no longer need the data, but they need it for legal claims
 - They've objected to processing (pending verification)
 
-**Implementation:** Data marked as restricted, not deleted  
+**Implementation:** Data marked as restricted, not deleted
 **Response time:** Within 30 days
 
 ### 5.6 Right to Data Portability
@@ -258,7 +258,7 @@ Participants can request:
 - Processing based on consent or contract
 - Processing is automated
 
-**Implementation:** Download survey responses  
+**Implementation:** Download survey responses
 **Response time:** Within 30 days
 
 ### 5.7 Right to Object
@@ -268,12 +268,12 @@ Participants can object to processing based on:
 - Public interest
 - Research purposes
 
-**Implementation:** Case-by-case assessment  
+**Implementation:** Case-by-case assessment
 **Response time:** Within 30 days
 
 ### 5.8 Rights Related to Automated Decision Making
 
-**Not applicable** - Census does not perform automated decision-making or profiling.
+**Not applicable** - CheckTick does not perform automated decision-making or profiling.
 
 ---
 
@@ -435,7 +435,7 @@ If data is transferred outside UK/EU:
 - Appropriate safeguards in place (e.g., Standard Contractual Clauses)
 - Documented and approved
 
-**Current:** Census data stored in {{ site.data_location | default: "UK/EU" }}
+**Current:** CheckTick data stored in {{ site.data_location | default: "UK/EU" }}
 
 ---
 
@@ -577,7 +577,7 @@ Processing may be extended beyond retention periods for:
 All users must complete:
 - Data protection awareness training (annually)
 - Role-specific training (on appointment)
-- Census-specific training (before first use)
+- CheckTick-specific training (before first use)
 
 ### 12.2 Training Content
 
@@ -639,16 +639,16 @@ We track:
 
 For questions about this policy or data protection:
 
-**Email:** {{ site.data_controller_email | default: site.admin_email | default: "dpo@example.org" }}  
-**Phone:** {{ site.organization_phone | default: "Contact via email" }}  
+**Email:** {{ site.data_controller_email | default: site.admin_email | default: "dpo@example.org" }}
+**Phone:** {{ site.organization_phone | default: "Contact via email" }}
 **Post:** {{ site.organization_address | default: "Your Organization Address" }}
 
 ### 14.2 Data Subject Requests
 
 To exercise your rights (access, rectification, erasure, etc.):
 
-**Email:** {{ site.dpo_email | default: site.data_controller_email | default: "dpo@example.org" }}  
-**Subject Line:** "Data Subject Request - [Your Name]"  
+**Email:** {{ site.dpo_email | default: site.data_controller_email | default: "dpo@example.org" }}
+**Subject Line:** "Data Subject Request - [Your Name]"
 **Include:** Full name, contact details, description of request
 
 **Response time:** Within 30 days
@@ -664,9 +664,9 @@ If you are not satisfied with how we handle your data:
 **External Complaint:**
 - You have the right to complain to the supervisory authority:
 
-**Information Commissioner's Office (ICO):**  
-Website: https://ico.org.uk/  
-Phone: 0303 123 1113  
+**Information Commissioner's Office (ICO):**
+Website: https://ico.org.uk/
+Phone: 0303 123 1113
 Post: Information Commissioner's Office, Wycliffe House, Water Lane, Wilmslow, Cheshire, SK9 5AF
 
 ---
@@ -707,7 +707,7 @@ Post: Information Commissioner's Office, Wycliffe House, Water Lane, Wilmslow, C
 | DPO (if applicable) | {{ site.dpo_name \| default: "Name" }} | _________________ | ________ |
 
 **Distribution:**
-- All Census users (via system notification)
+- All CheckTick users (via system notification)
 - Organization website
 - Staff handbook
 - New user onboarding
@@ -716,4 +716,4 @@ Post: Information Commissioner's Office, Wycliffe House, Water Lane, Wilmslow, C
 
 **This policy is effective from:** {{ site.policy_effective_date | default: "Date of publication" }}
 
-**Note:** Fields marked with `{{ }}` should be configured in Census admin settings or organization profile.
+**Note:** Fields marked with `{{ }}` should be configured in CheckTick admin settings or organization profile.

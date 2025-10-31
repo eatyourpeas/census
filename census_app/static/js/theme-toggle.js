@@ -1,5 +1,5 @@
 (function () {
-  const KEY = "census-theme"; // values: 'system' | 'census-light' | 'census-dark'
+  const KEY = "checktick-theme"; // values: 'system' | 'checktick-light' | 'checktick-dark'
   const htmlEl = document.documentElement;
   const select = document.getElementById("theme-select");
   const ddBtn = document.getElementById("theme-dropdown-btn");
@@ -8,14 +8,14 @@
 
   function normalize(pref) {
     switch (pref) {
-      case "census":
+      case "checktick":
       case "light":
-        return "census-light";
+        return "checktick-light";
       case "dark":
-        return "census-dark";
+        return "checktick-dark";
       case "system":
-      case "census-light":
-      case "census-dark":
+      case "checktick-light":
+      case "checktick-dark":
         return pref;
       default:
         return null;
@@ -24,9 +24,9 @@
 
   function effectiveTheme(pref) {
     if (pref === "system") {
-      return media.matches ? "census-dark" : "census-light";
+      return media.matches ? "checktick-dark" : "checktick-light";
     }
-    return pref || "census-light";
+    return pref || "checktick-light";
   }
 
   function applyTheme(pref) {
@@ -51,9 +51,9 @@
 
   function labelFor(pref) {
     switch (pref) {
-      case "census-light":
+      case "checktick-light":
         return "Light";
-      case "census-dark":
+      case "checktick-dark":
         return "Dark";
       case "system":
       default:
@@ -71,7 +71,7 @@
     }
     // default to current server-set theme, but set select to 'system' if it matches OS
     const current =
-      normalize(htmlEl.getAttribute("data-theme")) || "census-light";
+      normalize(htmlEl.getAttribute("data-theme")) || "checktick-light";
     const systemTheme = effectiveTheme("system");
     if (select) {
       select.value = current === systemTheme ? "system" : current;
@@ -108,7 +108,7 @@
 
     if (select) {
       select.addEventListener("change", () => {
-        const pref = select.value; // 'system' | 'census-light' | 'census-dark'
+        const pref = select.value; // 'system' | 'checktick-light' | 'checktick-dark'
         applyTheme(pref);
         persist(pref);
         if (ddLabel) ddLabel.textContent = labelFor(pref);
@@ -144,7 +144,7 @@
       const current =
         readSaved() ||
         normalize(htmlEl.getAttribute("data-theme")) ||
-        "census-light";
+        "checktick-light";
       if (menu) {
         const systemTheme = effectiveTheme("system");
         const prefShown = current === systemTheme ? "system" : current;

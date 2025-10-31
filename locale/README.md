@@ -1,6 +1,6 @@
 # Translation Files
 
-This directory contains translation files for the Census application.
+This directory contains translation files for the CheckTick application.
 
 ## Supported Languages
 
@@ -24,7 +24,7 @@ The application currently supports the following languages:
 
 ### Import Translations from Markdown Files
 
-Census provides a convenient management command to import translations from structured markdown files:
+CheckTick provides a convenient management command to import translations from structured markdown files:
 
 ```bash
 # Preview changes (dry run)

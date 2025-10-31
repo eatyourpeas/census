@@ -107,17 +107,17 @@ def branding(request):
 
     # Defaults from settings
     brand = {
-        "title": getattr(settings, "BRAND_TITLE", "Census"),
+        "title": getattr(settings, "BRAND_TITLE", "CheckTick"),
         # Only set when explicitly configured
         "icon_url": getattr(settings, "BRAND_ICON_URL", None),
-        # Optional dark-mode icon; when present, shown when data-theme contains 'census-dark'
+        # Optional dark-mode icon; when present, shown when data-theme contains 'checktick-dark'
         "icon_url_dark": getattr(settings, "BRAND_ICON_URL_DARK", None),
         # Accessibility and UX metadata for the brand icon
         "icon_alt": getattr(settings, "BRAND_ICON_ALT", None),
         "icon_title": getattr(settings, "BRAND_ICON_TITLE", None),
         # Icon size (Tailwind classes). Prefer explicit class; fall back to numeric size -> w-{n} h-{n}
         "icon_size_class": None,
-        "theme_name": getattr(settings, "BRAND_THEME", "census-light"),
+        "theme_name": getattr(settings, "BRAND_THEME", "checktick-light"),
         "font_heading": getattr(
             settings,
             "BRAND_FONT_HEADING",
@@ -195,7 +195,7 @@ def branding(request):
     )
     if not version_val and _importlib_metadata is not None:
         try:
-            version_val = _importlib_metadata.version("census")
+            version_val = _importlib_metadata.version("checktick")
         except Exception:
             version_val = None
     build = {

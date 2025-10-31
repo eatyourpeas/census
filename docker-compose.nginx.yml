@@ -25,7 +25,7 @@ services:
       - web
     restart: unless-stopped
     networks:
-      - census-network
+      - checktick-network
 
   # Override web service to not expose port directly
   web:
@@ -40,5 +40,5 @@ volumes:
     driver: local
 
 networks:
-  census-network:
+  checktick-network:
     external: true

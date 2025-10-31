@@ -1,6 +1,6 @@
 # Self-Hosting Configuration
 
-Complete configuration guide for customizing your Census deployment.
+Complete configuration guide for customizing your CheckTick deployment.
 
 ## Environment Variables Reference
 
@@ -12,12 +12,12 @@ All configuration is done through environment variables in the `.env` file.
 
 ```bash
 # For included PostgreSQL
-POSTGRES_DB=census
-POSTGRES_USER=census
+POSTGRES_DB=checktick
+POSTGRES_USER=checktick
 POSTGRES_PASSWORD=your-secure-password
 
 # For external database
-DATABASE_URL=postgresql://user:password@host:5432/census
+DATABASE_URL=postgresql://user:password@host:5432/checktick
 ```
 
 #### Security
@@ -41,7 +41,7 @@ SECURE_SSL_REDIRECT=True
 
 #### Email
 
-Census requires email for user invitations and notifications:
+CheckTick requires email for user invitations and notifications:
 
 ```bash
 DEFAULT_FROM_EMAIL=surveys@yourdomain.com
@@ -60,14 +60,14 @@ EMAIL_TIMEOUT=10
 
 #### Branding
 
-Customize the appearance of your Census instance:
+Customize the appearance of your CheckTick instance:
 
 ```bash
 # Site title (appears in browser tab and header)
 BRAND_TITLE=Your Organization Surveys
 
-# Theme name (currently only 'census' available)
-BRAND_THEME=census
+# Theme name (currently only 'checktick' available)
+BRAND_THEME=checktick
 
 # Custom favicon
 BRAND_ICON_URL=/static/your-logo.ico
@@ -296,7 +296,7 @@ BRAND_FONT_CSS_URL=  # Leave empty
 
 ### Custom Theme
 
-Currently only the default `census` theme is available. Custom themes coming in future releases.
+Currently only the default `checktick` theme is available. Custom themes coming in future releases.
 
 ## Performance Tuning
 
@@ -353,9 +353,9 @@ services:
     environment:
       DATABASES_HOST: db
       DATABASES_PORT: 5432
-      DATABASES_USER: census
+      DATABASES_USER: checktick
       DATABASES_PASSWORD: your-password
-      DATABASES_DBNAME: census
+      DATABASES_DBNAME: checktick
       PGBOUNCER_POOL_MODE: transaction
       PGBOUNCER_MAX_CLIENT_CONN: 1000
       PGBOUNCER_DEFAULT_POOL_SIZE: 25
@@ -364,7 +364,7 @@ services:
 Then update web service:
 
 ```bash
-DATABASE_URL=postgresql://census:password@pgbouncer:6432/census
+DATABASE_URL=postgresql://checktick:password@pgbouncer:6432/checktick
 ```
 
 ## Security Configuration
@@ -395,7 +395,7 @@ Adjust in `nginx/nginx.conf` as needed for your traffic.
 
 ### Password Requirements
 
-Census enforces Django's default password validators:
+CheckTick enforces Django's default password validators:
 - Minimum 8 characters
 - Cannot be too similar to username
 - Cannot be entirely numeric
@@ -415,7 +415,7 @@ docker compose logs -f web
 docker compose logs web | grep ERROR
 
 # Save logs to file
-docker compose logs web > census-logs-$(date +%Y%m%d).log
+docker compose logs web > checktick-logs-$(date +%Y%m%d).log
 ```
 
 ### Database Logs
@@ -425,7 +425,7 @@ docker compose logs web > census-logs-$(date +%Y%m%d).log
 docker compose logs db
 
 # Query statistics
-docker compose exec db psql -U census census -c "
+docker compose exec db psql -U checktick checktick -c "
   SELECT query, calls, total_time, mean_time
   FROM pg_stat_statements
   ORDER BY total_time DESC
@@ -450,21 +450,21 @@ docker volume ls --format "{{.Name}}" | xargs docker volume inspect --format "{{
 
 ### Custom Domain for Different Services
 
-Run multiple Census instances on different domains:
+Run multiple CheckTick instances on different domains:
 
 ```yaml
-# census-main.yourdomain.com
+# checktick-main.yourdomain.com
 services:
   web:
     environment:
-      ALLOWED_HOSTS: census-main.yourdomain.com
+      ALLOWED_HOSTS: checktick-main.yourdomain.com
       BRAND_TITLE: Main Surveys
 
-# census-research.yourdomain.com
+# checktick-research.yourdomain.com
 services:
   web:
     environment:
-      ALLOWED_HOSTS: census-research.yourdomain.com
+      ALLOWED_HOSTS: checktick-research.yourdomain.com
       BRAND_TITLE: Research Surveys
 ```
 

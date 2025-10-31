@@ -1,6 +1,6 @@
 # Survey Encryption: Quick Reference
 
-This guide helps you understand your encryption options when publishing a Census survey.
+This guide helps you understand your encryption options when publishing a CheckTick survey.
 
 ## Choose Your Encryption Method
 

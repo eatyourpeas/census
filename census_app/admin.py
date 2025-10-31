@@ -4,8 +4,8 @@ from django.contrib.admin.apps import AdminConfig
 
 
 class CensusAdminSite(AdminSite):
-    site_header = f"{getattr(settings, 'BRAND_TITLE', 'Census')} Admin"
-    site_title = f"{getattr(settings, 'BRAND_TITLE', 'Census')} Admin"
+    site_header = f"{getattr(settings, 'BRAND_TITLE', 'CheckTick')} Admin"
+    site_title = f"{getattr(settings, 'BRAND_TITLE', 'CheckTick')} Admin"
     index_title = "Administration"
 
     def has_permission(self, request):  # type: ignore[override]

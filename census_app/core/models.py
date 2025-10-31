@@ -12,12 +12,12 @@ class SiteBranding(models.Model):
     """
 
     DEFAULT_THEME_CHOICES = [
-        ("census-light", "Census Light"),
-        ("census-dark", "Census Dark"),
+        ("checktick-light", "CheckTick Light"),
+        ("checktick-dark", "CheckTick Dark"),
     ]
 
     default_theme = models.CharField(
-        max_length=64, choices=DEFAULT_THEME_CHOICES, default="census-light"
+        max_length=64, choices=DEFAULT_THEME_CHOICES, default="checktick-light"
     )
     icon_url = models.URLField(blank=True, default="")
     icon_file = models.FileField(upload_to="branding/", blank=True, null=True)

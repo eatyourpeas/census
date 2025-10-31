@@ -24,10 +24,10 @@ class Migration(migrations.Migration):
                     "default_theme",
                     models.CharField(
                         choices=[
-                            ("census-light", "Census Light"),
-                            ("census-dark", "Census Dark"),
+                            ("checktick-light", "CheckTick Light"),
+                            ("checktick-dark", "CheckTick Dark"),
                         ],
-                        default="census-light",
+                        default="checktick-light",
                         max_length=64,
                     ),
                 ),

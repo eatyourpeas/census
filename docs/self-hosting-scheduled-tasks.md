@@ -1,6 +1,6 @@
 # Self-Hosting: Scheduled Tasks
 
-Census requires scheduled tasks to process data governance operations including deletion warnings and automatic data cleanup. This guide explains how to set up these tasks on different hosting platforms.
+CheckTick requires scheduled tasks to process data governance operations including deletion warnings and automatic data cleanup. This guide explains how to set up these tasks on different hosting platforms.
 
 ## Overview
 
@@ -14,7 +14,7 @@ The `process_data_governance` management command runs daily to:
 
 ## Prerequisites
 
-- Census deployed and running
+- CheckTick deployed and running
 - Email configured (for sending deletion warnings)
 - Access to your hosting platform's scheduling features
 
@@ -31,8 +31,8 @@ Northflank provides native cron job support, making this the simplest option.
 1. Go to your Northflank project
 2. Click **"Add Service"** → **"Cron Job"**
 3. Configure the job:
-   - **Name**: `census-data-governance`
-   - **Docker Image**: Use the same image as your web service (e.g., `ghcr.io/eatyourpeas/census:latest`)
+   - **Name**: `checktick-data-governance`
+   - **Docker Image**: Use the same image as your web service (e.g., `ghcr.io/eatyourpeas/checktick:latest`)
    - **Schedule**: `0 2 * * *` (runs at 2 AM UTC daily)
    - **Command**: `python manage.py process_data_governance`
 
@@ -73,18 +73,18 @@ If you're self-hosting with Docker Compose on a VPS or dedicated server, use the
 
 #### 1. Create a Cron Script
 
-Create `/usr/local/bin/census-data-governance.sh`:
+Create `/usr/local/bin/checktick-data-governance.sh`:
 
 ```bash
 #!/bin/bash
-# Census Data Governance Cron Job
+# CheckTick Data Governance Cron Job
 # Runs daily at 2 AM UTC
 
 # Set working directory
-cd /path/to/your/census-app
+cd /path/to/your/checktick-app
 
 # Run the management command
-docker compose exec -T web python manage.py process_data_governance >> /var/log/census/data-governance.log 2>&1
+docker compose exec -T web python manage.py process_data_governance >> /var/log/checktick/data-governance.log 2>&1
 
 # Exit with the command's exit code
 exit $?
@@ -93,7 +93,7 @@ exit $?
 Make it executable:
 
 ```bash
-chmod +x /usr/local/bin/census-data-governance.sh
+chmod +x /usr/local/bin/checktick-data-governance.sh
 ```
 
 #### 2. Add to System Crontab
@@ -105,32 +105,32 @@ sudo crontab -e
 Add this line:
 
 ```cron
-# Census Data Governance - Daily at 2 AM UTC
-0 2 * * * /usr/local/bin/census-data-governance.sh
+# CheckTick Data Governance - Daily at 2 AM UTC
+0 2 * * * /usr/local/bin/checktick-data-governance.sh
 ```
 
 #### 3. Create Log Directory
 
 ```bash
-sudo mkdir -p /var/log/census
-sudo chown $USER:$USER /var/log/census
+sudo mkdir -p /var/log/checktick
+sudo chown $USER:$USER /var/log/checktick
 ```
 
 #### 4. Test the Script
 
 ```bash
 # Test manually
-/usr/local/bin/census-data-governance.sh
+/usr/local/bin/checktick-data-governance.sh
 
 # Check logs
-tail -f /var/log/census/data-governance.log
+tail -f /var/log/checktick/data-governance.log
 ```
 
 ---
 
 ### Kubernetes
 
-If you're running Census in Kubernetes, use a CronJob resource.
+If you're running CheckTick in Kubernetes, use a CronJob resource.
 
 #### Create a CronJob manifest:
 
@@ -138,8 +138,8 @@ If you're running Census in Kubernetes, use a CronJob resource.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: census-data-governance
-  namespace: census
+  name: checktick-data-governance
+  namespace: checktick
 spec:
   schedule: "0 2 * * *"  # 2 AM UTC daily
   concurrencyPolicy: Forbid  # Don't run if previous job still running
@@ -152,16 +152,16 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: data-governance
-            image: ghcr.io/eatyourpeas/census:latest
+            image: ghcr.io/eatyourpeas/checktick:latest
             command:
             - python
             - manage.py
             - process_data_governance
             envFrom:
             - configMapRef:
-                name: census-config
+                name: checktick-config
             - secretRef:
-                name: census-secrets
+                name: checktick-secrets
             resources:
               requests:
                 memory: "256Mi"
@@ -174,14 +174,14 @@ spec:
 Apply the manifest:
 
 ```bash
-kubectl apply -f census-cronjob.yaml
+kubectl apply -f checktick-cronjob.yaml
 ```
 
 Test manually:
 
 ```bash
 # Trigger a manual run
-kubectl create job --from=cronjob/census-data-governance manual-test-1
+kubectl create job --from=cronjob/checktick-data-governance manual-test-1
 
 # Check logs
 kubectl logs -l job-name=manual-test-1
@@ -197,17 +197,17 @@ Use AWS EventBridge (CloudWatch Events) to trigger scheduled ECS tasks.
 
 ```bash
 aws events put-rule \
-  --name census-data-governance-daily \
+  --name checktick-data-governance-daily \
   --schedule-expression "cron(0 2 * * ? *)" \
-  --description "Run Census data governance tasks daily at 2 AM UTC"
+  --description "Run CheckTick data governance tasks daily at 2 AM UTC"
 ```
 
 #### 2. Add ECS Task as Target
 
 ```bash
 aws events put-targets \
-  --rule census-data-governance-daily \
-  --targets "Id"="1","Arn"="arn:aws:ecs:region:account:cluster/census-cluster","RoleArn"="arn:aws:iam::account:role/ecsEventsRole","EcsParameters"="{TaskDefinitionArn=arn:aws:ecs:region:account:task-definition/census-web:latest,LaunchType=FARGATE,NetworkConfiguration={awsvpcConfiguration={Subnets=[subnet-xxx],SecurityGroups=[sg-xxx],AssignPublicIp=ENABLED}},TaskCount=1,PlatformVersion=LATEST}"
+  --rule checktick-data-governance-daily \
+  --targets "Id"="1","Arn"="arn:aws:ecs:region:account:cluster/checktick-cluster","RoleArn"="arn:aws:iam::account:role/ecsEventsRole","EcsParameters"="{TaskDefinitionArn=arn:aws:ecs:region:account:task-definition/checktick-web:latest,LaunchType=FARGATE,NetworkConfiguration={awsvpcConfiguration={Subnets=[subnet-xxx],SecurityGroups=[sg-xxx],AssignPublicIp=ENABLED}},TaskCount=1,PlatformVersion=LATEST}"
 ```
 
 #### 3. Override Task Command
@@ -219,7 +219,7 @@ In your task definition, set the command override:
   "overrides": {
     "containerOverrides": [
       {
-        "name": "census-web",
+        "name": "checktick-web",
         "command": ["python", "manage.py", "process_data_governance"]
       }
     ]
@@ -283,7 +283,7 @@ jobs:
 #### Option 2: Use EasyCron or Similar Service
 
 1. Sign up for [EasyCron](https://www.easycron.com/) or similar
-2. Create a webhook endpoint in your Census app
+2. Create a webhook endpoint in your CheckTick app
 3. Schedule the webhook to run daily
 
 ---
@@ -361,12 +361,12 @@ docker compose exec web python manage.py process_data_governance --verbose
 
 **Docker Compose:**
 ```bash
-tail -f /var/log/census/data-governance.log
+tail -f /var/log/checktick/data-governance.log
 ```
 
 **Kubernetes:**
 ```bash
-kubectl logs -l job-name=census-data-governance --tail=100
+kubectl logs -l job-name=checktick-data-governance --tail=100
 ```
 
 ### Audit Trail

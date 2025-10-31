@@ -18,7 +18,7 @@ def test_admin_branding_header_for_superuser(client):
 
     # Validate branding appears without relying on contiguous text (markup may split spans)
     content = resp.content.decode("utf-8", errors="ignore")
-    brand_title = getattr(settings, "BRAND_TITLE", "Census")
+    brand_title = getattr(settings, "BRAND_TITLE", "CheckTick")
     # 1) Page contains brand title somewhere
     assert brand_title in content
     # 2) Page contains the word Admin/admin somewhere (header span or title tag)

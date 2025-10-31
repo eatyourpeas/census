@@ -104,14 +104,14 @@
 <body>
     <div class="email-container">
         <div class="email-header">
-            <h1>{{ brand.title|default:"Census" }}</h1>
+            <h1>{{ brand.title|default:"CheckTick" }}</h1>
         </div>
         <div class="email-body">
             {{ content|safe }}
         </div>
         <div class="email-footer">
             <p>
-                This email was sent from {{ brand.title|default:"Census" }}.
+                This email was sent from {{ brand.title|default:"CheckTick" }}.
                 {% if site_url %}
                 <br><a href="{{ site_url }}">Visit our website</a>
                 {% endif %}

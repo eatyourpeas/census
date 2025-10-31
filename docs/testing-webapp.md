@@ -1,10 +1,10 @@
 # Testing the Web Application
 
-This document provides guidance on testing the Census webapp, including patterns for testing views, forms, question builder functionality, and HTMX interactions.
+This document provides guidance on testing the CheckTick webapp, including patterns for testing views, forms, question builder functionality, and HTMX interactions.
 
 ## Overview
 
-The Census webapp is tested using pytest with Django's test client. Tests verify that web pages render correctly, forms work as expected, permissions are enforced, and interactive features function properly.
+The CheckTick webapp is tested using pytest with Django's test client. Tests verify that web pages render correctly, forms work as expected, permissions are enforced, and interactive features function properly.
 
 ## Test Location
 

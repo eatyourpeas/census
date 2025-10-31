@@ -1,6 +1,6 @@
 # Data Security Guide
 
-This guide explains security best practices for handling survey data downloaded from Census, your responsibilities as a data handler, and what to do if something goes wrong.
+This guide explains security best practices for handling survey data downloaded from CheckTick, your responsibilities as a data handler, and what to do if something goes wrong.
 
 ## Your Responsibility
 
@@ -53,7 +53,7 @@ Download only over secure networks:
 
 Follow these steps when downloading:
 
-1. **Verify the URL** - Ensure you're on the genuine Census site
+1. **Verify the URL** - Ensure you're on the genuine CheckTick site
 2. **Accept disclaimer** - Read and understand your obligations
 3. **Save password securely** - Use password manager, never write it down
 4. **Download to encrypted location** - Work drive, not Downloads folder
@@ -188,7 +188,7 @@ If you must share data with colleagues:
 - ✓ Secure file share (organization-approved)
 - ✓ Encrypted email (if organization supports it)
 - ✓ Hand delivery on encrypted USB (if policy allows)
-- ✓ Through Census itself (add them as data custodian)
+- ✓ Through CheckTick itself (add them as data custodian)
 
 **Prohibited Methods:**
 - ✗ Unencrypted email
@@ -378,7 +378,7 @@ Data breaches can result in:
 
 - [ ] Review all downloaded data - still needed?
 - [ ] Securely delete old data
-- [ ] Check retention periods in Census
+- [ ] Check retention periods in CheckTick
 - [ ] Audit file permissions
 - [ ] Review organizational security policies
 
@@ -390,13 +390,13 @@ Data breaches can result in:
 - Security best practices → Contact IT security team
 - Data protection law → Contact Data Protection Officer
 - Organizational policy → Contact organization owner
-- Census security features → See [Data Policy](/docs/data-governance-policy/)
+- CheckTick security features → See [Data Policy](/docs/data-governance-policy/)
 
 ### Reporting Issues
 
 **Report immediately if:**
 - You suspect a breach
-- You receive suspicious emails about Census
+- You receive suspicious emails about CheckTick
 - You notice unauthorized access to data
 - You're unsure if something is a security issue
 
@@ -421,7 +421,7 @@ Before downloading data, ensure you have completed:
 - [ ] Data protection awareness training
 - [ ] Information security training
 - [ ] Your organization's data handling training
-- [ ] Census-specific training (if provided)
+- [ ] CheckTick-specific training (if provided)
 
 ### Ongoing Learning
 
@@ -430,7 +430,7 @@ Stay informed about:
 - Changes to data protection laws
 - New security threats (phishing, ransomware, etc.)
 - Organizational policy updates
-- Census feature updates
+- CheckTick feature updates
 
 ### Testing Your Knowledge
 

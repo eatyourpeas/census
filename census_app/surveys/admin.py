@@ -55,7 +55,7 @@ class CollectionDefinitionAdmin(admin.ModelAdmin):
 
 
 # Configure admin site branding after admin is imported
-_brand_title = getattr(settings, "BRAND_TITLE", "Census")
+_brand_title = getattr(settings, "BRAND_TITLE", "CheckTick")
 admin.site.site_header = f"{_brand_title} Admin"
 admin.site.site_title = f"{_brand_title} Admin"
 admin.site.index_title = "Administration"

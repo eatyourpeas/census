@@ -1,7 +1,7 @@
 {% load static %}
 {% load i18n %}
 <!doctype html>
-<html lang="en" data-theme="{{ brand.theme_name|default:'census-light' }}">
+<html lang="en" data-theme="{{ brand.theme_name|default:'checktick-light' }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -15,12 +15,12 @@
     {% if brand.theme_css_light or brand.theme_css_dark %}
     <style>
       {% if brand.theme_css_light %}
-      [data-theme="census-light"] {
+      [data-theme="checktick-light"] {
         {{ brand.theme_css_light|safe }}
       }
       {% endif %}
       {% if brand.theme_css_dark %}
-      [data-theme="census-dark"] {
+      [data-theme="checktick-dark"] {
         {{ brand.theme_css_dark|safe }}
       }
       {% endif %}

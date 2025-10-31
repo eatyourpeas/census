@@ -1,10 +1,10 @@
 # Testing the API
 
-This document provides guidance on testing the Census API, including patterns, best practices, and examples from the existing test suite.
+This document provides guidance on testing the CheckTick API, including patterns, best practices, and examples from the existing test suite.
 
 ## Overview
 
-The Census API is tested using pytest with Django's test client. Tests verify that API endpoints work correctly, handle edge cases, validate inputs, and return appropriate responses.
+The CheckTick API is tested using pytest with Django's test client. Tests verify that API endpoints work correctly, handle edge cases, validate inputs, and return appropriate responses.
 
 ## Test Location
 
@@ -78,7 +78,7 @@ class TestMyAPIEndpoint:
 
 ## Authentication and Permissions
 
-Census uses JWT authentication for API requests. Tests should:
+CheckTick uses JWT authentication for API requests. Tests should:
 
 1. Create a test user
 2. Obtain a JWT token via `/api/token`

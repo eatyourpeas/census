@@ -1,10 +1,10 @@
 # Self-Hosting Quick Start
 
-Get Census running on your own infrastructure in minutes using pre-built Docker images.
+Get CheckTick running on your own infrastructure in minutes using pre-built Docker images.
 
 ## Overview
 
-Census can be self-hosted using Docker, similar to platforms like Discourse. You don't need to clone the repository or build anything - just pull the pre-built image and configure your deployment.
+CheckTick can be self-hosted using Docker, similar to platforms like Discourse. You don't need to clone the repository or build anything - just pull the pre-built image and configure your deployment.
 
 ## Prerequisites
 
@@ -19,13 +19,13 @@ Census can be self-hosted using Docker, similar to platforms like Discourse. You
 
 ```bash
 # Create a directory for your deployment
-mkdir census-app && cd census-app
+mkdir checktick-app && cd checktick-app
 
 # Download the compose file
-curl -O https://raw.githubusercontent.com/eatyourpeas/census/main/docker-compose.registry.yml
+curl -O https://raw.githubusercontent.com/eatyourpeas/checktick/main/docker-compose.registry.yml
 
 # Download environment template
-curl -O https://raw.githubusercontent.com/eatyourpeas/census/main/.env.selfhost
+curl -O https://raw.githubusercontent.com/eatyourpeas/checktick/main/.env.selfhost
 mv .env.selfhost .env
 ```
 
@@ -59,7 +59,7 @@ BRAND_TITLE=Your Survey Platform
 
 # Email Provider (REQUIRED for functionality)
 # Email is essential for user invitations, password resets, and notifications
-# Census will start without email configured, but users cannot be invited or reset passwords
+# CheckTick will start without email configured, but users cannot be invited or reset passwords
 DEFAULT_FROM_EMAIL=no-reply@yourdomain.com
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
@@ -76,9 +76,9 @@ EXTERNAL_DATASET_API_KEY=your-rcpch-api-key
 > **Note**: Generate a strong `SECRET_KEY` with: `openssl rand -base64 50`
 ```
 
-> **Note:** Census will start without email configured, but users cannot be invited or reset passwords. Email setup is essential for a working system.
+> **Note:** CheckTick will start without email configured, but users cannot be invited or reset passwords. Email setup is essential for a working system.
 
-### 3. Start Census
+### 3. Start CheckTick
 
 ```bash
 # Pull the latest image and start services
@@ -152,7 +152,7 @@ docker compose up -d
 3. Check email service allows SMTP access
 4. Test with: `docker compose exec web python manage.py sendtestemail your@email.com`
 
-## Updating Census
+## Updating CheckTick
 
 ```bash
 # Pull latest image
@@ -166,15 +166,15 @@ docker compose up -d
 
 ## Getting Help
 
-- [Documentation](https://github.com/eatyourpeas/census/tree/main/docs) - Full guides
-- [GitHub Issues](https://github.com/eatyourpeas/census/issues) - Report bugs or problems
-- [GitHub Discussions](https://github.com/eatyourpeas/census/discussions) - Ask questions
+- [Documentation](https://github.com/eatyourpeas/checktick/tree/main/docs) - Full guides
+- [GitHub Issues](https://github.com/eatyourpeas/checktick/issues) - Report bugs or problems
+- [GitHub Discussions](https://github.com/eatyourpeas/checktick/discussions) - Ask questions
 
 ## Architecture
 
 Your deployment includes:
 
-- **Web Application** - Django application serving Census
+- **Web Application** - Django application serving CheckTick
 - **PostgreSQL Database** - Data storage with persistent volume
 - **Media Volume** - Uploaded files and user content
 

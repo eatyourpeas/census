@@ -4,7 +4,7 @@ This document explains how users authenticate and what they can access in the sy
 
 ## Authentication
 
-Census supports multiple authentication methods for healthcare environments:
+CheckTick supports multiple authentication methods for healthcare environments:
 
 ### Traditional Authentication
 - Web UI uses Django session authentication with CSRF protection.
@@ -14,7 +14,7 @@ Census supports multiple authentication methods for healthcare environments:
 
 ### Healthcare SSO (Single Sign-On)
 
-Census integrates with OIDC providers for seamless clinician authentication:
+CheckTick integrates with OIDC providers for seamless clinician authentication:
 
 #### Supported Providers
 
@@ -185,7 +185,7 @@ curl -s -X POST -H "Content-Type: application/json" \
 
 ## Error Pages and User Experience
 
-Census provides styled error pages for common authentication and permission failures, ensuring users receive helpful feedback when access is denied or issues occur:
+CheckTick provides styled error pages for common authentication and permission failures, ensuring users receive helpful feedback when access is denied or issues occur:
 
 ### Custom Error Templates
 

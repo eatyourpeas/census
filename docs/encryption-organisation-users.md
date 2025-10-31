@@ -1,6 +1,6 @@
 # Encryption for Organisation Users
 
-This guide explains how encryption works for Census users who are members of an organisation, including organisation owners and administrators.
+This guide explains how encryption works for CheckTick users who are members of an organisation, including organisation owners and administrators.
 
 ## Overview
 
@@ -139,7 +139,7 @@ These logs are:
 The organisation master key is a cryptographic key that:
 
 - Encrypts copies of all survey keys in your organisation
-- Is stored securely in the Census database
+- Is stored securely in the CheckTick database
 - Enables administrative recovery without knowing member passwords
 - Is never exposed to users or administrators
 
@@ -310,11 +310,11 @@ No. All surveys created within an organisation automatically include organisatio
 
 ### What happens if the organisation master key is lost?
 
-The organisation master key is securely stored in the Census database and backed up with all other Census data. There is no scenario where it can be "lost" under normal operations.
+The organisation master key is securely stored in the CheckTick database and backed up with all other CheckTick data. There is no scenario where it can be "lost" under normal operations.
 
 ### Can I transfer a survey to a different organisation?
 
-Survey transfer capabilities depend on your Census version. Contact your organisation owner or Census support for assistance.
+Survey transfer capabilities depend on your CheckTick version. Contact your organisation owner or CheckTick support for assistance.
 
 ### As an owner, can I see all member passwords?
 
@@ -365,4 +365,4 @@ Organisation owners should regularly review audit logs to:
 - Detect potential security issues
 - Meet compliance requirements
 
-Access audit logs through your organisation dashboard (feature availability may vary by Census version).
+Access audit logs through your organisation dashboard (feature availability may vary by CheckTick version).

@@ -11,9 +11,9 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     SECURE_SSL_REDIRECT=(bool, False),
     CSRF_TRUSTED_ORIGINS=(list, []),
-    BRAND_TITLE=(str, "Census"),
-    BRAND_ICON_URL=(str, "/static/icons/census-default.svg"),
-    BRAND_THEME=(str, "census-light"),
+    BRAND_TITLE=(str, "CheckTick"),
+    BRAND_ICON_URL=(str, "/static/icons/checktick-default.svg"),
+    BRAND_THEME=(str, "checktick-light"),
     BRAND_FONT_HEADING=(
         str,
         "'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'",
@@ -397,7 +397,7 @@ if DEBUG:
     OIDC_BASE_URL = "http://localhost:8000"
 else:
     # Production
-    OIDC_BASE_URL = "https://census.eatyourpeas.dev"
+    OIDC_BASE_URL = "https://checktick.eatyourpeas.dev"
 
 # OIDC Provider Configuration
 OIDC_PROVIDERS = {

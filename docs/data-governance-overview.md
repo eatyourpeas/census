@@ -1,6 +1,6 @@
 # Data Governance Overview
 
-Census takes data protection and governance seriously. This guide explains how we handle your survey data, who can access it, and your responsibilities as a data custodian.
+CheckTick takes data protection and governance seriously. This guide explains how we handle your survey data, who can access it, and your responsibilities as a data custodian.
 
 ## What is Data Governance?
 
@@ -174,20 +174,20 @@ If you have questions about data governance:
 
 2. **Contact your organization's data protection officer** (if designated)
 
-3. **For technical issues:** [GitHub Issues](https://github.com/eatyourpeas/census/issues)
+3. **For technical issues:** [GitHub Issues](https://github.com/eatyourpeas/checktick/issues)
 
 4. **For security concerns:** Contact your organization administrator immediately
 
 ## Compliance
 
-Census is designed to support compliance with:
+CheckTick is designed to support compliance with:
 - **GDPR** (General Data Protection Regulation)
 - **UK Data Protection Act 2018**
 - **NHS Data Security and Protection Toolkit**
 - **Caldicott Principles**
 - Research ethics requirements
 
-However, **you are responsible** for ensuring your specific use case complies with applicable regulations. Census provides the tools - you provide the governance.
+However, **you are responsible** for ensuring your specific use case complies with applicable regulations. CheckTick provides the tools - you provide the governance.
 
 ## Next Steps
 

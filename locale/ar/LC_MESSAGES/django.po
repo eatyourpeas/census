@@ -30,7 +30,7 @@ msgid ""
 msgstr ""
 
 #: census_app/core/templates/core/home.html:33
-msgid "Census"
+msgid "CheckTick"
 msgstr ""
 
 #: census_app/core/templates/core/home.html:34

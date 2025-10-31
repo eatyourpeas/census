@@ -1,6 +1,6 @@
 # Email Notifications
 
-Census includes a comprehensive email notification system with customizable templates, granular user preferences, and two-level theming support.
+CheckTick includes a comprehensive email notification system with customizable templates, granular user preferences, and two-level theming support.
 
 ## Overview
 
@@ -30,7 +30,7 @@ You can override this behavior by explicitly setting `EMAIL_BACKEND` in your `.e
 ```bash
 # DEBUG=True automatically uses console backend
 DEBUG=True
-DEFAULT_FROM_EMAIL=noreply@census.local
+DEFAULT_FROM_EMAIL=noreply@checktick.local
 ```
 
 **Production setup (.env):**
@@ -68,7 +68,7 @@ EMAIL_FILE_PATH=/tmp/app-emails
 
 ### 2. Set Up SMTP Provider (Production)
 
-Census supports **any SMTP email service**. Below are configuration examples for popular providers.
+CheckTick supports **any SMTP email service**. Below are configuration examples for popular providers.
 
 #### Mailgun (Recommended)
 
@@ -160,17 +160,17 @@ Start your development server and create a new user account. With the console ba
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Subject: Welcome to Census!
-From: noreply@census.local
+Subject: Welcome to CheckTick!
+From: noreply@checktick.local
 To: newuser@example.com
 Date: Sat, 04 Oct 2025 10:30:00 -0000
 Message-ID: <...>
 
-Welcome to Census!
+Welcome to CheckTick!
 
 Hi newuser@example.com,
 
-Thank you for signing up for Census! We're excited to have you on board.
+Thank you for signing up for CheckTick! We're excited to have you on board.
 ...
 ```
 
@@ -194,7 +194,7 @@ Users have granular control over which emails they receive. Preferences are mana
 
 ### Managing Preferences
 
-1. Log in to Census
+1. Log in to CheckTick
 2. Navigate to your **Profile** page (click your avatar → Profile)
 3. Scroll to **Email Notification Preferences** section
 4. Toggle checkboxes for desired notifications
@@ -263,7 +263,7 @@ The base HTML template (`base_email.html`) applies:
 
 ## Two-Level Theming
 
-Census supports theming at both platform and survey levels.
+CheckTick supports theming at both platform and survey levels.
 
 ### Platform-Level Theming
 
@@ -652,6 +652,6 @@ Planned template improvements:
 For issues or questions:
 
 1. Check troubleshooting section above
-2. Review [GitHub issues](https://github.com/eatyourpeas/census/issues)
+2. Review [GitHub issues](https://github.com/eatyourpeas/checktick/issues)
 3. Consult [Mailgun documentation](https://documentation.mailgun.com/)
 4. Open a new issue with email logs and configuration (redact credentials!)

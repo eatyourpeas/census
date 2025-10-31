@@ -1,4 +1,4 @@
-# Docker Compose for Census with External Managed Database
+# Docker Compose for CheckTick with External Managed Database
 # Use this when you have a managed PostgreSQL service (AWS RDS, Azure Database, etc.)
 #
 # Setup:
@@ -7,15 +7,15 @@
 #   3. Run: docker compose -f docker-compose.external-db.yml up -d
 #
 # Example DATABASE_URL formats:
-#   AWS RDS:     postgresql://username:password@your-rds-instance.region.rds.amazonaws.com:5432/census
-#   Azure:       postgresql://username:password@your-server.postgres.database.azure.com:5432/census?sslmode=require
-#   Google Cloud: postgresql://username:password@/census?host=/cloudsql/project:region:instance
+#   AWS RDS:     postgresql://username:password@your-rds-instance.region.rds.amazonaws.com:5432/checktick
+#   Azure:       postgresql://username:password@your-server.postgres.database.azure.com:5432/checktick?sslmode=require
+#   Google Cloud: postgresql://username:password@/checktick?host=/cloudsql/project:region:instance
 #
 version: "3.8"
 
 services:
   web:
-    image: ghcr.io/eatyourpeas/census:latest
+    image: ghcr.io/eatyourpeas/checktick:latest
     ports:
       - "8000:8000"
     volumes:
@@ -39,9 +39,9 @@ services:
       # ========================
       # REQUIRED: Branding
       # ========================
-      BRAND_TITLE: ${BRAND_TITLE:-Census}
+      BRAND_TITLE: ${BRAND_TITLE:-CheckTick}
       BRAND_ICON_URL: ${BRAND_ICON_URL:-/static/favicon.ico}
-      BRAND_THEME: ${BRAND_THEME:-census}
+      BRAND_THEME: ${BRAND_THEME:-checktick}
       BRAND_FONT_HEADING: ${BRAND_FONT_HEADING:-'IBM Plex Mono', ui-sans-serif, system-ui}
       BRAND_FONT_BODY: ${BRAND_FONT_BODY:-Merriweather, ui-serif, Georgia}
       BRAND_FONT_CSS_URL: ${BRAND_FONT_CSS_URL:-https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap}

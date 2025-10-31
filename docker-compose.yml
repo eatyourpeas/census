@@ -2,13 +2,13 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: census
-      POSTGRES_USER: census
-      POSTGRES_PASSWORD: census
+      POSTGRES_DB: checktick
+      POSTGRES_USER: checktick
+      POSTGRES_PASSWORD: checktick
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U census"]
+      test: ["CMD-SHELL", "pg_isready -U checktick"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -18,7 +18,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     environment:
-      DATABASE_URL: postgres://census:census@db:5432/census
+      DATABASE_URL: postgres://checktick:checktick@db:5432/checktick
       SECRET_KEY: change-me-in-env
       ALLOWED_HOSTS: "*"
       DEBUG: "True"

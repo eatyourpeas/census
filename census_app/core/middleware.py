@@ -1,4 +1,4 @@
-"""Custom middleware for Census application."""
+"""Custom middleware for CheckTick application."""
 
 from django.utils import translation
 

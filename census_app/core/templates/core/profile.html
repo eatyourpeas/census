@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load i18n %}
-{% block title %}{% trans "Profile" %} - Census{% endblock %}
+{% block title %}{% trans "Profile" %} - CheckTick{% endblock %}
 {% block head_theme_overrides %}
   <style>
     /* Improve badge text visibility within typography (.prose) on this page */
@@ -203,8 +203,8 @@
           </div>
           <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-10 w-48 p-2 shadow">
             <li><button type="button" data-theme-choice="system">{% trans "System" %}</button></li>
-            <li><button type="button" data-theme-choice="census-light">{% trans "Light" %}</button></li>
-            <li><button type="button" data-theme-choice="census-dark">{% trans "Dark" %}</button></li>
+            <li><button type="button" data-theme-choice="checktick-light">{% trans "Light" %}</button></li>
+            <li><button type="button" data-theme-choice="checktick-dark">{% trans "Dark" %}</button></li>
           </ul>
         </div>
         <noscript>
@@ -359,8 +359,8 @@
           <label class="form-control">
             <span class="label"><span class="label-text">Default theme</span></span>
             <select class="select select-bordered" name="default_theme">
-              <option value="census-light" {% if brand.theme_name == 'census-light' %}selected{% endif %}>Census Light</option>
-              <option value="census-dark" {% if brand.theme_name == 'census-dark' %}selected{% endif %}>Census Dark</option>
+              <option value="checktick-light" {% if brand.theme_name == 'checktick-light' %}selected{% endif %}>CheckTick Light</option>
+              <option value="checktick-dark" {% if brand.theme_name == 'checktick-dark' %}selected{% endif %}>CheckTick Dark</option>
             </select>
           </label>
           <label class="form-control">

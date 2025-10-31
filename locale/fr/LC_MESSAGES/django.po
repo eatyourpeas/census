@@ -31,8 +31,8 @@ msgstr ""
 "pour des enquêtes réelles pour le moment."
 
 #: census_app/core/templates/core/home.html:33
-msgid "Census"
-msgstr "Census"
+msgid "CheckTick"
+msgstr "CheckTick"
 
 #: census_app/core/templates/core/home.html:34
 msgid "Surveys for health care"

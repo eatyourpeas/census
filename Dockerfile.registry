@@ -40,10 +40,10 @@ RUN poetry install --only main --no-interaction --no-ansi
 RUN npm run build:css
 
 # Create non-root user for security
-RUN groupadd -r census && useradd -r -g census census && \
+RUN groupadd -r checktick && useradd -r -g checktick checktick && \
     mkdir -p /app/media /app/staticfiles && \
-    chown -R census:census /app
-USER census
+    chown -R checktick:checktick /app
+USER checktick
 
 # Expose port
 EXPOSE 8000

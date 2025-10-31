@@ -315,7 +315,7 @@ def complete_signup(request):
             return redirect("surveys:org_users", org_id=org.id)
 
         # Individual account - just clear the flag and redirect home
-        messages.success(request, _("Account setup complete! Welcome to Census."))
+        messages.success(request, _("Account setup complete! Welcome to CheckTick."))
         request.session.pop("needs_signup_completion", None)
         return redirect("core:home")
 
@@ -690,7 +690,7 @@ class BrandedPasswordResetView(auth_views.PasswordResetView):
             ctx = _branding(self.request)
             brand = ctx.get("brand", {})
         except Exception:
-            brand = {"title": getattr(settings, "BRAND_TITLE", "Census")}
+            brand = {"title": getattr(settings, "BRAND_TITLE", "CheckTick")}
         extra = opts.get("extra_email_context") or {}
         # Avoid mutating the original dict in place across requests
         merged = {**extra, "brand": brand}
@@ -776,7 +776,7 @@ def delete_account(request):
                 request,
                 _(
                     f"Your account and {survey_count} survey(s) have been permanently deleted. "
-                    "Thank you for using Census."
+                    "Thank you for using CheckTick."
                 ),
             )
 

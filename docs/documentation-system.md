@@ -1,6 +1,6 @@
 # Documentation System
 
-The Census documentation system automatically discovers and organizes all markdown files in the `docs/` folder.
+The CheckTick documentation system automatically discovers and organizes all markdown files in the `docs/` folder.
 
 ## How It Works
 

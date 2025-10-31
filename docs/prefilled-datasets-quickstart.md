@@ -30,7 +30,7 @@ EXTERNAL_DATASET_API_KEY=  # Leave empty
 
 ## Try It Out
 
-1. Log in to your Census app
+1. Log in to your CheckTick app
 2. Create or edit a survey
 3. Add a new question
 4. Set type to **"Dropdown (single choice)"**

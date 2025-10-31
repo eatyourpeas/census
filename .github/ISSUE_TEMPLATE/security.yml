@@ -140,4 +140,4 @@ body:
         - Review our security practices in CONTRIBUTING.md
         - Check existing security documentation in `/docs`
         - Consider our threat model: healthcare surveys with encrypted patient data
-        - Remember Census handles sensitive medical information requiring strong security
+        - Remember CheckTick handles sensitive medical information requiring strong security

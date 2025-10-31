@@ -5,7 +5,7 @@ This project uses Tailwind CSS with DaisyUI for components and `@tailwindcss/typ
 ## DaisyUI themes
 
 - Themes are defined in `tailwind.config.js` under `daisyui.themes`.
-- The default theme is `census-light` (an alias of `census`).
+- The default theme is `checktick-light` (an alias of `checktick`).
 - Set a theme by adding `data-theme` to `<html>` or `<body>`. The base layout applies the active theme from server settings.
 
 Example forcing the `light` theme on a page:
@@ -33,8 +33,8 @@ There are two layers of theming you can use together:
 - Where it’s stored: `SiteBranding` model in the database
 - How it’s applied:
   - The base template (`base.html`) injects the configured icons (light and optional dark), fonts, and the normalized DaisyUI variable overrides at runtime under the correct selectors:
-    - `[data-theme="census-light"] { … }`
-    - `[data-theme="census-dark"] { … }`
+    - `[data-theme="checktick-light"] { … }`
+    - `[data-theme="checktick-dark"] { … }`
   - These overrides affect the whole site unless a page provides a more specific override.
 
 1. Survey-level theming — per-survey customization
@@ -51,7 +51,7 @@ There are two layers of theming you can use together:
 
 ### Precedence and merge behavior
 
-- Base DaisyUI theme (census-light/dark) is the foundation.
+- Base DaisyUI theme (checktick-light/dark) is the foundation.
 - Project-level overrides refine the base across the entire site.
 - Survey-level overrides win on survey pages where they’re included.
 - Avoid mixing heavy global CSS with inline colors; prefer DaisyUI variables so all layers compose cleanly.
@@ -80,7 +80,7 @@ Tip: When using a Font CSS URL, keep your font stacks in sync with the families 
 5) Primary color: provide a hex like `#ff3366`; the server will convert it to the appropriate color space / variables
 6) If you have DaisyUI builder variables for this survey’s unique palette:
   - Paste the light/dark sets in their respective fields (where available)
-  - The page will inject them under `[data-theme="census-light"]` and `[data-theme="census-dark"]`
+  - The page will inject them under `[data-theme="checktick-light"]` and `[data-theme="checktick-dark"]`
 
 These overrides only apply on survey pages and do not affect the rest of the site.
 
@@ -379,13 +379,13 @@ Defaults and structure
 End users can choose how the UI looks on the Profile page. The selector supports:
 
 - System — follow the operating system’s preference (auto-switches if the OS changes)
-- Light — force the custom light theme (`census-light`)
-- Dark — force the custom dark theme (`census-dark`)
+- Light — force the custom light theme (`checktick-light`)
+- Dark — force the custom dark theme (`checktick-dark`)
 
 How it works:
 
-- The active preference is saved to `localStorage` under the key `census-theme`.
-- Accepted values: `system`, `census-light`, `census-dark`.
+- The active preference is saved to `localStorage` under the key `checktick-theme`.
+- Accepted values: `system`, `checktick-light`, `checktick-dark`.
 - On first visit, the server’s default (`data-theme` on `<html>`) is used; if it matches the system preference, the selector shows `System`.
 - Changing the selector immediately updates `html[data-theme]` and persists the choice.
 - When `System` is selected, the UI updates automatically on OS theme changes via `prefers-color-scheme`.
@@ -408,7 +408,7 @@ This project supports organization branding at the platform level with sensible 
   2) URL saved on the Profile page (light: `icon_url`, dark: `icon_url_dark`)
   3) Django settings (`BRAND_ICON_URL`, `BRAND_ICON_URL_DARK`)
   4) Inline SVG fallback (a neutral stroke-based mark)
-- Dark mode: if a dark icon is set (uploaded or URL), it is shown automatically when the active theme contains `census-dark`.
+- Dark mode: if a dark icon is set (uploaded or URL), it is shown automatically when the active theme contains `checktick-dark`.
 - The icon includes `alt` and `title` attributes derived from `BRAND_ICON_ALT` and `BRAND_ICON_TITLE` (defaulting to the site title).
 - Size can be customized with `BRAND_ICON_SIZE_CLASS` (Tailwind classes like `w-8 h-8`) or `BRAND_ICON_SIZE` (number -> `w-{n} h-{n}`). Defaults to `w-6 h-6`.
 

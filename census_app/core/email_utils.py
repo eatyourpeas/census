@@ -34,7 +34,7 @@ def get_platform_branding() -> Dict[str, Any]:
         branding = SiteBranding.objects.first()
         if branding:
             return {
-                "title": getattr(settings, "BRAND_TITLE", "Census"),
+                "title": getattr(settings, "BRAND_TITLE", "CheckTick"),
                 "theme_name": branding.default_theme,
                 "icon_url": branding.icon_url
                 or getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
@@ -53,8 +53,8 @@ def get_platform_branding() -> Dict[str, Any]:
 
     # Fall back to settings
     return {
-        "title": getattr(settings, "BRAND_TITLE", "Census"),
-        "theme_name": getattr(settings, "BRAND_THEME", "census-light"),
+        "title": getattr(settings, "BRAND_TITLE", "CheckTick"),
+        "theme_name": getattr(settings, "BRAND_THEME", "checktick-light"),
         "icon_url": getattr(settings, "BRAND_ICON_URL", "/static/favicon.ico"),
         "font_heading": getattr(
             settings, "BRAND_FONT_HEADING", "'IBM Plex Sans', sans-serif"
@@ -166,7 +166,7 @@ def send_branded_email(
             <body style="font-family: {branding.get('font_body', 'sans-serif')};">
                 <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
                     <h1 style="color: {branding.get('primary_color', '#3b82f6')};">
-                        {branding.get('title', 'Census')}
+                        {branding.get('title', 'CheckTick')}
                     </h1>
                     {html_content}
                 </div>

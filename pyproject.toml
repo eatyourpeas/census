@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "census"
+name = "checktick"
 version = "0.1.0"
 description = "Secure, server-rendered survey platform for medical audit and research"
-authors = ["Census Maintainers <simon@eatyourpeas.co.uk>"]
+authors = ["CheckTick Maintainers <simon@eatyourpeas.co.uk>"]
 readme = "README.md"
 packages = [
     { include = "census_app" }

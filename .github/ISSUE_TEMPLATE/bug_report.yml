@@ -1,5 +1,5 @@
 name: 🐛 Bug Report
-description: Report a bug or unexpected behavior in Census
+description: Report a bug or unexpected behavior in CheckTick
 title: "[Bug]: "
 labels: ["bug", "needs-triage"]
 body:
@@ -8,7 +8,7 @@ body:
       value: |
         Thanks for taking the time to report a bug! Please search existing issues first to avoid duplicates.
 
-        **Note**: If you're using the hosted version at https://census.eatyourpeas.dev and dealing with sensitive data, please ensure you don't include any patient information or real survey data in this report.
+        **Note**: If you're using the hosted version at https://checktick.eatyourpeas.dev and dealing with sensitive data, please ensure you don't include any patient information or real survey data in this report.
 
   - type: dropdown
     id: deployment-type
@@ -16,7 +16,7 @@ body:
       label: Deployment Type
       description: Are you using the hosted version or self-hosting?
       options:
-        - Hosted version (census.eatyourpeas.dev)
+        - Hosted version (checktick.eatyourpeas.dev)
         - Self-hosted (Docker)
         - Self-hosted (other)
         - Local development
@@ -97,7 +97,7 @@ body:
         - Browser: [e.g. Chrome 118, Safari 17]
         - Device: [e.g. Desktop, Mobile]
         - OS: [e.g. macOS 14, Windows 11, iOS 17]
-        - Census Version: [if self-hosting, git commit or tag]
+        - CheckTick Version: [if self-hosting, git commit or tag]
         - Docker Version: [if self-hosting]
     validations:
       required: true

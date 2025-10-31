@@ -1,8 +1,9 @@
 (function () {
   try {
-    var storageKey = "census:admin-theme";
-    var meta = document.querySelector('meta[name="census-theme"]');
-    var defaultTheme = (meta && meta.getAttribute("content")) || "census-light";
+    var storageKey = "checktick:admin-theme";
+    var meta = document.querySelector('meta[name="checktick-theme"]');
+    var defaultTheme =
+      (meta && meta.getAttribute("content")) || "checktick-light";
     var theme = localStorage.getItem(storageKey) || defaultTheme;
     var statusNode = null;
     var toggleNode = null;
@@ -14,7 +15,7 @@
       } catch (e) {}
       // Update toggle aria state and announce
       if (toggleNode) {
-        var isDark = t === "census-dark";
+        var isDark = t === "checktick-dark";
         toggleNode.setAttribute("aria-pressed", String(isDark));
         // Optional: reflect current mode in the control label
         var baseLabel =
@@ -23,7 +24,7 @@
       }
       if (statusNode) {
         var msg =
-          t === "census-dark" ? "Dark theme enabled" : "Light theme enabled";
+          t === "checktick-dark" ? "Dark theme enabled" : "Light theme enabled";
         statusNode.textContent = msg;
       }
     }
@@ -33,7 +34,9 @@
 
     // Wire up toggle if present
     function nextTheme(current) {
-      return current === "census-light" ? "census-dark" : "census-light";
+      return current === "checktick-light"
+        ? "checktick-dark"
+        : "checktick-light";
     }
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -43,7 +46,7 @@
         // Initialize aria-pressed according to current theme
         toggleNode.setAttribute(
           "aria-pressed",
-          String(theme === "census-dark")
+          String(theme === "checktick-dark")
         );
         toggleNode.addEventListener(
           "click",

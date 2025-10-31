@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# Census Local Development Environment Setup
+# CheckTick Local Development Environment Setup
 # Simple script that creates a virtual environment and installs dependencies
 
 set -e  # Exit on any error
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-VENV_NAME="census-local"
+VENV_NAME="checktick-local"
 
-echo "🏗️  Setting up local development environment for Census..."
+echo "🏗️  Setting up local development environment for CheckTick..."
 echo "Project root: $PROJECT_ROOT"
 
 # Navigate to project root

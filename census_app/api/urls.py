@@ -47,8 +47,8 @@ urlpatterns = [
     path(
         "schema",
         get_schema_view(
-            title="Census API",
-            description="OpenAPI schema for the Census API",
+            title="CheckTick API",
+            description="OpenAPI schema for the CheckTick API",
             version="1.0.0",
             permission_classes=[AllowAny],
         ),

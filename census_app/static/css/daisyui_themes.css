@@ -16,8 +16,8 @@
 }
 
 @layer base {
-  :root:where([data-theme="census"]),
-  :where([data-theme="census-light"]) {
+  :root:where([data-theme="checktick"]),
+  :where([data-theme="checktick-light"]) {
     color-scheme: light;
 
     /* Colors */
@@ -77,7 +77,7 @@
     --color-error-content: var(--erc);
   }
 
-:root:where([data-theme="census-dark"]) {
+:root:where([data-theme="checktick-dark"]) {
   color-scheme: dark;
 
   /* Colors from your DaisyUI builder output */
@@ -196,6 +196,6 @@
 /* stylelint-disable at-rule-no-unknown */
 :root {
   --theme-root: ":root";
-  --theme-list: "census-light" "census" "census-dark" "light" "dark";
+  --theme-list: "checktick-light" "checktick" "checktick-dark" "light" "dark";
 }
 /* stylelint-enable at-rule-no-unknown */

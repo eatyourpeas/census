@@ -1,7 +1,7 @@
 {% load static %}
 {% load i18n %}
 <!doctype html>
-<html lang="en" data-theme="{{ brand.theme_name|default:'census-light' }}">
+<html lang="en" data-theme="{{ brand.theme_name|default:'checktick-light' }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -15,12 +15,12 @@
     {% if brand.theme_css_light or brand.theme_css_dark %}
     <style>
       {% if brand.theme_css_light %}
-      [data-theme="census-light"] {
+      [data-theme="checktick-light"] {
         {{ brand.theme_css_light|safe }}
       }
       {% endif %}
       {% if brand.theme_css_dark %}
-      [data-theme="census-dark"] {
+      [data-theme="checktick-dark"] {
         {{ brand.theme_css_dark|safe }}
       }
       {% endif %}
@@ -29,8 +29,8 @@
     <style>
       /* Show the appropriate brand icon depending on active theme */
       .theme-dark-icon { display: none; }
-      [data-theme~="census-dark"] .theme-dark-icon { display: inline-block; }
-      [data-theme~="census-dark"] .theme-light-icon { display: none; }
+      [data-theme~="checktick-dark"] .theme-dark-icon { display: inline-block; }
+      [data-theme~="checktick-dark"] .theme-light-icon { display: none; }
     </style>
     {% block head_theme_overrides %}{% endblock %}
     <style>
@@ -121,18 +121,14 @@
                 <span class="text-base-content break-words text-xs leading-tight max-w-full overflow-hidden">{{ user.username }}</span>
               </li>
               <li><a href="/profile" class="justify-items-start">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+                {% include "components/icons/profile.html" %}
                 {% trans "Profile" %}
               </a></li>
               <li>
                 <form method="post" action="/accounts/logout/">
                   {% csrf_token %}
                   <button type="submit" class="w-full text-left flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
+                    {% include "components/icons/exit.html" %}
                     {% trans "Logout" %}
                   </button>
                 </form>
@@ -168,12 +164,12 @@
             <span class="underline">eatyourpeas</span>
           </a>
           <span class="hidden md:inline">•</span>
-          <a class="inline-flex items-center gap-1" href="https://github.com/eatyourpeas/census/tree/main/census_app" target="_blank" rel="noopener">
+          <a class="inline-flex items-center gap-1" href="https://github.com/eatyourpeas/checktick/tree/main/census_app" target="_blank" rel="noopener">
             {% include "components/icons/github.html" with classes="w-4 h-4" %}
             <span class="underline">{% trans "GitHub" %}</span>
           </a>
           <span class="hidden md:inline">•</span>
-          <a href="https://github.com/eatyourpeas/census/issues" target="_blank" rel="noopener" class="underline">{% trans "Issues" %}</a>
+          <a href="https://github.com/eatyourpeas/checktick/issues" target="_blank" rel="noopener" class="underline">{% trans "Issues" %}</a>
           <span class="hidden md:inline">•</span>
           <a href="{% url 'core:docs_page' slug='releases' %}" class="underline">{% trans "Releases" %}</a>
           <span class="hidden md:inline">•</span>
@@ -182,11 +178,11 @@
           <span>{% trans "Version" %}: {{ build.version }}</span>
           {% if build.branch %}
             <span class="hidden md:inline">•</span>
-            <a class="link" href="https://github.com/eatyourpeas/census/tree/{{ build.branch }}" target="_blank" rel="noopener">{% trans "Branch" %} {{ build.branch }}</a>
+            <a class="link" href="https://github.com/eatyourpeas/checktick/tree/{{ build.branch }}" target="_blank" rel="noopener">{% trans "Branch" %} {{ build.branch }}</a>
           {% endif %}
           {% if build.commit %}
             <span class="hidden md:inline">•</span>
-            <a class="link" href="https://github.com/eatyourpeas/census/commit/{{ build.commit }}" target="_blank" rel="noopener">{% trans "Commit" %} {{ build.commit }}</a>
+            <a class="link" href="https://github.com/eatyourpeas/checktick/commit/{{ build.commit }}" target="_blank" rel="noopener">{% trans "Commit" %} {{ build.commit }}</a>
           {% endif %}
           {% if build.timestamp %}
             <span class="hidden md:inline">•</span>
