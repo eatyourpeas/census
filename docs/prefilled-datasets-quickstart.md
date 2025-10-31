@@ -2,7 +2,7 @@
 
 ## What's Already Done ✅
 
-1. **Service Layer**: `census_app/surveys/external_datasets.py`
+1. **Service Layer**: `checktick_app/surveys/external_datasets.py`
    - Fetches data from RCPCH API
    - Transforms responses to formatted options
    - 24-hour caching

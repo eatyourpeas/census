@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/checktick
-      DJANGO_SETTINGS_MODULE: census_app.settings
+      DJANGO_SETTINGS_MODULE: checktick_app.settings
       PYTHONWARNINGS: default
     services:
       postgres:

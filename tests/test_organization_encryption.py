@@ -10,13 +10,13 @@ import os
 from django.contrib.auth import get_user_model
 import pytest
 
-from census_app.surveys.models import (
+from checktick_app.surveys.models import (
     AuditLog,
     Organization,
     OrganizationMembership,
     Survey,
 )
-from census_app.surveys.utils import decrypt_kek_with_org_key, encrypt_kek_with_org_key
+from checktick_app.surveys.utils import decrypt_kek_with_org_key, encrypt_kek_with_org_key
 
 User = get_user_model()
 
@@ -249,7 +249,7 @@ class TestOrganizationEncryptionIntegration:
         client.force_login(member_user)
 
         # Create a survey with encryption
-        from census_app.surveys.utils import generate_bip39_phrase
+        from checktick_app.surveys.utils import generate_bip39_phrase
 
         kek = os.urandom(32)
         password = "test_password_123"
@@ -892,7 +892,7 @@ class TestOrganizationKeyRecoveryIntegration:
         self, org_with_master_key, member_user, client
     ):
         """Test that after recovery, survey data can be accessed."""
-        from census_app.surveys.utils import generate_bip39_phrase
+        from checktick_app.surveys.utils import generate_bip39_phrase
 
         # Create survey with full encryption
         survey = Survey.objects.create(
@@ -925,7 +925,7 @@ class TestOrganizationKeyRecoveryIntegration:
         assert "Member Survey" in response.content.decode()
 
         # Verify session has unlock credentials
-        from census_app.surveys.views import get_survey_key_from_session
+        from checktick_app.surveys.views import get_survey_key_from_session
 
         recovered_kek = get_survey_key_from_session(response.wsgi_request, survey.slug)
         assert recovered_kek == kek

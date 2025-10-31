@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 import pytest
 
-from census_app.surveys.models import (
+from checktick_app.surveys.models import (
     Organization,
     OrganizationMembership,
     Survey,

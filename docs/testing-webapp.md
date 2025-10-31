@@ -10,7 +10,7 @@ The CheckTick webapp is tested using pytest with Django's test client. Tests ver
 
 Webapp tests are organized by app:
 
-- `/census_app/surveys/tests/` - Survey-related webapp tests
+- `/checktick_app/surveys/tests/` - Survey-related webapp tests
   - `test_builder_question_creation.py` - Question creation via builder (23 tests)
   - `test_builder_editing.py` - Question editing functionality
   - `test_permissions.py` - Access control and permissions
@@ -18,24 +18,24 @@ Webapp tests are organized by app:
   - `test_anonymous_access.py` - Anonymous user behavior
   - `/test_followup_import.py` - Bulk markdown import with follow-ups and required fields (10 tests)
   - And more...
-- `/census_app/core/tests/` - Core app tests
+- `/checktick_app/core/tests/` - Core app tests
 - `/tests/` - General integration tests
 
 ## Running Webapp Tests
 
 ```bash
 # Run all webapp tests for surveys app
-docker compose exec web pytest census_app/surveys/tests/
+docker compose exec web pytest checktick_app/surveys/tests/
 
 # Run specific test file
-docker compose exec web pytest census_app/surveys/tests/test_builder_question_creation.py
+docker compose exec web pytest checktick_app/surveys/tests/test_builder_question_creation.py
 
 # Run with verbose output
-docker compose exec web pytest census_app/surveys/tests/test_builder_question_creation.py -v
+docker compose exec web pytest checktick_app/surveys/tests/test_builder_question_creation.py -v
 
 # Run specific test class or test
-docker compose exec web pytest census_app/surveys/tests/test_builder_question_creation.py::TestWebappQuestionCreation
-docker compose exec web pytest census_app/surveys/tests/test_builder_question_creation.py::TestWebappQuestionCreation::test_create_text_question
+docker compose exec web pytest checktick_app/surveys/tests/test_builder_question_creation.py::TestWebappQuestionCreation
+docker compose exec web pytest checktick_app/surveys/tests/test_builder_question_creation.py::TestWebappQuestionCreation::test_create_text_question
 ```
 
 ## Test Structure
@@ -46,7 +46,7 @@ docker compose exec web pytest census_app/surveys/tests/test_builder_question_cr
 import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
-from census_app.surveys.models import Survey, SurveyQuestion
+from checktick_app.surveys.models import Survey, SurveyQuestion
 
 @pytest.mark.django_db
 class TestMyView:
@@ -109,9 +109,9 @@ def test_unauthenticated_redirects(self, client):
 
 **Note:** Permission tests are extensively covered in:
 
-- `census_app/surveys/tests/test_permissions.py` - Survey access permissions
-- `census_app/surveys/tests/test_question_conditions_permissions.py` - Condition editing permissions
-- `census_app/surveys/tests/test_anonymous_access.py` - Anonymous user access
+- `checktick_app/surveys/tests/test_permissions.py` - Survey access permissions
+- `checktick_app/surveys/tests/test_question_conditions_permissions.py` - Condition editing permissions
+- `checktick_app/surveys/tests/test_anonymous_access.py` - Anonymous user access
 
 Refer to these files for examples of testing role-based permissions, ownership checks, and access control.
 
@@ -903,9 +903,9 @@ def test_view_context(self, client):
 
 For comprehensive examples, see:
 
-- `census_app/surveys/tests/test_builder_question_creation.py` - 23 tests covering question creation
-- `census_app/surveys/tests/test_builder_editing.py` - Question editing and copying
-- `census_app/surveys/tests/test_permissions.py` - Permission patterns
-- `census_app/surveys/tests/test_groups_reorder.py` - HTMX interactions and reordering
-- `census_app/surveys/tests/test_anonymous_access.py` - Anonymous user handling
+- `checktick_app/surveys/tests/test_builder_question_creation.py` - 23 tests covering question creation
+- `checktick_app/surveys/tests/test_builder_editing.py` - Question editing and copying
+- `checktick_app/surveys/tests/test_permissions.py` - Permission patterns
+- `checktick_app/surveys/tests/test_groups_reorder.py` - HTMX interactions and reordering
+- `checktick_app/surveys/tests/test_anonymous_access.py` - Anonymous user handling
 - `/test_followup_import.py` - Bulk markdown import with follow-ups and required fields (10 tests)

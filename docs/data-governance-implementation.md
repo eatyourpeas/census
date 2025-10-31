@@ -85,7 +85,7 @@ Celery periodic task (daily)
 Add fields to existing `Survey` model:
 
 ```python
-# census_app/surveys/models.py
+# checktick_app/surveys/models.py
 
 from django.db import models
 from django.utils import timezone
@@ -217,7 +217,7 @@ class Survey(models.Model):
 ### 2.2 DataExport Model
 
 ```python
-# census_app/surveys/models.py
+# checktick_app/surveys/models.py
 
 import uuid
 from django.core.signing import Signer
@@ -285,7 +285,7 @@ class DataExport(models.Model):
 ### 2.3 LegalHold Model
 
 ```python
-# census_app/surveys/models.py
+# checktick_app/surveys/models.py
 
 class LegalHold(models.Model):
     """Legal holds prevent automatic deletion."""
@@ -347,7 +347,7 @@ class LegalHold(models.Model):
 ### 2.4 DataCustodian Model
 
 ```python
-# census_app/surveys/models.py
+# checktick_app/surveys/models.py
 
 class DataCustodian(models.Model):
     """Users with download-only access to specific surveys."""
@@ -389,7 +389,7 @@ class DataCustodian(models.Model):
 ### 2.5 DataRetentionExtension Model
 
 ```python
-# census_app/surveys/models.py
+# checktick_app/surveys/models.py
 
 class DataRetentionExtension(models.Model):
     """Audit trail for retention extensions."""
@@ -415,7 +415,7 @@ class DataRetentionExtension(models.Model):
 ### 3.1 Add DATA_CUSTODIAN Role
 
 ```python
-# census_app/core/models.py (or wherever roles are defined)
+# checktick_app/core/models.py (or wherever roles are defined)
 
 class UserRole(models.TextChoices):
     VIEWER = 'VIEWER', 'Viewer'
@@ -429,7 +429,7 @@ class UserRole(models.TextChoices):
 ### 3.2 Permission Checker
 
 ```python
-# census_app/surveys/permissions.py
+# checktick_app/surveys/permissions.py
 
 class DataGovernancePermissions:
     """Check data governance permissions."""
@@ -523,7 +523,7 @@ class DataGovernancePermissions:
 ### 4.1 ExportService
 
 ```python
-# census_app/surveys/services/export_service.py
+# checktick_app/surveys/services/export_service.py
 
 import csv
 import zipfile
@@ -686,7 +686,7 @@ For more information, see the CheckTick Data Security Guide.
 ### 4.2 RetentionService
 
 ```python
-# census_app/surveys/services/retention_service.py
+# checktick_app/surveys/services/retention_service.py
 
 from django.utils import timezone
 from datetime import timedelta
@@ -782,7 +782,7 @@ class RetentionService:
 ### 5.1 Data Export
 
 ```python
-# census_app/surveys/views/api.py
+# checktick_app/surveys/views/api.py
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -900,7 +900,7 @@ def extend_retention(request, survey_id):
 ## 6. Background Tasks (Celery)
 
 ```python
-# census_app/surveys/tasks.py
+# checktick_app/surveys/tasks.py
 
 from celery import shared_task
 from django.core.mail import send_mail
@@ -962,11 +962,11 @@ def schedule_hard_deletion(survey_id):
 **Celery Beat Schedule:**
 
 ```python
-# census_app/settings.py
+# checktick_app/settings.py
 
 CELERY_BEAT_SCHEDULE = {
     'daily-retention-check': {
-        'task': 'census_app.surveys.tasks.daily_retention_check',
+        'task': 'checktick_app.surveys.tasks.daily_retention_check',
         'schedule': crontab(hour=2, minute=0),  # 2 AM daily
     },
 }
@@ -979,12 +979,12 @@ CELERY_BEAT_SCHEDULE = {
 ### 7.1 Model Tests
 
 ```python
-# census_app/surveys/tests/test_data_governance.py
+# checktick_app/surveys/tests/test_data_governance.py
 
 from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
-from census_app.surveys.models import Survey, DataExport, LegalHold
+from checktick_app.surveys.models import Survey, DataExport, LegalHold
 
 class SurveyRetentionTests(TestCase):
     def setUp(self):
@@ -1113,10 +1113,10 @@ class DataGovernancePermissionTests(TestCase):
 ## 8. Management Commands
 
 ```python
-# census_app/surveys/management/commands/check_retention.py
+# checktick_app/surveys/management/commands/check_retention.py
 
 from django.core.management.base import BaseCommand
-from census_app.surveys.services import RetentionService
+from checktick_app.surveys.services import RetentionService
 
 class Command(BaseCommand):
     help = 'Check for expired surveys and send warnings'
@@ -1143,7 +1143,7 @@ python manage.py check_retention
 ### 9.1 Download Disclaimer Modal
 
 ```tsx
-// census_app/static/src/components/DownloadDisclaimerModal.tsx
+// checktick_app/static/src/components/DownloadDisclaimerModal.tsx
 
 import React, { useState } from 'react';
 
@@ -1234,7 +1234,7 @@ export const DownloadDisclaimerModal: React.FC<Props> = ({ surveyId, surveyName,
 ### 10.1 Settings
 
 ```python
-# census_app/settings.py
+# checktick_app/settings.py
 
 # Data Governance
 DATA_GOVERNANCE = {
@@ -1268,7 +1268,7 @@ BACKUP_API_KEY=your-backup-api-key
 ## 11. Database Migrations
 
 ```python
-# census_app/surveys/migrations/0XXX_add_data_governance.py
+# checktick_app/surveys/migrations/0XXX_add_data_governance.py
 
 from django.db import migrations, models
 

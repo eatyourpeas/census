@@ -10,7 +10,7 @@ The CheckTick API is tested using pytest with Django's test client. Tests verify
 
 API tests are located in:
 - `/tests/test_api_*.py` - General API tests
-- `/census_app/api/tests/` - App-specific API tests
+- `/checktick_app/api/tests/` - App-specific API tests
 
 ## Running API Tests
 
@@ -506,4 +506,4 @@ For comprehensive examples, see:
 - `tests/test_api_questions_and_groups.py` - 35 tests covering questions/groups API
 - `tests/test_api_permissions.py` - Permission and access control patterns
 - `tests/test_user_api.py` - User management API patterns
-- `/census_app/api/tests/test_publish_and_metrics_api.py` - Publishing and metrics patterns
+- `/checktick_app/api/tests/test_publish_and_metrics_api.py` - Publishing and metrics patterns

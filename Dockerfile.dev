@@ -18,7 +18,7 @@ RUN poetry config virtualenvs.create false \
 COPY package.json tailwind.config.js postcss.config.js ./
 RUN npm install --no-audit --no-fund
 
-COPY census_app ./census_app
+COPY checktick_app ./checktick_app
 COPY manage.py ./
 # Install the current project now that sources are present
 RUN poetry install --no-interaction --no-ansi
@@ -26,7 +26,7 @@ RUN poetry install --no-interaction --no-ansi
 # Build CSS in the container on startup to pick up live changes
 # For dev we’ll run npm install/build at runtime so host volume overrides work
 
-ENV DJANGO_SETTINGS_MODULE=census_app.settings
+ENV DJANGO_SETTINGS_MODULE=checktick_app.settings
 ENV PORT=8000
 
 # Do not EXPOSE or run collectstatic; dev serves via runserver

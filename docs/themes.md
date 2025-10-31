@@ -114,7 +114,7 @@ We ship a filter and partials to standardize Django form rendering.
 
 ### Template filter: `add_classes`
 
-File: `census_app/surveys/templatetags/form_extras.py`
+File: `checktick_app/surveys/templatetags/form_extras.py`
 
 Usage:
 
@@ -125,7 +125,7 @@ Usage:
 
 ### Partial: `components/form_field.html`
 
-File: `census_app/templates/components/form_field.html`
+File: `checktick_app/templates/components/form_field.html`
 
 Context:
 
@@ -188,9 +188,9 @@ If running under Docker, rebuild the image or ensure your build step runs inside
 
 ### Single stylesheet entry
 
-- Unified Tailwind/DaisyUI input: `census_app/static/src/tailwind.css`
-- Built output: `census_app/static/build/styles.css`
-- Loaded globally in `census_app/templates/base.html` via `{% static 'build/styles.css' %}`
+- Unified Tailwind/DaisyUI input: `checktick_app/static/src/tailwind.css`
+- Built output: `checktick_app/static/build/styles.css`
+- Loaded globally in `checktick_app/templates/base.html` via `{% static 'build/styles.css' %}`
 
 Do not add other `<link rel="stylesheet">` tags or separate CSS files; extend styling through Tailwind utilities, DaisyUI components, or minimal additions inside the unified entry file.
 
@@ -199,7 +199,7 @@ Do not add other `<link rel="stylesheet">` tags or separate CSS files; extend st
 
 We ship a reusable DaisyUI-style breadcrumbs component with icons.
 
-- File: `census_app/templates/components/breadcrumbs.html`
+- File: `checktick_app/templates/components/breadcrumbs.html`
 - Purpose: Provide consistent navigation crumbs across survey pages
 - Icons:
   - Survey: clipboard icon
@@ -243,7 +243,7 @@ Breadcrumbs inherit DaisyUI theme colors and are further tuned globally so that:
 - Links are lighter by default and only underline on hover
 - The current (non-link) crumb is slightly lighter to indicate context
 
-These tweaks live in the single CSS entry at `census_app/static/src/tailwind.css` in a small component layer block:
+These tweaks live in the single CSS entry at `checktick_app/static/src/tailwind.css` in a small component layer block:
 
 ```css
 @layer components {
@@ -363,7 +363,7 @@ docker compose exec web poetry run python manage.py compilemessages
 
 Defaults and structure
 
-- Locale files can live per app (e.g., `census_app/surveys/locale/`) or at the project root `locale/`. Django will discover both.
+- Locale files can live per app (e.g., `checktick_app/surveys/locale/`) or at the project root `locale/`. Django will discover both.
 - Ensure `USE_I18N = True` in settings (it is by default in this project).
 - Ignore build and vendor dirs during extraction to avoid noise (Django’s `makemessages` respects `.gitignore` and you can add `-i` patterns if needed).
 
@@ -392,9 +392,9 @@ How it works:
 
 Relevant files:
 
-- Profile UI: `census_app/core/templates/core/profile.html`
-- Runtime logic: `census_app/static/js/theme-toggle.js`
-- Script is loaded in: `census_app/templates/base.html`
+- Profile UI: `checktick_app/core/templates/core/profile.html`
+- Runtime logic: `checktick_app/static/js/theme-toggle.js`
+- Script is loaded in: `checktick_app/templates/base.html`
 
 ## Branding and customization
 

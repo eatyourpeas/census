@@ -134,7 +134,7 @@ Allow connections from your CheckTick server:
 az postgres server firewall-rule create \
   --resource-group checktick-rg \
   --server-name checktick-db \
-  --name AllowCensusServer \
+  --name AllowCheckTickServer \
   --start-ip-address <your-server-ip> \
   --end-ip-address <your-server-ip>
 ```

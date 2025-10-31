@@ -87,7 +87,7 @@ These are already configured in `.env.example` with the correct defaults.
 
 ### Django Settings
 
-The service layer (`census_app/surveys/external_datasets.py`) reads these settings with appropriate defaults:
+The service layer (`checktick_app/surveys/external_datasets.py`) reads these settings with appropriate defaults:
 
 - `EXTERNAL_DATASET_API_URL` - Defaults to RCPCH API
 - `EXTERNAL_DATASET_API_KEY` - Defaults to empty string (no auth required)
@@ -196,7 +196,7 @@ All 24 tests are passing, covering:
 
 Run tests with:
 ```bash
-docker compose exec web python -m pytest census_app/api/tests/test_dataset_api.py -v
+docker compose exec web python -m pytest checktick_app/api/tests/test_dataset_api.py -v
 ```
 
 ## Next Steps
@@ -247,7 +247,7 @@ If you see `502 Bad Gateway` errors:
 
 To force refresh from the API:
 ```python
-from census_app.surveys.external_datasets import clear_dataset_cache
+from checktick_app.surveys.external_datasets import clear_dataset_cache
 
 # Clear specific dataset
 clear_dataset_cache("hospitals_england")
@@ -286,10 +286,10 @@ clear_dataset_cache()
 
 ## Files Modified
 
-- `census_app/surveys/external_datasets.py` - Service layer with API integration
-- `census_app/api/views.py` - API endpoints
-- `census_app/api/urls.py` - URL routing
-- `census_app/api/tests/test_dataset_api.py` - Comprehensive test suite
-- `census_app/surveys/templates/surveys/group_builder.html` - UI components
-- `census_app/static/js/builder.js` - Frontend logic with spinner
+- `checktick_app/surveys/external_datasets.py` - Service layer with API integration
+- `checktick_app/api/views.py` - API endpoints
+- `checktick_app/api/urls.py` - URL routing
+- `checktick_app/api/tests/test_dataset_api.py` - Comprehensive test suite
+- `checktick_app/surveys/templates/surveys/group_builder.html` - UI components
+- `checktick_app/static/js/builder.js` - Frontend logic with spinner
 - `.env.example` - Configuration documentation

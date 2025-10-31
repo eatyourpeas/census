@@ -42,11 +42,11 @@ Notes:
 
 ## Where to look in the code
 
-- Base template: `census_app/templates/base.html`
-- Branding context: `census_app/context_processors.py` (builds the `brand` object)
-- Profile UI: `census_app/core/templates/core/profile.html`
-- Survey dashboard style form: `census_app/surveys/templates/surveys/dashboard.html`
-- Tailwind entry: `census_app/static/src/tailwind.css`
+- Base template: `checktick_app/templates/base.html`
+- Branding context: `checktick_app/context_processors.py` (builds the `brand` object)
+- Profile UI: `checktick_app/core/templates/core/profile.html`
+- Survey dashboard style form: `checktick_app/surveys/templates/surveys/dashboard.html`
+- Tailwind entry: `checktick_app/static/src/tailwind.css`
 
 ## Rebuilding the CSS
 

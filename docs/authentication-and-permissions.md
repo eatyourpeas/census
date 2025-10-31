@@ -54,7 +54,7 @@ This comprehensive guide covers:
 
 ## Identity and roles
 
-There are four key models in `census_app.surveys.models`:
+There are four key models in `checktick_app.surveys.models`:
 
 - Organization: a container for users and surveys.
 - OrganizationMembership: links a user to an organization with a role.
@@ -103,7 +103,7 @@ This enables teams to collaborate on survey design while maintaining clear bound
 
 ## Enforcement in server-side views (SSR)
 
-The central authorization checks live in `census_app/surveys/permissions.py`:
+The central authorization checks live in `checktick_app/surveys/permissions.py`:
 
 - `can_view_survey(user, survey)` — True if user is the survey owner, an ADMIN of the survey's organization, or has survey membership (CREATOR, EDITOR, or VIEWER)
 - `can_edit_survey(user, survey)` — True if user is the survey owner, an ADMIN of the survey's organization, or has survey membership as CREATOR or EDITOR

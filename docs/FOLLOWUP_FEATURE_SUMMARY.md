@@ -45,18 +45,18 @@ For `yesno` questions, you can optionally provide explicit options with follow-u
 
 ### Files Modified
 
-1. **census_app/surveys/markdown_import.py**
+1. **checktick_app/surveys/markdown_import.py**
    - Added parsing logic for `+ ` lines (follow-up text)
    - Store options as tuples: `(option_text, followup_label)` when follow-up is present
    - Added `_convert_options_to_dicts()` helper function
    - Converts tuples to dict format: `{label, value, followup_text: {enabled, label}}`
    - Updated type conversions for mc_single, mc_multi, dropdown, orderable, yesno, and image types
 
-2. **census_app/surveys/views.py**
+2. **checktick_app/surveys/views.py**
    - Updated `_bulk_upload_example_md()` to demonstrate follow-up syntax
    - Added examples in both parent and nested collection groups
 
-3. **census_app/surveys/templates/surveys/bulk_upload.html**
+3. **checktick_app/surveys/templates/surveys/bulk_upload.html**
    - Added follow-up text to format reference list
    - Created new "Optional: Follow-up text inputs" section with:
      - Syntax explanation

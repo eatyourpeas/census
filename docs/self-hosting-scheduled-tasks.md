@@ -377,7 +377,7 @@ All deletions are logged in the database. Check via Django admin:
 # In Django shell
 python manage.py shell
 
-from census_app.surveys.models import Survey
+from checktick_app.surveys.models import Survey
 from django.utils import timezone
 from datetime import timedelta
 
@@ -416,7 +416,7 @@ python manage.py shell
 
 **Check for legal holds:**
 ```python
-from census_app.surveys.models import Survey, LegalHold
+from checktick_app.surveys.models import Survey, LegalHold
 
 # Find surveys with active legal holds
 Survey.objects.filter(legal_hold__removed_at__isnull=True)

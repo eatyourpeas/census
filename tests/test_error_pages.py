@@ -2,6 +2,8 @@
 
 import pytest
 
+TEST_PASSWORD = "x"
+
 
 @pytest.mark.django_db
 def test_403_error_page(client):
@@ -9,17 +11,17 @@ def test_403_error_page(client):
     # Access a survey the user doesn't have permission to view
     from django.contrib.auth import get_user_model
 
-    from census_app.surveys.models import Organization, Survey
+    from checktick_app.surveys.models import Organization, Survey
 
     User = get_user_model()
-    owner = User.objects.create_user(username="owner", password="pass")
+    owner = User.objects.create_user(username="owner", password=TEST_PASSWORD)
     org = Organization.objects.create(name="Test Org", owner=owner)
     survey = Survey.objects.create(
         owner=owner, organization=org, name="Private Survey", slug="private"
     )
 
     # Try to access as different user without permission
-    other_user = User.objects.create_user(username="other", password="pass")
+    other_user = User.objects.create_user(username="other", password=TEST_PASSWORD)
     client.force_login(other_user)
 
     resp = client.get(f"/surveys/{survey.slug}/preview/")

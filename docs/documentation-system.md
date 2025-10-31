@@ -54,7 +54,7 @@ If no heading is found, the filename is converted to title case (e.g., `my-featu
 
 ## Manual Overrides
 
-If you need more control, you can override settings in `census_app/core/views.py`:
+If you need more control, you can override settings in `checktick_app/core/views.py`:
 
 ### Custom Category Assignment
 
@@ -217,7 +217,7 @@ Potential improvements:
 
 ## Related Files
 
-- `census_app/core/views.py` - Documentation discovery logic
-- `census_app/core/templates/core/docs.html` - Navigation template
-- `census_app/core/urls.py` - URL routing for docs
+- `checktick_app/core/views.py` - Documentation discovery logic
+- `checktick_app/core/templates/core/docs.html` - Navigation template
+- `checktick_app/core/urls.py` - URL routing for docs
 - `docs/README.md` - Documentation index page

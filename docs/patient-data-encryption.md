@@ -1232,7 +1232,7 @@ def survey_export_csv(
 Encryption keys in session are protected by Django's security features:
 
 ```python
-# census_app/settings.py
+# checktick_app/settings.py
 
 # Session security
 SESSION_COOKIE_SECURE = True  # HTTPS only
@@ -1274,7 +1274,7 @@ SESSION_COOKIE_AGE = 3600  # 1 hour timeout
 The web application and API share the same security infrastructure:
 
 ```python
-# Shared encryption utilities (census_app/surveys/utils.py)
+# Shared encryption utilities (checktick_app/surveys/utils.py)
 
 def encrypt_sensitive(passphrase_key: bytes, data: dict) -> bytes:
     """Used by both API and web interface"""
@@ -1437,7 +1437,7 @@ Survey Encryption Key (KEK) Storage:
 #### User Model Changes
 
 ```python
-# census_app/core/models.py
+# checktick_app/core/models.py
 
 from django.contrib.auth.models import AbstractUser
 
@@ -1476,7 +1476,7 @@ class User(AbstractUser):
 #### Survey Key Encryption with OIDC
 
 ```python
-# census_app/surveys/utils.py
+# checktick_app/surveys/utils.py
 
 def derive_key_from_oidc_identity(
     oidc_provider: str,
@@ -1542,7 +1542,7 @@ def decrypt_survey_kek_for_user(
 #### Survey Creation with OIDC
 
 ```python
-# census_app/surveys/views.py
+# checktick_app/surveys/views.py
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -1757,7 +1757,7 @@ Layer 3: Encryption Key Control
 ### Configuration Example
 
 ```python
-# census_app/settings.py
+# checktick_app/settings.py
 
 OIDC_ENABLED = env.bool("OIDC_ENABLED", default=True)
 
@@ -2179,7 +2179,7 @@ def get_encryption_strategy(user: User, survey: Survey) -> str:
 ### Encryption Utilities
 
 ```python
-# census_app/surveys/utils.py
+# checktick_app/surveys/utils.py
 
 def encrypt_sensitive(passphrase_key: bytes, data: dict) -> bytes:
     """
@@ -2259,13 +2259,13 @@ CheckTick includes comprehensive test coverage for encryption with **production-
 
 ```bash
 # Run all encryption unit tests
-docker compose exec web python manage.py test census_app.surveys.tests.test_survey_unlock_view
+docker compose exec web python manage.py test checktick_app.surveys.tests.test_survey_unlock_view
 
 # Run dual encryption tests
-docker compose exec web python manage.py test census_app.surveys.tests.test_models
+docker compose exec web python manage.py test checktick_app.surveys.tests.test_models
 
 # Run utility function tests
-docker compose exec web python manage.py test census_app.surveys.tests.test_utils
+docker compose exec web python manage.py test checktick_app.surveys.tests.test_utils
 ```
 
 **Coverage:**
@@ -2303,7 +2303,7 @@ docker compose exec web python manage.py test tests.test_encryption_integration
 
 ```bash
 # Test encryption performance under load
-docker compose exec web python manage.py test census_app.surveys.tests.test_performance
+docker compose exec web python manage.py test checktick_app.surveys.tests.test_performance
 ```
 
 ## Related Documentation

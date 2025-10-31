@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 import pytest
 
-from census_app.surveys.models import (
+from checktick_app.surveys.models import (
     Organization,
     QuestionGroup,
     Survey,
@@ -16,11 +16,12 @@ from census_app.surveys.models import (
 )
 
 User = get_user_model()
+TEST_PASSWORD = "x"
 
 
 @pytest.fixture
 def user(db):
-    return User.objects.create_user(username="testuser", password="testpass123")
+    return User.objects.create_user(username="testuser", password=TEST_PASSWORD)
 
 
 @pytest.fixture

@@ -19,7 +19,7 @@ RUN poetry config virtualenvs.create false \
 COPY package.json tailwind.config.js postcss.config.js ./
 RUN npm install --no-audit --no-fund
 
-COPY census_app ./census_app
+COPY checktick_app ./checktick_app
 COPY manage.py ./
 # Include documentation and contributing guide so docs pages work in production
 COPY docs ./docs
@@ -33,9 +33,9 @@ RUN mkdir -p /app/staticfiles /app/media && \
     chown -R appuser:appuser /app/staticfiles /app/media
 USER appuser
 
-ENV DJANGO_SETTINGS_MODULE=census_app.settings
+ENV DJANGO_SETTINGS_MODULE=checktick_app.settings
 ENV PORT=8000
 
 EXPOSE 8000
 
-CMD ["sh", "-lc", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn census_app.wsgi:application --bind 0.0.0.0:${PORT} --workers 3"]
+CMD ["sh", "-lc", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn checktick_app.wsgi:application --bind 0.0.0.0:${PORT} --workers 3"]

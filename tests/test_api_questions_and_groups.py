@@ -14,7 +14,7 @@ import json
 from django.contrib.auth import get_user_model
 import pytest
 
-from census_app.surveys.models import Survey, SurveyQuestion
+from checktick_app.surveys.models import Survey, SurveyQuestion
 
 User = get_user_model()
 TEST_PASSWORD = "test-pass"

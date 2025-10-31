@@ -6,8 +6,8 @@ const daisyuiPlugin = daisyui?.default ?? daisyui;
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./census_app/templates/**/*.html",
-    "./census_app/**/templates/**/*.html",
+    "./checktick_app/templates/**/*.html",
+    "./checktick_app/**/templates/**/*.html",
   ],
   theme: {
     extend: {
