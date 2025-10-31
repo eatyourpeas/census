@@ -95,7 +95,7 @@ class ExportService:
 
         # Calculate expiry using configurable setting
         expires_at = timezone.now() + timedelta(
-            days=settings.CENSUS_DOWNLOAD_LINK_EXPIRY_DAYS
+            days=settings.CHECKTICK_DOWNLOAD_LINK_EXPIRY_DAYS
         )
 
         # Create DataExport record

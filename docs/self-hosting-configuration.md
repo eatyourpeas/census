@@ -141,20 +141,20 @@ Configure data retention and export policies for GDPR/healthcare compliance:
 # Default retention period for survey data after closure (months)
 # Range: 1-24 months
 # Default: 6 months
-CENSUS_DEFAULT_RETENTION_MONTHS=6
+CHECKTICK_DEFAULT_RETENTION_MONTHS=6
 
 # Maximum retention period that can be set (months)
 # Default: 24 months
-CENSUS_MAX_RETENTION_MONTHS=24
+CHECKTICK_MAX_RETENTION_MONTHS=24
 
 # Number of days before export download links expire
 # Default: 7 days
-CENSUS_DOWNLOAD_LINK_EXPIRY_DAYS=7
+CHECKTICK_DOWNLOAD_LINK_EXPIRY_DAYS=7
 
 # Days before deletion to send warning notifications
 # Comma-separated list
 # Default: 30,7,1 (warnings at 1 month, 1 week, and 1 day)
-CENSUS_WARN_BEFORE_DELETION_DAYS=30,7,1
+CHECKTICK_WARN_BEFORE_DELETION_DAYS=30,7,1
 ```
 
 **Note:** These are optional settings with sensible defaults. Most deployments don't need to change these values. Adjust only if your organization has specific compliance requirements.

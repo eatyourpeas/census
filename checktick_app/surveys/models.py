@@ -16,7 +16,7 @@ User = get_user_model()
 
 def get_default_retention_months():
     """Get default retention months from settings."""
-    return getattr(settings, "CENSUS_DEFAULT_RETENTION_MONTHS", 6)
+    return getattr(settings, "CHECKTICK_DEFAULT_RETENTION_MONTHS", 6)
 
 
 class Organization(models.Model):
@@ -181,7 +181,7 @@ class Survey(models.Model):
     # Retention
     retention_months = models.IntegerField(
         default=get_default_retention_months,
-        help_text="Retention period in months (configurable via CENSUS_DEFAULT_RETENTION_MONTHS)",
+        help_text="Retention period in months (configurable via CHECKTICK_DEFAULT_RETENTION_MONTHS)",
     )
     deletion_date = models.DateTimeField(
         null=True,

@@ -304,17 +304,17 @@ EXTERNAL_DATASET_API_KEY = os.environ.get("EXTERNAL_DATASET_API_KEY", "")
 
 # Data Governance Configuration
 # These settings control data retention and export policies for GDPR/healthcare compliance
-CENSUS_DEFAULT_RETENTION_MONTHS = int(
-    os.environ.get("CENSUS_DEFAULT_RETENTION_MONTHS", "6")
+CHECKTICK_DEFAULT_RETENTION_MONTHS = int(
+    os.environ.get("CHECKTICK_DEFAULT_RETENTION_MONTHS", "6")
 )
-CENSUS_MAX_RETENTION_MONTHS = int(os.environ.get("CENSUS_MAX_RETENTION_MONTHS", "24"))
-CENSUS_DOWNLOAD_LINK_EXPIRY_DAYS = int(
-    os.environ.get("CENSUS_DOWNLOAD_LINK_EXPIRY_DAYS", "7")
+CHECKTICK_MAX_RETENTION_MONTHS = int(os.environ.get("CHECKTICK_MAX_RETENTION_MONTHS", "24"))
+CHECKTICK_DOWNLOAD_LINK_EXPIRY_DAYS = int(
+    os.environ.get("CHECKTICK_DOWNLOAD_LINK_EXPIRY_DAYS", "7")
 )
 # Parse comma-separated list of warning days
-CENSUS_WARN_BEFORE_DELETION_DAYS = [
+CHECKTICK_WARN_BEFORE_DELETION_DAYS = [
     int(d.strip())
-    for d in os.environ.get("CENSUS_WARN_BEFORE_DELETION_DAYS", "30,7,1").split(",")
+    for d in os.environ.get("CHECKTICK_WARN_BEFORE_DELETION_DAYS", "30,7,1").split(",")
     if d.strip()
 ]
 
