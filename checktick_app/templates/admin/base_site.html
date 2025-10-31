@@ -49,7 +49,7 @@
       {% if brand.icon_url %}
         <img src="{{ brand.icon_url }}" alt="{{ brand.icon_alt|default:brand.title }}" class="{{ brand.icon_size_class|default:'w-6 h-6' }}" />
       {% else %}
-  {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-6 h-6 text-base-content' %}
+  {% include "components/icons/checktick.html" with classes=brand.icon_size_class|default:'w-6 h-6 text-base-content' %}
       {% endif %}
       <span>{{ brand.title }}</span>
       <span class="opacity-60">Admin</span>

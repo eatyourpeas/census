@@ -14,7 +14,7 @@
           </a>
         {% else %}
           <a href="{% url 'core:home' %}">
-            {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-16 h-16' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
+            {% include "components/icons/checktick.html" with classes=brand.icon_size_class|default:'w-16 h-16' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
           </a>
         {% endif %}
       </div>
