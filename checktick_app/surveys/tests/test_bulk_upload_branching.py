@@ -62,7 +62,9 @@ def test_parse_bulk_markdown_supports_ids_and_branches():
 
 @pytest.mark.django_db
 def test_bulk_upload_creates_branch_conditions(client, django_user_model):
-    user = django_user_model.objects.create_user(username="author", password=TEST_PASSWORD)
+    user = django_user_model.objects.create_user(
+        username="author", password=TEST_PASSWORD
+    )
     survey = Survey.objects.create(owner=user, name="Bulk", slug="bulk")
 
     client.login(username="author", password=TEST_PASSWORD)
@@ -94,7 +96,9 @@ def test_bulk_upload_creates_branch_conditions(client, django_user_model):
 
 @pytest.mark.django_db
 def test_bulk_upload_replaces_existing_content(client, django_user_model):
-    user = django_user_model.objects.create_user(username="author", password=TEST_PASSWORD)
+    user = django_user_model.objects.create_user(
+        username="author", password=TEST_PASSWORD
+    )
     survey = Survey.objects.create(owner=user, name="Bulk", slug="bulk")
     other_survey = Survey.objects.create(owner=user, name="Other", slug="other")
 
@@ -158,7 +162,9 @@ def test_bulk_upload_replaces_existing_content(client, django_user_model):
 
 @pytest.mark.django_db
 def test_bulk_upload_example_markdown_imports(client, django_user_model):
-    user = django_user_model.objects.create_user(username="author", password=TEST_PASSWORD)
+    user = django_user_model.objects.create_user(
+        username="author", password=TEST_PASSWORD
+    )
     survey = Survey.objects.create(owner=user, name="Example", slug="example")
 
     client.login(username="author", password=TEST_PASSWORD)

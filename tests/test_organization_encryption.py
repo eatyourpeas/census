@@ -16,7 +16,10 @@ from checktick_app.surveys.models import (
     OrganizationMembership,
     Survey,
 )
-from checktick_app.surveys.utils import decrypt_kek_with_org_key, encrypt_kek_with_org_key
+from checktick_app.surveys.utils import (
+    decrypt_kek_with_org_key,
+    encrypt_kek_with_org_key,
+)
 
 User = get_user_model()
 

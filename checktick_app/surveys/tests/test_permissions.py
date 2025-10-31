@@ -287,7 +287,10 @@ def test_viewer_role_dashboard_limited_access(client, users, org, surveys):
 @pytest.mark.django_db
 def test_permission_functions_with_editor_role(db, users, org, surveys):
     """Test the permission functions directly with EDITOR role."""
-    from checktick_app.surveys.permissions import can_edit_survey, can_manage_survey_users
+    from checktick_app.surveys.permissions import (
+        can_edit_survey,
+        can_manage_survey_users,
+    )
 
     admin, creator, viewer, outsider, participant = users
     s1, s2 = surveys
