@@ -1,3 +1,8 @@
+# Docker Compose for LOCAL DEVELOPMENT
+# This uses Dockerfile.dev with hot-reloading and DEBUG mode
+#
+# Usage: docker compose -f docker-compose.dev.yml up
+
 services:
   db:
     image: postgres:16-alpine
@@ -16,15 +21,15 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile  # Use production Dockerfile, not Dockerfile.dev
+      dockerfile: Dockerfile.dev
     environment:
       DATABASE_URL: postgres://checktick:checktick@db:5432/checktick
-      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}  # Should be set via .env
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      DEBUG: ${DEBUG:-False}  # Default to False for production
+      SECRET_KEY: dev-secret-key-not-for-production
+      ALLOWED_HOSTS: "*"
+      DEBUG: "True"
       EXTERNAL_DATASET_API_URL: ${EXTERNAL_DATASET_API_URL:-https://api.rcpch.ac.uk}
       EXTERNAL_DATASET_API_KEY: ${EXTERNAL_DATASET_API_KEY:-}
-      # OIDC Configuration
+      # OIDC Configuration for local development
       OIDC_RP_CLIENT_ID_AZURE: ${OIDC_RP_CLIENT_ID_AZURE}
       OIDC_RP_CLIENT_SECRET_AZURE: ${OIDC_RP_CLIENT_SECRET_AZURE}
       OIDC_OP_TENANT_ID_AZURE: ${OIDC_OP_TENANT_ID_AZURE}
@@ -39,8 +44,8 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - media_data:/app/media  # Only mount media, not entire app directory
+      - ./:/app
+    command: sh -lc "npm install && npm run build:css && python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"
 
 volumes:
   db_data:
-  media_data:  # Add media volume for persistent uploads
