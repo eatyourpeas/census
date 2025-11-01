@@ -316,3 +316,112 @@ def test_permission_functions_with_editor_role(db, users, org, surveys):
     )
     assert can_edit_survey(viewer, s1) is False
     assert can_manage_survey_users(viewer, s1) is False
+
+
+@pytest.mark.django_db
+def test_group_builder_blocks_unauthenticated_users(client, users, org):
+    """
+    Test that the group builder (which includes Special Templates) is NOT
+    accessible to unauthenticated users. This is critical for security.
+    """
+    admin, creator, viewer, outsider, participant = users
+
+    # Create survey owned by creator
+    survey = Survey.objects.create(
+        owner=creator, organization=org, name="Test", slug="test"
+    )
+
+    # Create a question group
+    from checktick_app.surveys.models import QuestionGroup
+
+    group = QuestionGroup.objects.create(name="Test Group", owner=creator)
+    survey.question_groups.add(group)
+
+    url = reverse(
+        "surveys:group_builder", kwargs={"slug": survey.slug, "gid": group.id}
+    )
+
+    # Test 1: Anonymous/unauthenticated user must be blocked
+    client.logout()
+    res = client.get(url)
+    assert res.status_code in (
+        302,
+        401,
+        403,
+    ), "Unauthenticated users should not be able to access group builder"
+
+    # Test 2: User without edit permissions should be blocked
+    client.force_login(viewer)
+    SurveyMembership.objects.create(
+        survey=survey, user=viewer, role=SurveyMembership.Role.VIEWER
+    )
+    res = client.get(url)
+    assert (
+        res.status_code == 403
+    ), "Viewer role should not be able to access builder (edit-only)"
+
+    # Test 3: Complete outsider should be blocked
+    client.force_login(outsider)
+    res = client.get(url)
+    assert (
+        res.status_code == 403
+    ), "Users without any survey membership should not access builder"
+
+
+@pytest.mark.django_db
+def test_group_builder_allows_authorized_users(client, users, org):
+    """
+    Test that users with edit permissions CAN access the group builder.
+    This verifies the positive case - authorized users should see the builder
+    including the Special Templates tab.
+    """
+    admin, creator, viewer, outsider, participant = users
+
+    # Create survey owned by creator
+    survey = Survey.objects.create(
+        owner=creator, organization=org, name="Test", slug="test"
+    )
+
+    # Create a question group
+    from checktick_app.surveys.models import QuestionGroup
+
+    group = QuestionGroup.objects.create(name="Test Group", owner=creator)
+    survey.question_groups.add(group)
+
+    url = reverse(
+        "surveys:group_builder", kwargs={"slug": survey.slug, "gid": group.id}
+    )
+
+    # Test 1: Survey owner can access
+    client.force_login(creator)
+    res = client.get(url)
+    assert res.status_code == 200
+    assert (
+        b'aria-label="Special Templates"' in res.content
+    ), "Special Templates tab should be visible to authorized users"
+
+    # Test 2: Org admin can access
+    client.force_login(admin)
+    res = client.get(url)
+    assert res.status_code == 200
+    assert b'aria-label="Special Templates"' in res.content
+
+    # Test 3: Survey member with CREATOR role can access
+    editor_user = User.objects.create_user(username="editor", password="x")
+    SurveyMembership.objects.create(
+        survey=survey, user=editor_user, role=SurveyMembership.Role.CREATOR
+    )
+    client.force_login(editor_user)
+    res = client.get(url)
+    assert res.status_code == 200
+    assert b'aria-label="Special Templates"' in res.content
+
+    # Test 4: Survey member with EDITOR role can access
+    editor2 = User.objects.create_user(username="editor2", password="x")
+    SurveyMembership.objects.create(
+        survey=survey, user=editor2, role=SurveyMembership.Role.EDITOR
+    )
+    client.force_login(editor2)
+    res = client.get(url)
+    assert res.status_code == 200
+    assert b'aria-label="Special Templates"' in res.content
