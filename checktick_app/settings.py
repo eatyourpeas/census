@@ -165,8 +165,31 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "checktick_app" / "static"]
+
+# WhiteNoise configuration with cache busting
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_MAX_AGE = 31536000 if not DEBUG else 0
+
+# Use manifest storage with cache busting in production only
+# In development/testing, use regular storage to avoid collectstatic requirement
+if DEBUG:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+        },
+    }
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 # Media uploads (used for admin-uploaded icons if configured)
 MEDIA_URL = "/media/"
