@@ -99,6 +99,8 @@ class HealthcareOIDCCallbackView(OIDCAuthenticationCallbackView):
                         logger.error(
                             f"OIDC error: {error}, description: {error_description}"
                         )
+                    # Explicitly redirect to login on authentication failure
+                    return redirect("/accounts/login/?error=oidc_authentication_failed")
 
             except Exception as e:
                 logger.error(f"OIDC parent callback failed with exception: {e}")
