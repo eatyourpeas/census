@@ -95,7 +95,7 @@ class TestOIDCAuthenticationCallback:
             request.user = user
             
             # Call the callback
-            response = view.get(request)
+            view.get(request)
             
             # Verify user IS authenticated
             assert request.user.is_authenticated
@@ -146,7 +146,7 @@ class TestOIDCAuthenticationCallback:
         # Create a test survey
         owner = User.objects.create_user(username='owner', email='owner@example.com')
         from checktick_app.surveys.models import Survey
-        survey = Survey.objects.create(owner=owner, name='Test', slug='test')
+        Survey.objects.create(owner=owner, name='Test', slug='test')
         
         # Try to access the dashboard without authentication
         response = client.get(reverse('surveys:dashboard', kwargs={'slug': 'test'}))
