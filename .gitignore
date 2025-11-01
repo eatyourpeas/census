@@ -92,7 +92,7 @@ coverage.xml
 cover/
 
 # Translations
-*.mo
+# *.mo - Compiled translations should be committed for production deployments
 *.pot
 
 # Django stuff:

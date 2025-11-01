@@ -20,6 +20,7 @@ RUN npm install --no-audit --no-fund
 
 COPY checktick_app ./checktick_app
 COPY manage.py ./
+COPY locale ./locale
 # Install the current project now that sources are present
 RUN poetry install --no-interaction --no-ansi
 
