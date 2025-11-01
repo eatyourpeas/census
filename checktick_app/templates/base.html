@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}{{ brand.title }}{% endblock %}</title>
-  <link rel="icon" href="{% static 'icons/census_brand_favicon.svg' %}" type="image/svg+xml" />
+  <link rel="icon" href="{% static 'icons/checktick_brand_favicon.svg' %}" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   {% if brand.font_css_url %}<link href="{{ brand.font_css_url }}" rel="stylesheet">{% endif %}
@@ -77,7 +77,7 @@
             {% if brand.icon_url %}
               <img src="{{ brand.icon_url }}" alt="{{ brand.icon_alt|default:brand.title }} icon" title="{{ brand.icon_title|default:brand.title }}" class="{{ brand.icon_size_class|default:'w-6 h-6' }}" />
             {% else %}
-              {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-6 h-6 text-base-content' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
+              {% include "components/icons/checktick.html" with classes=brand.icon_size_class|default:'w-6 h-6 text-base-content' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
             {% endif %}
           </span>
           {# Dark icon (optional) #}
@@ -88,7 +88,7 @@
               {% if brand.icon_url %}
                 <img src="{{ brand.icon_url }}" alt="{{ brand.icon_alt|default:brand.title }} icon" title="{{ brand.icon_title|default:brand.title }}" class="{{ brand.icon_size_class|default:'w-6 h-6' }}" />
               {% else %}
-                {% include "components/icons/census_brand.html" with classes=brand.icon_size_class|default:'w-6 h-6 text-base-content' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
+                {% include "components/icons/checktick.html" with classes=brand.icon_size_class|default:'w-6 h-6 text-base-content' aria_label=brand.icon_alt|default:brand.title title=brand.icon_title|default:brand.title %}
               {% endif %}
             {% endif %}
           </span>

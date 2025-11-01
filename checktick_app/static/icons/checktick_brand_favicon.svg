@@ -1,5 +1,4 @@
-<svg width="200" height="200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"  class="{{ classes|default:'w-6 h-6' }}" role="img" aria-label="{{ aria_label|default:'CheckTick icon' }}" title="{{ title|default:'CheckTick' }}">
-
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect x="5" y="4" width="11" height="15" rx="2" ry="2"
         stroke="#6d5aa5" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 
