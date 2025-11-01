@@ -21,6 +21,7 @@ RUN npm install --no-audit --no-fund
 
 COPY checktick_app ./checktick_app
 COPY manage.py ./
+COPY locale ./locale
 # Include documentation and contributing guide so docs pages work in production
 COPY docs ./docs
 COPY CONTRIBUTING.md ./
@@ -38,4 +39,4 @@ ENV PORT=8000
 
 EXPOSE 8000
 
-CMD ["sh", "-lc", "python manage.py compilemessages && python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn checktick_app.wsgi:application --bind 0.0.0.0:${PORT} --workers 3"]
+CMD ["sh", "-lc", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn checktick_app.wsgi:application --bind 0.0.0.0:${PORT} --workers 3"]

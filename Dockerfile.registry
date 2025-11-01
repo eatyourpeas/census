@@ -32,6 +32,7 @@ RUN npm install --no-audit --no-fund
 # Copy application code
 COPY checktick_app ./checktick_app
 COPY manage.py ./
+COPY locale ./locale
 COPY docs ./docs
 COPY CONTRIBUTING.md ./
 
